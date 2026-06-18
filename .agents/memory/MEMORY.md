@@ -1,0 +1,2 @@
+- [yahoo-finance2 v3 quirk](yahoo-finance2-v3.md) — default export is the class, not an instance; must call `new YahooFinance()`
+- [FloBoard colors convention](floboard-colors.md) — `colors.light` key is the dark FloBoard theme; `useColors()` always returns it
