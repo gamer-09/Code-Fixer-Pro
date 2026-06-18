@@ -2,9 +2,14 @@ import YahooFinanceClass from "yahoo-finance2";
 import { Router } from "express";
 
 const router = Router();
-// v3: default export is the class; must instantiate
-// eslint-disable-next-line new-cap
-const yf = new (YahooFinanceClass as unknown as new () => typeof YahooFinanceClass.prototype)();
+// v3: default export is the class — must instantiate
+const yf = new (YahooFinanceClass as unknown as new () => {
+  quote: (
+    sym: string,
+    opts: object,
+    qOpts: object
+  ) => Promise<unknown>;
+})();
 
 router.get("/market", async (req, res) => {
   const raw = req.query.symbols;
@@ -27,17 +32,22 @@ router.get("/market", async (req, res) => {
   try {
     const settled = await Promise.allSettled(
       symbols.map((sym) =>
-        (yf as unknown as { quote: (s: string, opts: object) => Promise<unknown> }).quote(sym, {
-          fields: [
-            "symbol",
-            "regularMarketPrice",
-            "regularMarketChangePercent",
-            "regularMarketChange",
-            "regularMarketPreviousClose",
-            "marketCap",
-            "regularMarketVolume",
-          ],
-        })
+        yf.quote(
+          sym,
+          {
+            fields: [
+              "symbol",
+              "regularMarketPrice",
+              "regularMarketChangePercent",
+              "regularMarketChange",
+              "regularMarketPreviousClose",
+              "marketCap",
+              "regularMarketVolume",
+            ],
+          },
+          // Skip schema validation — futures & forex cause loud warnings but data is valid
+          { validateResult: false }
+        )
       )
     );
 
