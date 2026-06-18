@@ -1,5 +1,4 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
 import { ALL_SYMBOLS } from '@/constants/marketData';
 
 export interface QuoteData {
@@ -26,99 +25,25 @@ const MarketContext = createContext<MarketContextType>({
   refresh: () => {},
 });
 
-// On web: route through backend proxy (to avoid CORS).
-// On native: call Yahoo Finance directly (no CORS enforcement on native).
-const IS_NATIVE = Platform.OS !== 'web';
-
-const WEB_API_BASE = process.env.EXPO_PUBLIC_DOMAIN
+// The API server is accessible from both web and native via the Replit dev domain.
+// EXPO_PUBLIC_DOMAIN is baked into the bundle at Metro bundler start time.
+const API_BASE = process.env.EXPO_PUBLIC_DOMAIN
   ? `https://${process.env.EXPO_PUBLIC_DOMAIN}`
   : 'http://localhost:80';
 
-const YF_QUOTE_URL = 'https://query1.finance.yahoo.com/v7/finance/quote';
-const YF_CHART_URL = 'https://query2.finance.yahoo.com/v8/finance/chart';
-
-const NATIVE_HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-  Accept: 'application/json, */*',
-  'Accept-Language': 'en-US,en;q=0.9',
-};
-
-/** Fetch a batch via backend proxy (web only) */
-async function fetchViaProxy(symbols: string[]): Promise<QuoteData[]> {
+/** Fetch a batch of symbols via the backend proxy */
+async function fetchBatch(symbols: string[]): Promise<QuoteData[]> {
   try {
     const res = await fetch(
-      `${WEB_API_BASE}/api/market?symbols=${encodeURIComponent(symbols.join(','))}`,
-      { signal: AbortSignal.timeout(15000) }
+      `${API_BASE}/api/market?symbols=${encodeURIComponent(symbols.join(','))}`,
+      { signal: AbortSignal.timeout(20000) }
     );
     if (!res.ok) return [];
-    const json = await res.json();
-    return (json.results as QuoteData[]) || [];
+    const json = await res.json() as { results: QuoteData[] };
+    return json.results || [];
   } catch {
     return [];
   }
-}
-
-/** Fetch a batch via Yahoo Finance v7 quote API (native) */
-async function fetchViaYahooV7(symbols: string[]): Promise<QuoteData[]> {
-  try {
-    const fields = 'regularMarketPrice,regularMarketChangePercent,regularMarketChange,regularMarketPreviousClose,marketCap,regularMarketVolume';
-    const url = `${YF_QUOTE_URL}?symbols=${encodeURIComponent(symbols.join(','))}&fields=${fields}&corsDomain=finance.yahoo.com&formatted=false`;
-    const res = await fetch(url, {
-      headers: NATIVE_HEADERS,
-      signal: AbortSignal.timeout(12000),
-    });
-    if (!res.ok) return [];
-    const json = await res.json();
-    return (json?.quoteResponse?.result ?? []) as QuoteData[];
-  } catch {
-    return [];
-  }
-}
-
-/** Fetch a single symbol via Yahoo Finance v8 chart API (native fallback) */
-async function fetchOneViaChart(sym: string): Promise<QuoteData | null> {
-  try {
-    const url = `${YF_CHART_URL}/${encodeURIComponent(sym)}?interval=1d&range=1d&includePrePost=false`;
-    const res = await fetch(url, {
-      headers: NATIVE_HEADERS,
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const meta = json?.chart?.result?.[0]?.meta;
-    if (!meta) return null;
-    const prev = meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice;
-    const change = meta.regularMarketPrice - prev;
-    const changePct = prev > 0 ? (change / prev) * 100 : 0;
-    return {
-      symbol: meta.symbol ?? sym,
-      regularMarketPrice: meta.regularMarketPrice ?? 0,
-      regularMarketChangePercent: changePct,
-      regularMarketChange: change,
-      regularMarketPreviousClose: prev,
-      marketCap: meta.marketCap ?? 0,
-      regularMarketVolume: meta.regularMarketVolume ?? 0,
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function fetchBatch(symbols: string[]): Promise<QuoteData[]> {
-  if (!IS_NATIVE) {
-    return fetchViaProxy(symbols);
-  }
-
-  // Try v7 batch first (faster)
-  const v7Results = await fetchViaYahooV7(symbols);
-  if (v7Results.length > 0) return v7Results;
-
-  // Fall back to v8 chart per-symbol (slower but more reliable)
-  const chartResults = await Promise.allSettled(symbols.map(fetchOneViaChart));
-  return chartResults
-    .filter((r): r is PromiseFulfilledResult<QuoteData> => r.status === 'fulfilled' && r.value !== null)
-    .map((r) => r.value);
 }
 
 export function MarketProvider({ children }: { children: React.ReactNode }) {
@@ -132,7 +57,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     loadingRef.current = true;
     setLoading(true);
 
-    const BATCH = IS_NATIVE ? 15 : 20;
+    const BATCH = 20;
     const allResults: QuoteData[] = [];
 
     for (let i = 0; i < ALL_SYMBOLS.length; i += BATCH) {
