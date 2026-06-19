@@ -1,10 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { Router } from "express";
 
 const router = Router();
 
 function getClient() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
 
 interface ChatMessageInput {
@@ -41,37 +41,33 @@ router.post("/chat", async (req, res) => {
     systemPrompt ??
     "You are FloAI, an expert financial advisor. Provide educational, balanced financial information. Always note this is informational only, not personal financial advice.";
 
-  const anthropicMessages = validMessages.map((m) => ({
-    role: m.role,
-    content: m.content,
-  }));
+  const openaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: "system", content: system },
+    ...validMessages.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    })),
+  ];
 
-  // ?stream=false → return a single JSON response (used on native where
-  // the Streams API / ReadableStream is not reliable in Expo Go).
+  // ?stream=false → return a single JSON response (used on native)
   if (req.query.stream === "false") {
     try {
-      const response = await getClient().messages.create({
-        model: "claude-3-5-haiku-20241022",
+      const response = await getClient().chat.completions.create({
+        model: "gpt-4o-mini",
         max_tokens: 1024,
-        system,
-        messages: anthropicMessages,
+        messages: openaiMessages,
       });
 
-      const text =
-        response.content
-          .filter((b) => b.type === "text")
-          .map((b) => (b as { type: "text"; text: string }).text)
-          .join("") || "No response received.";
-
+      const text = response.choices[0]?.message?.content ?? "No response received.";
       res.json({ content: text });
     } catch (err) {
-      req.log.error({ err }, "Anthropic non-stream error");
+      req.log.error({ err }, "OpenAI non-stream error");
       res.status(500).json({ error: "AI service error. Please try again." });
     }
     return;
   }
 
-  // Default: SSE streaming (used on web).
+  // Default: SSE streaming (used on web)
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -83,26 +79,24 @@ router.post("/chat", async (req, res) => {
   };
 
   try {
-    const stream = await getClient().messages.stream({
-      model: "claude-3-5-haiku-20241022",
+    const stream = await getClient().chat.completions.create({
+      model: "gpt-4o-mini",
       max_tokens: 1024,
-      system,
-      messages: anthropicMessages,
+      messages: openaiMessages,
+      stream: true,
     });
 
-    for await (const event of stream) {
-      if (
-        event.type === "content_block_delta" &&
-        event.delta.type === "text_delta"
-      ) {
-        sendChunk({ content: event.delta.text });
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) {
+        sendChunk({ content: delta });
       }
     }
 
     res.write("data: [DONE]\n\n");
     res.end();
   } catch (err) {
-    req.log.error({ err }, "Anthropic streaming error");
+    req.log.error({ err }, "OpenAI streaming error");
     sendChunk({ error: "AI service error. Please try again." });
     res.write("data: [DONE]\n\n");
     res.end();
