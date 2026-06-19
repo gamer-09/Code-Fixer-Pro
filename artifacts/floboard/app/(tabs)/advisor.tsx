@@ -289,46 +289,43 @@ export default function AdvisorScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* Messages (inverted) */}
-        <View style={{ flex: 1 }}>
-          <FlatList
-            ref={listRef}
-            data={messages}
-            keyExtractor={(m) => m.id}
-            renderItem={({ item }) => <MessageBubble msg={item} />}
-            inverted
-            contentContainerStyle={{ padding: 14, paddingBottom: 10 }}
-            showsVerticalScrollIndicator={false}
-            ListHeaderComponent={streaming ? <TypingIndicator /> : null}
-          />
-        </View>
+        <FlatList
+          ref={listRef}
+          style={{ flex: 1 }}
+          data={messages}
+          keyExtractor={(m) => m.id}
+          renderItem={({ item }) => <MessageBubble msg={item} />}
+          inverted
+          contentContainerStyle={{ padding: 14, paddingBottom: 10 }}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={streaming ? <TypingIndicator /> : null}
+        />
 
         {/* Quick questions */}
         {messages.length === 1 && !streaming && (
-          <View>
-            <FlatList
-              data={QUICK_QUESTIONS}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(q, i) => String(i)}
-              contentContainerStyle={styles.quickScroll}
-              renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => sendMessage(item)}
-                  style={({ pressed }) => [
-                    styles.quickChip,
-                    { backgroundColor: colors.card, borderColor: pressed ? colors.blue : colors.rim },
-                    pressed && { opacity: 0.8 },
-                  ]}
-                >
-                  <Text style={[styles.quickText, { color: colors.t2 }]}>{item}</Text>
-                </Pressable>
-              )}
-            />
-          </View>
+          <FlatList
+            data={QUICK_QUESTIONS}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(q, i) => String(i)}
+            contentContainerStyle={styles.quickScroll}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => sendMessage(item)}
+                style={({ pressed }) => [
+                  styles.quickChip,
+                  { backgroundColor: colors.card, borderColor: pressed ? colors.blue : colors.rim },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <Text style={[styles.quickText, { color: colors.t2 }]}>{item}</Text>
+              </Pressable>
+            )}
+          />
         )}
 
         {/* Input bar */}
@@ -338,7 +335,7 @@ export default function AdvisorScreen() {
             {
               backgroundColor: colors.base,
               borderTopColor: colors.rim,
-              paddingBottom: Platform.OS === 'web' ? 84 : insets.bottom + 8,
+              paddingBottom: Math.max(insets.bottom, 8),
             },
           ]}
         >
