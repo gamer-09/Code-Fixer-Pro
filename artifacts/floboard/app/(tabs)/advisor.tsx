@@ -176,51 +176,70 @@ export default function AdvisorScreen() {
       historyForApi.push({ role: 'user', content: trimmed });
 
       let streamedContent = '';
+      const isNative = Platform.OS !== 'web';
 
       try {
-        const response = await fetch(`${BASE_URL}/api/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: historyForApi,
-            systemPrompt: buildSystemPrompt(data),
-          }),
-        });
+        if (isNative) {
+          // Native: use non-streaming JSON endpoint — React Native / Expo Go
+          // doesn't reliably support ReadableStream / getReader()
+          const response = await fetch(`${BASE_URL}/api/chat?stream=false`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: historyForApi,
+              systemPrompt: buildSystemPrompt(data),
+            }),
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const json = await response.json() as { content?: string; error?: string };
+          if (json.error) throw new Error(json.error);
+          streamedContent = json.content ?? '';
+          setMessages((cur) =>
+            cur.map((m) => (m.id === aiId ? { ...m, content: streamedContent } : m))
+          );
+        } else {
+          // Web: SSE streaming for real-time token display
+          const response = await fetch(`${BASE_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: historyForApi,
+              systemPrompt: buildSystemPrompt(data),
+            }),
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
+          const reader = response.body!.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
 
-        const reader = response.body!.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? '';
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const raw = line.slice(6).trim();
-              if (raw === '[DONE]') break;
-              try {
-                const parsed = JSON.parse(raw);
-                if (parsed.content) {
-                  streamedContent += parsed.content;
-                  setMessages((cur) =>
-                    cur.map((m) => (m.id === aiId ? { ...m, content: streamedContent } : m))
-                  );
-                }
-                if (parsed.error) {
-                  setMessages((cur) =>
-                    cur.map((m) => (m.id === aiId ? { ...m, content: `Error: ${parsed.error}` } : m))
-                  );
-                }
-              } catch {}
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const raw = line.slice(6).trim();
+                if (raw === '[DONE]') break;
+                try {
+                  const parsed = JSON.parse(raw) as { content?: string; error?: string };
+                  if (parsed.content) {
+                    streamedContent += parsed.content;
+                    setMessages((cur) =>
+                      cur.map((m) => (m.id === aiId ? { ...m, content: streamedContent } : m))
+                    );
+                  }
+                  if (parsed.error) {
+                    setMessages((cur) =>
+                      cur.map((m) => (m.id === aiId ? { ...m, content: `Error: ${parsed.error}` } : m))
+                    );
+                  }
+                } catch {}
+              }
             }
           }
         }

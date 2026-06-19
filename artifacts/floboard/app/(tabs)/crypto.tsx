@@ -1,5 +1,5 @@
-import React, { Platform } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';

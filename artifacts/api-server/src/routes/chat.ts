@@ -34,6 +34,41 @@ router.post("/chat", async (req, res) => {
     return;
   }
 
+  const system =
+    systemPrompt ??
+    "You are FloAI, an expert financial advisor. Provide educational, balanced financial information. Always note this is informational only, not personal financial advice.";
+
+  const anthropicMessages = validMessages.map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
+
+  // ?stream=false → return a single JSON response (used on native where
+  // the Streams API / ReadableStream is not reliable in Expo Go).
+  if (req.query.stream === "false") {
+    try {
+      const response = await client.messages.create({
+        model: "claude-3-5-haiku-20241022",
+        max_tokens: 1024,
+        system,
+        messages: anthropicMessages,
+      });
+
+      const text =
+        response.content
+          .filter((b) => b.type === "text")
+          .map((b) => (b as { type: "text"; text: string }).text)
+          .join("") || "No response received.";
+
+      res.json({ content: text });
+    } catch (err) {
+      req.log.error({ err }, "Anthropic non-stream error");
+      res.status(500).json({ error: "AI service error. Please try again." });
+    }
+    return;
+  }
+
+  // Default: SSE streaming (used on web).
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -48,13 +83,8 @@ router.post("/chat", async (req, res) => {
     const stream = await client.messages.stream({
       model: "claude-3-5-haiku-20241022",
       max_tokens: 1024,
-      system:
-        systemPrompt ??
-        "You are FloAI, an expert financial advisor. Provide educational, balanced financial information. Always note this is informational only, not personal financial advice.",
-      messages: validMessages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      system,
+      messages: anthropicMessages,
     });
 
     for await (const event of stream) {
