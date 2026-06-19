@@ -36,6 +36,8 @@ const QUICK_QUESTIONS = [
   'Should I be worried about inflation?',
 ];
 
+const AI_UNAVAILABLE = true; // Set to false once an AI key with credits is configured
+
 const INITIAL_MSG: ChatMessage = {
   id: 'init',
   role: 'assistant',
@@ -46,7 +48,7 @@ const INITIAL_MSG: ChatMessage = {
 
 function buildSystemPrompt(data: Record<string, { regularMarketPrice: number; regularMarketChangePercent: number }>) {
   const lines = [
-    `You are FloAI, an expert financial advisor powered by Anthropic Claude. Today is ${new Date().toDateString()}.`,
+    `You are FloAI, an expert financial advisor. Today is ${new Date().toDateString()}.`,
     '',
     'You have access to live market data. Here is a snapshot:',
     '',
@@ -274,13 +276,27 @@ export default function AdvisorScreen() {
       <View style={[styles.header, { paddingTop: topPad + 8, backgroundColor: colors.base, borderBottomColor: colors.rim }]}>
         <View>
           <Text style={[styles.pageTitle, { color: colors.t1 }]}>FloAI</Text>
-          <Text style={[styles.subTitle, { color: colors.gain }]}>AI Market Advisor</Text>
+          <Text style={[styles.subTitle, { color: AI_UNAVAILABLE ? colors.amber : colors.gain }]}>AI Market Advisor</Text>
         </View>
-        <View style={[styles.statusChip, { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }]}>
-          <View style={[styles.statusDot, { backgroundColor: colors.gain }]} />
-          <Text style={[styles.statusText, { color: colors.gain }]}>ONLINE</Text>
+        <View style={[styles.statusChip, {
+          backgroundColor: AI_UNAVAILABLE ? colors.amberDim : colors.gainDim,
+          borderColor: AI_UNAVAILABLE ? 'rgba(255,180,0,0.2)' : 'rgba(0,229,160,0.2)',
+        }]}>
+          <View style={[styles.statusDot, { backgroundColor: AI_UNAVAILABLE ? colors.amber : colors.gain }]} />
+          <Text style={[styles.statusText, { color: AI_UNAVAILABLE ? colors.amber : colors.gain }]}>
+            {AI_UNAVAILABLE ? 'OFFLINE' : 'ONLINE'}
+          </Text>
         </View>
       </View>
+
+      {AI_UNAVAILABLE && (
+        <View style={[styles.unavailableBanner, { backgroundColor: colors.amberDim, borderColor: 'rgba(255,180,0,0.2)' }]}>
+          <Text style={[styles.unavailableTitle, { color: colors.amber }]}>AI Advisor Temporarily Unavailable</Text>
+          <Text style={[styles.unavailableBody, { color: colors.t3 }]}>
+            FloAI needs an OpenAI API key with available credits. Add credits at platform.openai.com/settings/billing, then provide a new key in the app settings.
+          </Text>
+        </View>
+      )}
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -348,7 +364,7 @@ export default function AdvisorScreen() {
           />
           <Pressable
             onPress={handleSend}
-            disabled={streaming || !input.trim()}
+            disabled={AI_UNAVAILABLE || streaming || !input.trim()}
             style={[
               styles.sendBtn,
               {
@@ -438,4 +454,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  unavailableBanner: {
+    marginHorizontal: 14,
+    marginTop: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+    gap: 4,
+  },
+  unavailableTitle: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
+  unavailableBody: { fontSize: 11, lineHeight: 17 },
 });
