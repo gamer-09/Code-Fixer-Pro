@@ -293,16 +293,18 @@ export default function AdvisorScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         {/* Messages (inverted) */}
-        <FlatList
-          ref={listRef}
-          data={messages}
-          keyExtractor={(m) => m.id}
-          renderItem={({ item }) => <MessageBubble msg={item} />}
-          inverted
-          contentContainerStyle={{ padding: 14, paddingBottom: 10 }}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={streaming ? <TypingIndicator /> : null}
-        />
+        <View style={{ flex: 1 }}>
+          <FlatList
+            ref={listRef}
+            data={messages}
+            keyExtractor={(m) => m.id}
+            renderItem={({ item }) => <MessageBubble msg={item} />}
+            inverted
+            contentContainerStyle={{ padding: 14, paddingBottom: 10 }}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={streaming ? <TypingIndicator /> : null}
+          />
+        </View>
 
         {/* Quick questions */}
         {messages.length === 1 && !streaming && (
