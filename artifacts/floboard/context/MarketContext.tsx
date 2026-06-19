@@ -28,23 +28,28 @@ const MarketContext = createContext<MarketContextType>({
 
 const IS_NATIVE = Platform.OS !== 'web';
 
-// Backend proxy URL — baked into the native bundle via EXPO_PUBLIC_DOMAIN
 const API_BASE = process.env.EXPO_PUBLIC_DOMAIN
   ? `https://${process.env.EXPO_PUBLIC_DOMAIN}`
   : 'http://localhost:80';
 
-// Yahoo Finance v8 chart API — works without auth/crumb on native
 const YF_CHART = 'https://query2.finance.yahoo.com/v8/finance/chart';
 
 const NATIVE_UA =
   'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
 
-/** Fetch a batch via the backend proxy */
+/** Cross-platform fetch with timeout (AbortSignal.timeout is not in Hermes/RN) */
+function fetchWithTimeout(url: string, options: RequestInit = {}, ms = 15000): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id));
+}
+
 async function fetchViaProxy(symbols: string[]): Promise<QuoteData[]> {
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `${API_BASE}/api/market?symbols=${encodeURIComponent(symbols.join(','))}`,
-      { signal: AbortSignal.timeout(15000) }
+      {},
+      15000
     );
     if (!res.ok) return [];
     const json = await res.json() as { results: QuoteData[] };
@@ -54,25 +59,25 @@ async function fetchViaProxy(symbols: string[]): Promise<QuoteData[]> {
   }
 }
 
-/** Fetch a single symbol via Yahoo Finance v8 chart (no auth required) */
 async function fetchOneChart(sym: string): Promise<QuoteData | null> {
   try {
-    const url = `${YF_CHART}/${encodeURIComponent(sym)}?interval=1d&range=1d&includePrePost=false`;
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': NATIVE_UA,
-        Accept: 'application/json',
+    const res = await fetchWithTimeout(
+      `${YF_CHART}/${encodeURIComponent(sym)}?interval=1d&range=1d&includePrePost=false`,
+      {
+        headers: {
+          'User-Agent': NATIVE_UA,
+          Accept: 'application/json',
+        },
       },
-      signal: AbortSignal.timeout(10000),
-    });
+      10000
+    );
     if (!res.ok) return null;
     const json = await res.json() as {
-      chart?: { result?: Array<{ meta?: Record<string, number> }> };
+      chart?: { result?: Array<{ meta?: Record<string, unknown> }> };
     };
-    const meta = json?.chart?.result?.[0]?.meta;
+    const meta = json?.chart?.result?.[0]?.meta as Record<string, number> | undefined;
     if (!meta?.regularMarketPrice) return null;
-    const prev =
-      (meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice) as number;
+    const prev = (meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice) as number;
     const price = meta.regularMarketPrice as number;
     const change = price - prev;
     const changePct = prev > 0 ? (change / prev) * 100 : 0;
@@ -90,12 +95,11 @@ async function fetchOneChart(sym: string): Promise<QuoteData | null> {
   }
 }
 
-/** Fetch symbols in parallel batches of N */
 async function fetchChartBatch(symbols: string[], concurrency = 8): Promise<QuoteData[]> {
   const results: QuoteData[] = [];
   for (let i = 0; i < symbols.length; i += concurrency) {
-    const batch = symbols.slice(i, i + concurrency);
-    const settled = await Promise.allSettled(batch.map(fetchOneChart));
+    const slice = symbols.slice(i, i + concurrency);
+    const settled = await Promise.allSettled(slice.map(fetchOneChart));
     for (const r of settled) {
       if (r.status === 'fulfilled' && r.value) results.push(r.value);
     }
@@ -104,11 +108,11 @@ async function fetchChartBatch(symbols: string[], concurrency = 8): Promise<Quot
 }
 
 async function fetchBatch(symbols: string[]): Promise<QuoteData[]> {
-  // Always try the backend proxy first (works on web, may work on native too)
+  // Always try the backend proxy first (fast, works on web, may work on native)
   const proxy = await fetchViaProxy(symbols);
   if (proxy.length > 0) return proxy;
 
-  // Native fallback: call Yahoo Finance v8 chart per-symbol (no auth required)
+  // Native fallback: Yahoo Finance v8 chart API per symbol (no crumb/auth needed)
   if (IS_NATIVE) {
     return fetchChartBatch(symbols);
   }
