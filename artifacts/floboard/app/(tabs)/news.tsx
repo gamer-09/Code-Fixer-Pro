@@ -82,10 +82,10 @@ export default function NewsScreen() {
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: news, isLoading, isError, refetch } = useQuery({
+  const { data: news, isLoading, isFetching, isError, refetch } = useQuery({
     queryKey: ['news'],
     queryFn: fetchNews,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     retry: 2,
   });
 
@@ -113,7 +113,7 @@ export default function NewsScreen() {
             onPress={() => refetch()}
             style={[styles.refreshBtn, { backgroundColor: colors.card, borderColor: colors.rim }]}
           >
-            {isLoading
+            {isFetching
               ? <ActivityIndicator size="small" color={colors.blue} />
               : <IconRefreshCw size={13} color={colors.t2} />}
           </Pressable>

@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { IconFlash, IconSend } from '@/components/Icons';
@@ -289,43 +289,46 @@ export default function AdvisorScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* Messages (inverted) */}
-        <FlatList
-          ref={listRef}
-          style={{ flex: 1 }}
-          data={messages}
-          keyExtractor={(m) => m.id}
-          renderItem={({ item }) => <MessageBubble msg={item} />}
-          inverted
-          contentContainerStyle={{ padding: 14, paddingBottom: 10 }}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={streaming ? <TypingIndicator /> : null}
-        />
+        <View style={{ flex: 1 }}>
+          <FlatList
+            ref={listRef}
+            data={messages}
+            keyExtractor={(m) => m.id}
+            renderItem={({ item }) => <MessageBubble msg={item} />}
+            inverted
+            contentContainerStyle={{ padding: 14, paddingBottom: 10 }}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={streaming ? <TypingIndicator /> : null}
+          />
+        </View>
 
         {/* Quick questions */}
         {messages.length === 1 && !streaming && (
-          <FlatList
-            data={QUICK_QUESTIONS}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(q, i) => String(i)}
-            contentContainerStyle={styles.quickScroll}
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() => sendMessage(item)}
-                style={({ pressed }) => [
-                  styles.quickChip,
-                  { backgroundColor: colors.card, borderColor: pressed ? colors.blue : colors.rim },
-                  pressed && { opacity: 0.8 },
-                ]}
-              >
-                <Text style={[styles.quickText, { color: colors.t2 }]}>{item}</Text>
-              </Pressable>
-            )}
-          />
+          <View style={styles.quickRow}>
+            <FlatList
+              data={QUICK_QUESTIONS}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(q, i) => String(i)}
+              contentContainerStyle={styles.quickScroll}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => sendMessage(item)}
+                  style={({ pressed }) => [
+                    styles.quickChip,
+                    { backgroundColor: colors.card, borderColor: pressed ? colors.blue : colors.rim },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                >
+                  <Text style={[styles.quickText, { color: colors.t2 }]}>{item}</Text>
+                </Pressable>
+              )}
+            />
+          </View>
         )}
 
         {/* Input bar */}
@@ -413,6 +416,7 @@ const styles = StyleSheet.create({
   aiBubble: { borderTopLeftRadius: 3 },
   bubbleText: { fontSize: 13, lineHeight: 20, fontFamily: 'Inter_400Regular' },
   timeText: { fontSize: 9, marginTop: 4, textAlign: 'right' },
+  quickRow: { height: 52, flexShrink: 0 },
   quickScroll: { paddingHorizontal: 14, paddingVertical: 8, gap: 6 },
   quickChip: { borderRadius: 16, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 7 },
   quickText: { fontSize: 12, fontFamily: 'Inter_500Medium' },

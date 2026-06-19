@@ -28,77 +28,134 @@ function arrow(n: number | null | undefined): string {
   return n >= 0 ? "▲" : "▼";
 }
 
+const KEYWORD_MAP: Array<[RegExp, string[]]> = [
+  [/\bbtc\b|bitcoin/i, ["BTC-USD"]],
+  [/\beth\b|ethereum/i, ["ETH-USD"]],
+  [/\bbnb\b|binance/i, ["BNB-USD"]],
+  [/\bsol\b|solana/i, ["SOL-USD"]],
+  [/\bxrp\b|ripple/i, ["XRP-USD"]],
+  [/\bdoge\b|dogecoin/i, ["DOGE-USD"]],
+  [/\bapple\b|\baapl\b/i, ["AAPL"]],
+  [/\bmicrosoft\b|\bmsft\b/i, ["MSFT"]],
+  [/\bgoogle\b|\bgoogl\b|\balphabet\b/i, ["GOOGL"]],
+  [/\bamazon\b|\bamzn\b/i, ["AMZN"]],
+  [/\btesla\b|\btsla\b/i, ["TSLA"]],
+  [/\bnvidia\b|\bnvda\b/i, ["NVDA"]],
+  [/\bmeta\b|\bfacebook\b/i, ["META"]],
+  [/\bnetflix\b|\bnflx\b/i, ["NFLX"]],
+  [/\bsp500\b|s&p 500|s&p500|s&p/i, ["^GSPC"]],
+  [/\bnasdaq\b|\bixic\b/i, ["^IXIC"]],
+  [/\bdow jones\b|\bdji\b/i, ["^DJI"]],
+  [/\bgold\b/i, ["GC=F"]],
+  [/\bsilver\b/i, ["SI=F"]],
+  [/\boil\b|crude/i, ["CL=F"]],
+  [/\binflation\b/i, ["^TNX", "TIP"]],
+  [/\binterest rate/i, ["^TNX"]],
+  [/\bbond/i, ["^TNX"]],
+  [/\bmarket\b|movers|stocks today/i, ["^GSPC", "^IXIC"]],
+  [/\bcrypto\b/i, ["BTC-USD", "ETH-USD"]],
+];
+
+function extractSymbols(query: string): string[] {
+  const found: string[] = [];
+  for (const [pattern, symbols] of KEYWORD_MAP) {
+    if (pattern.test(query)) {
+      for (const s of symbols) {
+        if (!found.includes(s)) found.push(s);
+      }
+    }
+  }
+  return found;
+}
+
+async function getQuoteInfo(symbol: string): Promise<string | null> {
+  try {
+    const detail = await yf.quoteSummary(symbol, { modules: ["price"] });
+    const price = detail.price;
+    if (!price) return null;
+    const name = price.shortName || price.longName || symbol;
+    const current = price.regularMarketPrice;
+    const change = price.regularMarketChangePercent;
+    const open = price.regularMarketOpen;
+    const high = price.regularMarketDayHigh;
+    const low = price.regularMarketDayLow;
+    const mktCap = price.marketCap;
+
+    let line = `${name} (${symbol})\n`;
+    line += `  Price: ${fmt(current)}  ${arrow(change)} ${fmtPct(change)} today\n`;
+    if (open != null) line += `  Open: ${fmt(open)}   High: ${fmt(high)}   Low: ${fmt(low)}\n`;
+    if (mktCap != null) line += `  Market Cap: ${fmt(mktCap)}`;
+    return line;
+  } catch {
+    return null;
+  }
+}
+
 async function buildSearchResponse(userQuery: string): Promise<string> {
   const query = userQuery.trim();
   const lines: string[] = [];
 
-  try {
-    const searchResults = await yf.search(query, { quotesCount: 5, newsCount: 5 });
+  const knownSymbols = extractSymbols(query);
 
-    const quotes = searchResults.quotes ?? [];
-    const news = (searchResults.news ?? []).slice(0, 4);
-
-    if (quotes.length > 0) {
-      const topQuotes = quotes.slice(0, 3);
-      const enriched: string[] = [];
-
-      for (const q of topQuotes) {
-        if (!("symbol" in q) || !q.symbol) continue;
-        try {
-          const detail = await yf.quoteSummary(q.symbol, {
-            modules: ["price", "summaryDetail"],
-          });
-
-          const price = detail.price;
-          if (!price) continue;
-
-          const name = price.shortName || price.longName || q.symbol;
-          const current = price.regularMarketPrice;
-          const change = price.regularMarketChangePercent;
-          const volume = price.regularMarketVolume;
-          const mktCap = price.marketCap;
-
-          let line = `**${name} (${q.symbol})**\n`;
-          line += `  Price: ${fmt(current)} ${arrow(change)} ${fmtPct(change)}\n`;
-          if (volume != null) line += `  Volume: ${volume.toLocaleString()}\n`;
-          if (mktCap != null) line += `  Market Cap: ${fmt(mktCap)}`;
-          enriched.push(line);
-        } catch {
-          if ("symbol" in q && "shortname" in q) {
-            enriched.push(`**${(q as { shortname?: string }).shortname ?? q.symbol} (${q.symbol})**`);
-          }
-        }
-      }
-
-      if (enriched.length > 0) {
-        lines.push(`Here's what I found for "${query}":\n`);
-        lines.push(...enriched);
-      }
+  if (knownSymbols.length > 0) {
+    const quoteLines = await Promise.all(knownSymbols.slice(0, 3).map(getQuoteInfo));
+    const valid = quoteLines.filter(Boolean) as string[];
+    if (valid.length > 0) {
+      lines.push("Here's the latest data:\n");
+      lines.push(...valid);
     }
+  }
+
+  try {
+    const searchTerm = knownSymbols.length > 0 ? knownSymbols[0] : query;
+    const searchResults = await yf.search(searchTerm, { quotesCount: 0, newsCount: 5 });
+    const news = (searchResults.news ?? []).slice(0, 4);
 
     if (news.length > 0) {
       if (lines.length > 0) lines.push("");
-      lines.push("📰 Recent news:");
+      lines.push("📰 Latest news:");
       for (const article of news) {
         const title = (article as { title?: string }).title;
         const publisher = (article as { publisher?: string }).publisher;
-        const link = (article as { link?: string }).link;
         if (title) {
           let entry = `• ${title}`;
-          if (publisher) entry += ` — ${publisher}`;
+          if (publisher) entry += `  (${publisher})`;
           lines.push(entry);
         }
       }
     }
 
-    if (lines.length === 0) {
-      lines.push(`I searched for "${query}" but didn't find specific results.`);
-      lines.push("\nTry asking about a specific stock (e.g. 'Apple stock'), crypto (e.g. 'Bitcoin price'), or a market topic like 'S&P 500' or 'interest rates'.");
-    } else {
-      lines.push("\n⚠️ This is informational only — not personal financial advice.");
+    if (lines.length === 0 && knownSymbols.length === 0) {
+      const fallback = await yf.search(query, { quotesCount: 3, newsCount: 3 });
+      const fQuotes = fallback.quotes ?? [];
+      const fNews = (fallback.news ?? []).slice(0, 3);
+
+      if (fQuotes.length > 0) {
+        lines.push(`Results for "${query}":\n`);
+        for (const q of fQuotes.slice(0, 2)) {
+          if (!("symbol" in q) || !q.symbol) continue;
+          const info = await getQuoteInfo(q.symbol);
+          if (info) lines.push(info);
+        }
+      }
+      if (fNews.length > 0) {
+        if (lines.length > 0) lines.push("");
+        lines.push("📰 Related news:");
+        for (const a of fNews) {
+          const title = (a as { title?: string }).title;
+          if (title) lines.push(`• ${title}`);
+        }
+      }
     }
-  } catch (err) {
-    lines.push(`I couldn't retrieve results for "${query}" right now. Please try again or rephrase your question.`);
+  } catch {
+    // ignore news errors
+  }
+
+  if (lines.length === 0) {
+    lines.push(`No results found for "${query}".`);
+    lines.push("\nTry asking about a specific stock (e.g. Apple, Tesla), crypto (Bitcoin, Ethereum), or index (S&P 500, Nasdaq).");
+  } else {
+    lines.push("\n⚠️ Informational only — not personal financial advice.");
   }
 
   return lines.join("\n");
@@ -142,7 +199,7 @@ router.post("/chat", async (req, res) => {
   for (let i = 0; i < words.length; i++) {
     const chunk = (i === 0 ? "" : " ") + words[i];
     sendChunk({ content: chunk });
-    await new Promise((r) => setTimeout(r, 18));
+    await new Promise((r) => setTimeout(r, 15));
   }
 
   res.write("data: [DONE]\n\n");
