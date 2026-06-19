@@ -2,7 +2,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Router } from "express";
 
 const router = Router();
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+function getClient() {
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
 
 interface ChatMessageInput {
   role: "user" | "assistant";
@@ -47,7 +50,7 @@ router.post("/chat", async (req, res) => {
   // the Streams API / ReadableStream is not reliable in Expo Go).
   if (req.query.stream === "false") {
     try {
-      const response = await client.messages.create({
+      const response = await getClient().messages.create({
         model: "claude-3-5-haiku-20241022",
         max_tokens: 1024,
         system,
@@ -80,7 +83,7 @@ router.post("/chat", async (req, res) => {
   };
 
   try {
-    const stream = await client.messages.stream({
+    const stream = await getClient().messages.stream({
       model: "claude-3-5-haiku-20241022",
       max_tokens: 1024,
       system,
