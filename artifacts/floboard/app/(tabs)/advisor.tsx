@@ -137,15 +137,15 @@ export default function AdvisorScreen() {
   const [streaming, setStreaming] = useState(false);
   const listRef = useRef<FlatList>(null);
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
-  const usedParamRef = useRef(false);
+  const lastHandledParamRef = useRef<string | null>(null);
 
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
   useEffect(() => {
-    if (params.q && !usedParamRef.current) {
-      usedParamRef.current = true;
+    if (params.q && params.q !== lastHandledParamRef.current) {
+      lastHandledParamRef.current = params.q;
       setTimeout(() => sendMessage(params.q!), 400);
     }
   }, [params.q]);
