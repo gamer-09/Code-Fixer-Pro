@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
@@ -127,6 +128,7 @@ function TypingIndicator() {
 export default function AdvisorScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const params = useLocalSearchParams<{ q?: string }>();
   const { data } = useMarket();
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MSG]);
@@ -338,7 +340,7 @@ export default function AdvisorScreen() {
             {
               backgroundColor: colors.base,
               borderTopColor: colors.rim,
-              paddingBottom: Math.max(insets.bottom, 8),
+              paddingBottom: Platform.OS === 'web' ? 8 : tabBarHeight + 8,
             },
           ]}
         >
