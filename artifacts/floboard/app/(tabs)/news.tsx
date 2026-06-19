@@ -2,7 +2,7 @@ import React from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { IconTrendingUp, IconZap } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { NEWS } from '@/constants/marketData';
 
@@ -45,7 +45,7 @@ function NewsCard({ item }: { item: (typeof NEWS)[0] }) {
       <Text style={[styles.newsTitle, { color: colors.t1 }]}>{item.title}</Text>
       <Text style={[styles.newsImpact, { color: colors.t3 }]}>{item.impact}</Text>
       <View style={styles.newsHintRow}>
-        <Feather name="trending-up" size={11} color={colors.t4} />
+        <IconTrendingUp size={11} color={colors.t4} />
         <Text style={[styles.newsHint, { color: colors.t4 }]}>Tap to ask AI for analysis</Text>
       </View>
     </Pressable>
@@ -72,7 +72,7 @@ export default function NewsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.infoBanner, { backgroundColor: colors.blueDim, borderColor: 'rgba(77,166,255,0.15)' }]}>
-          <Feather name="zap" size={13} color={colors.blue} />
+          <IconZap size={13} color={colors.blue} />
           <Text style={[styles.infoText, { color: colors.t3 }]}>
             Tap any headline to ask the AI advisor for deeper analysis
           </Text>

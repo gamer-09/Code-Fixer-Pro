@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { IconRefreshCw } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
 import { COMMODITIES, FOREX, INDICES, STOCKS } from '@/constants/marketData';
@@ -176,7 +176,7 @@ export default function MarketsScreen() {
           >
             {loading
               ? <ActivityIndicator size="small" color={colors.blue} />
-              : <Feather name="refresh-cw" size={13} color={colors.t2} />}
+              : <IconRefreshCw size={13} color={colors.t2} />}
           </Pressable>
         </View>
       </View>

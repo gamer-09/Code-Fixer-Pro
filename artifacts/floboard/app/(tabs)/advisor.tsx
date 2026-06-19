@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { IconFlash, IconSend } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { fmt, fmtChg, useMarket } from '@/context/MarketContext';
 
@@ -78,7 +78,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
     <View style={[styles.bubbleWrap, isUser ? styles.bubbleRight : styles.bubbleLeft]}>
       {!isUser && (
         <View style={[styles.aiIcon, { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }]}>
-          <Ionicons name="flash" size={12} color={colors.gain} />
+          <IconFlash size={12} color={colors.gain} />
         </View>
       )}
       <View
@@ -111,7 +111,7 @@ function TypingIndicator() {
   return (
     <View style={[styles.bubbleWrap, styles.bubbleLeft]}>
       <View style={[styles.aiIcon, { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }]}>
-        <Ionicons name="flash" size={12} color={colors.gain} />
+        <IconFlash size={12} color={colors.gain} />
       </View>
       <View style={[styles.bubble, styles.aiBubble, { backgroundColor: colors.card, borderColor: colors.rim, minWidth: 60 }]}>
         <Text style={[styles.bubbleText, { color: colors.t3, letterSpacing: 3 }]}>
@@ -360,7 +360,7 @@ export default function AdvisorScreen() {
             {streaming ? (
               <ActivityIndicator size="small" color={colors.t3} />
             ) : (
-              <Feather name="send" size={16} color={streaming || !input.trim() ? colors.t4 : '#000'} />
+              <IconSend size={16} color={streaming || !input.trim() ? colors.t4 : '#000'} />
             )}
           </Pressable>
         </View>

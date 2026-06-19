@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { IconBriefcase, IconCheck, IconPlus, IconTrash2, IconX } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
 import { ALL_SYMBOLS, CRYPTOS, INDICES, STOCKS } from '@/constants/marketData';
@@ -61,7 +61,7 @@ function HoldingCard({ holding, onRemove }: { holding: Holding; onRemove: () => 
           <Text style={[styles.holdName, { color: colors.t3 }]}>{holding.name}</Text>
         </View>
         <Pressable onPress={onRemove} style={[styles.removeBtn, { borderColor: colors.rim }]}>
-          <Feather name="trash-2" size={12} color={colors.loss} />
+          <IconTrash2 size={12} color={colors.loss} />
         </Pressable>
       </View>
 
@@ -175,7 +175,7 @@ export default function PortfolioScreen() {
           onPress={() => setAddVisible((v) => !v)}
           style={[styles.addBtn, { backgroundColor: addVisible ? colors.gain : colors.card, borderColor: addVisible ? 'transparent' : colors.rim }]}
         >
-          <Feather name={addVisible ? 'x' : 'plus'} size={14} color={addVisible ? '#000' : colors.t2} />
+          {addVisible ? <IconX size={14} color='#000' /> : <IconPlus size={14} color={colors.t2} />}
           <Text style={[styles.addBtnText, { color: addVisible ? '#000' : colors.t2 }]}>
             {addVisible ? 'Close' : 'Add'}
           </Text>
@@ -237,7 +237,7 @@ export default function PortfolioScreen() {
               onPress={handleAdd}
               style={[styles.addSubmit, { backgroundColor: colors.gain }]}
             >
-              <Feather name="check" size={16} color="#000" />
+              <IconCheck size={16} color="#000" />
             </Pressable>
           </View>
           <Text style={[styles.addHint, { color: colors.t4 }]}>
@@ -248,7 +248,7 @@ export default function PortfolioScreen() {
 
       {holdings.length === 0 ? (
         <View style={styles.empty}>
-          <Feather name="briefcase" size={40} color={colors.t4} />
+          <IconBriefcase size={40} color={colors.t4} />
           <Text style={[styles.emptyTitle, { color: colors.t2 }]}>No holdings yet</Text>
           <Text style={[styles.emptyBody, { color: colors.t4 }]}>
             Tap "+ Add" to track stocks, crypto, indices, or forex pairs.
