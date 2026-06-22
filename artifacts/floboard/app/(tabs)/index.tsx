@@ -1,3 +1,4 @@
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -392,6 +393,7 @@ export default function MarketsScreen() {
   const { loading, lastUpdated, refresh } = useMarket();
   const [clock, setClock] = useState('');
   const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
+  const tabBarHeight = useBottomTabBarHeight();
 
   useEffect(() => {
     const tick = () => {
@@ -432,7 +434,7 @@ export default function MarketsScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 84 : 100 }}
+        contentContainerStyle={{ paddingBottom: tabBarHeight + 8 }}
         showsVerticalScrollIndicator={false}
       >
         <MarketHoursSection />

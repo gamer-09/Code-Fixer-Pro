@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState } from 'react';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import {
   Alert,
   Platform,
@@ -185,6 +186,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
+  const tabBarHeight = useBottomTabBarHeight();
   const { settings, updateSetting, triggerClearChat, resetAllSettings } = useSettings();
   const notifSupported = areNotificationsSupported();
 
@@ -239,7 +241,7 @@ export default function SettingsScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={{ padding: 16, paddingBottom: Platform.OS === 'web' ? 84 : 120 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: tabBarHeight + 8 }}
         showsVerticalScrollIndicator={false}
       >
 

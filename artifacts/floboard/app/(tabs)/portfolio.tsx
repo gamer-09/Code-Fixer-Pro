@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSettings } from '@/context/SettingsContext';
 import {
@@ -120,6 +121,7 @@ export default function PortfolioScreen() {
   const [cost, setCost] = useState('');
   const [addVisible, setAddVisible] = useState(false);
   const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
+  const tabBarHeight = useBottomTabBarHeight();
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
@@ -273,7 +275,7 @@ export default function PortfolioScreen() {
           renderItem={({ item, index }) => (
             <HoldingCard holding={item} onRemove={() => handleRemove(index)} />
           )}
-          contentContainerStyle={{ padding: 14, paddingBottom: Platform.OS === 'web' ? 84 : 100 }}
+          contentContainerStyle={{ padding: 14, paddingBottom: tabBarHeight + 8 }}
           showsVerticalScrollIndicator={false}
         />
       )}

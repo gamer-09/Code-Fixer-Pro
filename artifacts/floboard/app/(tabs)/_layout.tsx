@@ -2,6 +2,7 @@ import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
 
@@ -85,6 +86,7 @@ function IconSettings({ color, size }: { color: string; size: number }) {
 
 export default function TabLayout() {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -100,7 +102,8 @@ export default function TabLayout() {
           borderTopWidth: 1,
           borderTopColor: colors.rim,
           elevation: 0,
-          ...(isWeb ? { height: 60 } : {}),
+          paddingBottom: isWeb ? 0 : insets.bottom,
+          height: isWeb ? 60 : 54 + insets.bottom,
         },
         tabBarBackground: () =>
           isIOS ? (

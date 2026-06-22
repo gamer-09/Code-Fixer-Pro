@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -451,6 +452,7 @@ export default function WatchlistScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
+  const tabBarHeight = useBottomTabBarHeight();
   const { settings } = useSettings();
 
   const [symbols, setSymbols] = useState<string[]>([]);
@@ -578,7 +580,7 @@ export default function WatchlistScreen() {
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.sym}
-          contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 84 : 100 }}
+          contentContainerStyle={{ paddingBottom: tabBarHeight + 8 }}
           ListHeaderComponent={
             <View style={[styles.resultsHeader, { backgroundColor: colors.surface, borderBottomColor: colors.rim }]}>
               <Text style={[styles.resultsCount, { color: colors.t4 }]}>
@@ -599,7 +601,7 @@ export default function WatchlistScreen() {
         <FlatList
           data={sortedSymbols}
           keyExtractor={(sym) => sym}
-          contentContainerStyle={{ padding: 14, paddingBottom: Platform.OS === 'web' ? 84 : 100 }}
+          contentContainerStyle={{ padding: 14, paddingBottom: tabBarHeight + 8 }}
           ListEmptyComponent={
             <View style={[styles.emptyBox, { backgroundColor: colors.card, borderColor: colors.rim }]}>
               <Text style={[styles.emptyTitle, { color: colors.t2 }]}>Your watchlist is empty</Text>

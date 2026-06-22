@@ -1,4 +1,5 @@
 import React from 'react';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Platform, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
@@ -58,6 +59,7 @@ export default function CryptoScreen() {
   const insets = useSafeAreaInsets();
   const { data } = useMarket();
   const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
+  const tabBarHeight = useBottomTabBarHeight();
 
   const btc = data['BTC-USD'];
   const eth = data['ETH-USD'];
@@ -75,7 +77,7 @@ export default function CryptoScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={{ padding: 14, paddingBottom: Platform.OS === 'web' ? 84 : 100 }}
+        contentContainerStyle={{ padding: 14, paddingBottom: tabBarHeight + 8 }}
         showsVerticalScrollIndicator={false}
       >
         <SectionHeader label="Cryptocurrency Markets" count={CRYPTOS.length} />

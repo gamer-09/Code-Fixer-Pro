@@ -1,3 +1,4 @@
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -243,6 +244,7 @@ export default function CurrencyPairsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
+  const tabBarHeight = useBottomTabBarHeight();
   const [quotes, setQuotes] = useState<Record<string, QuoteRow>>({});
   const [loading, setLoading] = useState(true);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
@@ -367,7 +369,7 @@ export default function CurrencyPairsScreen() {
         contentContainerStyle={{
           padding: 14,
           paddingTop: 8,
-          paddingBottom: Platform.OS === 'web' ? 84 : 100,
+          paddingBottom: tabBarHeight + 8,
           gap: 6,
         }}
         ListEmptyComponent={
