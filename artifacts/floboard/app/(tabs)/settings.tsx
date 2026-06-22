@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Switch,
   Text,
@@ -183,7 +184,7 @@ const SORT_LABELS: Record<WatchlistSort, string> = {
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
+  const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
   const { settings, updateSetting, triggerClearChat, resetAllSettings } = useSettings();
   const notifSupported = areNotificationsSupported();
 

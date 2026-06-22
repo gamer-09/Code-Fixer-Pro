@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -241,7 +242,7 @@ function SummaryBar({
 export default function CurrencyPairsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
+  const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
   const [quotes, setQuotes] = useState<Record<string, QuoteRow>>({});
   const [loading, setLoading] = useState(true);
   const [activeGroup, setActiveGroup] = useState<string | null>(null);

@@ -4,6 +4,7 @@ import {
   FlatList,
   Platform,
   Pressable,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -138,7 +139,7 @@ export default function AdvisorScreen() {
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const listRef = useRef<FlatList>(null);
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
+  const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
   const lastHandledParamRef = useRef<string | null>(null);
   const prevClearKeyRef = useRef(0);
 

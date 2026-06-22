@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -390,7 +391,7 @@ export default function MarketsScreen() {
   const insets = useSafeAreaInsets();
   const { loading, lastUpdated, refresh } = useMarket();
   const [clock, setClock] = useState('');
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
+  const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
 
   useEffect(() => {
     const tick = () => {

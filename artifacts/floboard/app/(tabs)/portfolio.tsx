@@ -7,6 +7,7 @@ import {
   Keyboard,
   Platform,
   Pressable,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -118,7 +119,7 @@ export default function PortfolioScreen() {
   const [qty, setQty] = useState('');
   const [cost, setCost] = useState('');
   const [addVisible, setAddVisible] = useState(false);
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
+  const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((raw) => {

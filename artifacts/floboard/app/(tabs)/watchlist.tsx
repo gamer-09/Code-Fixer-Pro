@@ -5,6 +5,7 @@ import {
   FlatList,
   Platform,
   Pressable,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -449,7 +450,7 @@ function WatchRow({
 export default function WatchlistScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
+  const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
   const { settings } = useSettings();
 
   const [symbols, setSymbols] = useState<string[]>([]);
