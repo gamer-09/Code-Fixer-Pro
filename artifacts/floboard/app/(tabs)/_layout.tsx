@@ -97,7 +97,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.t3,
         headerShown: false,
         tabBarStyle: {
-          position: "absolute",
+          ...(isIOS ? { position: "absolute" as const } : {}),
           backgroundColor: isIOS ? "transparent" : colors.base,
           borderTopWidth: 1,
           borderTopColor: colors.rim,
@@ -105,12 +105,9 @@ export default function TabLayout() {
           paddingBottom: isWeb ? 0 : insets.bottom,
           height: isWeb ? 60 : 54 + insets.bottom,
         },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.base }]} />
-          ),
+        tabBarBackground: isIOS
+          ? () => <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+          : undefined,
         tabBarLabelStyle: {
           fontSize: 9,
           fontFamily: "Inter_600SemiBold",
