@@ -213,8 +213,11 @@ export function fmtChg(n: number | null | undefined): string {
   return (n >= 0 ? '+' : '') + fmt(n) + '%';
 }
 
-export function fmtMcap(v: number | null | undefined): string {
+export function fmtMcap(v: number | null | undefined, compact = true): string {
   if (!v) return '—';
+  if (!compact) {
+    return '$' + Number(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  }
   if (v > 1e12) return '$' + fmt(v / 1e12, 2) + 'T';
   if (v > 1e9) return '$' + fmt(v / 1e9, 1) + 'B';
   return '$' + fmt(v / 1e6, 0) + 'M';

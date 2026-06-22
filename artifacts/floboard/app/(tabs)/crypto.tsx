@@ -4,6 +4,7 @@ import { Platform, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-n
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
+import { useSettings } from '@/context/SettingsContext';
 import { CRYPTOS } from '@/constants/marketData';
 
 function SectionHeader({ label, count }: { label: string; count?: number }) {
@@ -24,6 +25,7 @@ function SectionHeader({ label, count }: { label: string; count?: number }) {
 function CryptoCard({ sym, label, name, color }: { sym: string; label: string; name: string; color: string }) {
   const colors = useColors();
   const { data } = useMarket();
+  const { settings } = useSettings();
   const d = data[sym];
   const chg = d?.regularMarketChangePercent ?? 0;
   const dir = chgDir(chg);
@@ -48,7 +50,7 @@ function CryptoCard({ sym, label, name, color }: { sym: string; label: string; n
         {price != null ? (price > 999 ? `$${fmt(price, 0)}` : `$${fmt(price)}`) : '—'}
       </Text>
       <Text style={[styles.mcap, { color: colors.t4 }]}>
-        {d ? `Mkt cap: ${fmtMcap(d.marketCap)}` : ''}
+        {d ? `Mkt cap: ${fmtMcap(d.marketCap, settings.compactNumbers)}` : ''}
       </Text>
     </View>
   );
@@ -58,6 +60,7 @@ export default function CryptoScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { data } = useMarket();
+  const { settings } = useSettings();
   const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
   const tabBarHeight = useBottomTabBarHeight();
 
@@ -123,7 +126,7 @@ export default function CryptoScreen() {
                     <>
                       <View style={[styles.summaryDivider, { backgroundColor: colors.rim }]} />
                       <View style={styles.summaryItem}>
-                        <Text style={[styles.summaryNum, { color: colors.t1 }]}>${fmtMcap(totalCap).replace('$', '')}</Text>
+                        <Text style={[styles.summaryNum, { color: colors.t1 }]}>${fmtMcap(totalCap, settings.compactNumbers).replace('$', '')}</Text>
                         <Text style={[styles.summaryLbl, { color: colors.t4 }]}>Combined Cap</Text>
                       </View>
                     </>

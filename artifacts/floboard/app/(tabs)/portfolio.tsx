@@ -85,7 +85,7 @@ function HoldingCard({ holding, onRemove }: { holding: Holding; onRemove: () => 
         </View>
         <View style={styles.statCol}>
           <Text style={[styles.statLabel, { color: colors.t4 }]}>Price</Text>
-          <Text style={[styles.statVal, { color: colors.t1 }]}>{price ? `$${fmt(price)}` : '—'}</Text>
+          <Text style={[styles.statVal, { color: colors.t1 }]}>{price ? `$${fmt(price, settings.priceDecimals)}` : '—'}</Text>
         </View>
         <View style={styles.statCol}>
           <Text style={[styles.statLabel, { color: colors.t4 }]}>Value</Text>

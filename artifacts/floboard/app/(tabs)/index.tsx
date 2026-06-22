@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconRefreshCw } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
+import { useSettings } from '@/context/SettingsContext';
 import { BONDS, COMMODITIES, FOREX, INDICES, MACRO, SECTORS, STOCKS } from '@/constants/marketData';
 
 function LivePulse() {
@@ -367,10 +368,12 @@ function CommodityCard({ sym, label, unit }: { sym: string; label: string; unit:
 function StockRow({ sym, name }: { sym: string; name: string }) {
   const colors = useColors();
   const { data } = useMarket();
+  const { settings } = useSettings();
   const d = data[sym];
   const chg = d?.regularMarketChangePercent ?? 0;
   const dir = chgDir(chg);
   const chgColor = dir === 'up' ? colors.gain : dir === 'dn' ? colors.loss : colors.t2;
+  const dec = settings.priceDecimals;
 
   return (
     <View style={[styles.stockRow, { borderBottomColor: colors.rim }]}>
@@ -379,14 +382,14 @@ function StockRow({ sym, name }: { sym: string; name: string }) {
         <Text style={[styles.stockName, { color: colors.t4 }]}>{name}</Text>
         {d && d.regularMarketDayHigh != null && d.regularMarketDayLow != null && (
           <Text style={[styles.stockHiLo, { color: colors.t4 }]}>
-            H ${fmt(d.regularMarketDayHigh)} · L ${fmt(d.regularMarketDayLow)}
+            H ${fmt(d.regularMarketDayHigh, dec)} · L ${fmt(d.regularMarketDayLow, dec)}
           </Text>
         )}
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        <Text style={[styles.stockPrice, { color: colors.t1 }]}>{d ? `$${fmt(d.regularMarketPrice)}` : '—'}</Text>
+        <Text style={[styles.stockPrice, { color: colors.t1 }]}>{d ? `$${fmt(d.regularMarketPrice, dec)}` : '—'}</Text>
         <Text style={[styles.stockChg, { color: chgColor }]}>{d ? fmtChg(chg) : '—'}</Text>
-        <Text style={[styles.stockMcap, { color: colors.t3 }]}>{d ? fmtMcap(d.marketCap) : '—'}</Text>
+        <Text style={[styles.stockMcap, { color: colors.t3 }]}>{d ? fmtMcap(d.marketCap, settings.compactNumbers) : '—'}</Text>
       </View>
     </View>
   );

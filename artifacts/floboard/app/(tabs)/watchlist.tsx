@@ -414,6 +414,7 @@ function WatchRow({
   onRemove: () => void;
 }) {
   const colors = useColors();
+  const { settings } = useSettings();
   const chg = q?.regularMarketChangePercent ?? 0;
   const dir = chgDir(chg);
   const chgColor = dir === 'up' ? colors.gain : dir === 'dn' ? colors.loss : colors.t3;
@@ -427,13 +428,14 @@ function WatchRow({
   const isForex = entry?.cat === 'Forex';
   const isCrypto = entry?.cat === 'Crypto';
   const isBond = entry?.cat === 'Bond';
-  const decimals = isForex ? 4 : isBond ? 3 : 2;
+  const decimals = isForex ? 4 : isBond ? 3 : settings.priceDecimals;
   const prefix = isForex || isBond || isCrypto ? '' : '$';
 
-  // Extended hours: show pre/post market price if available
+  // Extended hours: show pre/post market price only when enabled in settings
   const extPrice = q?.preMarketPrice ?? q?.postMarketPrice;
   const extChgPct = q?.preMarketChangePercent ?? q?.postMarketChangePercent;
   const extLabel = q?.preMarketPrice ? 'PRE' : q?.postMarketPrice ? 'POST' : null;
+  const showExt = settings.showExtendedHours;
 
   return (
     <View style={[styles.watchRow, { backgroundColor: colors.card, borderColor: colors.rim }]}>
@@ -464,14 +466,14 @@ function WatchRow({
             )}
           </View>
         )}
-        {!isForex && !isBond && <Text style={[styles.watchMcap, { color: colors.t4 }]}>{q ? fmtMcap(q.marketCap) : '—'}</Text>}
+        {!isForex && !isBond && <Text style={[styles.watchMcap, { color: colors.t4 }]}>{q ? fmtMcap(q.marketCap, settings.compactNumbers) : '—'}</Text>}
       </View>
       <View style={styles.watchMid}>
         <Text style={[styles.watchPrice, { color: colors.t1 }]}>
           {q ? `${prefix}${fmt(q.regularMarketPrice, decimals)}` : '—'}
         </Text>
         <Text style={[styles.watchChg, { color: chgColor }]}>{q ? fmtChg(chg) : '—'}</Text>
-        {extPrice != null && extLabel && (
+        {showExt && extPrice != null && extLabel && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
             <View style={[styles.extLabel, { backgroundColor: colors.amberDim }]}>
               <Text style={[styles.extLabelText, { color: colors.amber }]}>{extLabel}</Text>

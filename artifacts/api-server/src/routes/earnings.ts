@@ -19,9 +19,11 @@ router.get("/earnings", async (req, res) => {
       )
     );
 
+    const weeksRaw = Number(req.query.weeks);
+    const weeks = weeksRaw >= 1 && weeksRaw <= 52 ? weeksRaw : 8;
     const now = Date.now();
     const past = now - 3 * 24 * 60 * 60 * 1000;
-    const future = now + 60 * 24 * 60 * 60 * 1000;
+    const future = now + weeks * 7 * 24 * 60 * 60 * 1000;
 
     const earnings: Array<{
       sym: string;

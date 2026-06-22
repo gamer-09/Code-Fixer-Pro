@@ -49,7 +49,28 @@ const INITIAL_MSG: ChatMessage = {
   timestamp: new Date(),
 };
 
-function buildSystemPrompt(data: Record<string, { regularMarketPrice: number; regularMarketChangePercent: number }>) {
+const RISK_GUIDANCE = {
+  conservative: [
+    '- The user has a CONSERVATIVE risk profile: focus on capital preservation, low volatility, dividend stocks, bonds, and stable blue-chip names',
+    '- Emphasise downside risk, income stability, and asset protection when giving advice',
+    '- Caution against speculative plays, high-beta stocks, and illiquid assets',
+  ],
+  moderate: [
+    '- The user has a MODERATE risk profile: balance growth with stability across a broad range of assets',
+    '- Cover both upside opportunities and meaningful risks equally',
+    '- Suggest diversification strategies and a mix of growth and income assets',
+  ],
+  aggressive: [
+    '- The user has an AGGRESSIVE risk profile: focus on high-growth opportunities, emerging markets, and higher-risk assets',
+    '- Highlight growth potential, momentum, and emerging trends',
+    '- Still note risks, but the user is comfortable with volatility and higher drawdowns',
+  ],
+};
+
+function buildSystemPrompt(
+  data: Record<string, { regularMarketPrice: number; regularMarketChangePercent: number }>,
+  riskProfile: 'conservative' | 'moderate' | 'aggressive',
+) {
   const lines = [
     `You are FloAI, an expert financial advisor. Today is ${new Date().toDateString()}.`,
     '',
@@ -70,6 +91,7 @@ function buildSystemPrompt(data: Record<string, { regularMarketPrice: number; re
     '- Always note that this is informational, not personal financial advice',
     '- Be concise but thorough; use bullet points where helpful',
     '- Stay factual; highlight uncertainty when present',
+    ...RISK_GUIDANCE[riskProfile],
   );
 
   return lines.join('\n');
@@ -207,7 +229,7 @@ export default function AdvisorScreen() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               messages: historyForApi,
-              systemPrompt: buildSystemPrompt(data),
+              systemPrompt: buildSystemPrompt(data, settings.riskProfile),
             }),
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -224,7 +246,7 @@ export default function AdvisorScreen() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               messages: historyForApi,
-              systemPrompt: buildSystemPrompt(data),
+              systemPrompt: buildSystemPrompt(data, settings.riskProfile),
             }),
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);

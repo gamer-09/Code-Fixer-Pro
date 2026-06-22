@@ -47,17 +47,19 @@ function makeFetchNews(count: number) {
   };
 }
 
-async function fetchEarnings(): Promise<EarningItem[]> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
-  try {
-    const res = await fetch(`${BASE}/api/earnings`, { signal: controller.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json() as { earnings: EarningItem[] };
-    return data.earnings ?? [];
-  } finally {
-    clearTimeout(timer);
-  }
+function makeFetchEarnings(weeks: number) {
+  return async (): Promise<EarningItem[]> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await fetch(`${BASE}/api/earnings?weeks=${weeks}`, { signal: controller.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as { earnings: EarningItem[] };
+      return data.earnings ?? [];
+    } finally {
+      clearTimeout(timer);
+    }
+  };
 }
 
 function TagBadge({ tag }: { tag: NewsTag }) {
@@ -170,9 +172,11 @@ function EarningCard({ item }: { item: EarningItem }) {
 
 function EarningsSection() {
   const colors = useColors();
+  const { settings } = useSettings();
+  const weeks = settings.earningsWindow;
   const { data: earnings, isLoading, isError } = useQuery({
-    queryKey: ['earnings'],
-    queryFn: fetchEarnings,
+    queryKey: ['earnings', weeks],
+    queryFn: makeFetchEarnings(weeks),
     staleTime: 1000 * 60 * 30,
     retry: 1,
   });
