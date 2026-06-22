@@ -377,10 +377,17 @@ function StockRow({ sym, name }: { sym: string; name: string }) {
       <View style={styles.stockInfo}>
         <Text style={[styles.stockSym, { color: colors.t1 }]}>{sym}</Text>
         <Text style={[styles.stockName, { color: colors.t4 }]}>{name}</Text>
+        {d && d.regularMarketDayHigh != null && d.regularMarketDayLow != null && (
+          <Text style={[styles.stockHiLo, { color: colors.t4 }]}>
+            H ${fmt(d.regularMarketDayHigh)} · L ${fmt(d.regularMarketDayLow)}
+          </Text>
+        )}
       </View>
-      <Text style={[styles.stockPrice, { color: colors.t1 }]}>{d ? `$${fmt(d.regularMarketPrice)}` : '—'}</Text>
-      <Text style={[styles.stockChg, { color: chgColor }]}>{d ? fmtChg(chg) : '—'}</Text>
-      <Text style={[styles.stockMcap, { color: colors.t3 }]}>{d ? fmtMcap(d.marketCap) : '—'}</Text>
+      <View style={{ alignItems: 'flex-end' }}>
+        <Text style={[styles.stockPrice, { color: colors.t1 }]}>{d ? `$${fmt(d.regularMarketPrice)}` : '—'}</Text>
+        <Text style={[styles.stockChg, { color: chgColor }]}>{d ? fmtChg(chg) : '—'}</Text>
+        <Text style={[styles.stockMcap, { color: colors.t3 }]}>{d ? fmtMcap(d.marketCap) : '—'}</Text>
+      </View>
     </View>
   );
 }
@@ -599,7 +606,8 @@ const styles = StyleSheet.create({
   stockName: { fontSize: 9, marginTop: 1 },
   stockPrice: { flex: 1, fontSize: 12, fontFamily: 'Inter_500Medium', textAlign: 'right' },
   stockChg: { flex: 1, fontSize: 11, fontFamily: 'Inter_500Medium', textAlign: 'right' },
-  stockMcap: { flex: 1.2, fontSize: 11, textAlign: 'right' },
+  stockMcap: { fontSize: 11 },
+  stockHiLo: { fontSize: 9, fontFamily: 'Inter_500Medium', marginTop: 1 },
 
   updated: { textAlign: 'center', fontSize: 10, marginTop: 12, marginBottom: 4 },
 });

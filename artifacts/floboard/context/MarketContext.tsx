@@ -5,12 +5,26 @@ import { useSettings } from '@/context/SettingsContext';
 
 export interface QuoteData {
   symbol: string;
+  shortName?: string;
+  quoteType?: string;
+  currency?: string;
   regularMarketPrice: number;
   regularMarketChangePercent: number;
   regularMarketChange: number;
   regularMarketPreviousClose: number;
-  marketCap: number;
+  regularMarketOpen?: number;
+  regularMarketDayHigh?: number;
+  regularMarketDayLow?: number;
   regularMarketVolume: number;
+  fiftyTwoWeekHigh?: number;
+  fiftyTwoWeekLow?: number;
+  marketCap: number;
+  preMarketPrice?: number;
+  preMarketChangePercent?: number;
+  postMarketPrice?: number;
+  postMarketChangePercent?: number;
+  bid?: number;
+  ask?: number;
 }
 
 interface MarketContextType {
@@ -63,7 +77,7 @@ async function fetchViaProxy(symbols: string[]): Promise<QuoteData[]> {
 async function fetchOneChart(sym: string): Promise<QuoteData | null> {
   try {
     const res = await fetchWithTimeout(
-      `${YF_CHART}/${encodeURIComponent(sym)}?interval=1d&range=1d&includePrePost=false`,
+      `${YF_CHART}/${encodeURIComponent(sym)}?interval=1d&range=1d&includePrePost=true`,
       {
         headers: {
           'User-Agent': NATIVE_UA,
@@ -76,20 +90,36 @@ async function fetchOneChart(sym: string): Promise<QuoteData | null> {
     const json = await res.json() as {
       chart?: { result?: Array<{ meta?: Record<string, unknown> }> };
     };
-    const meta = json?.chart?.result?.[0]?.meta as Record<string, number> | undefined;
+    const meta = json?.chart?.result?.[0]?.meta as Record<string, number & string> | undefined;
     if (!meta?.regularMarketPrice) return null;
-    const prev = (meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice) as number;
+
     const price = meta.regularMarketPrice as number;
-    const change = price - prev;
-    const changePct = prev > 0 ? (change / prev) * 100 : 0;
+    const prev = (meta.chartPreviousClose ?? meta.previousClose ?? price) as number;
+
+    // Use Yahoo Finance's own official change values — never calculate them ourselves
+    const changePct = (meta.regularMarketChangePercent as number) ?? (prev > 0 ? ((price - prev) / prev) * 100 : 0);
+    const change = (meta.regularMarketChange as number) ?? (price - prev);
+
     return {
       symbol: (meta.symbol as unknown as string) ?? sym,
+      shortName: (meta.shortName as unknown as string) ?? undefined,
+      quoteType: (meta.instrumentType as unknown as string) ?? undefined,
+      currency: (meta.currency as unknown as string) ?? undefined,
       regularMarketPrice: price,
       regularMarketChangePercent: changePct,
       regularMarketChange: change,
       regularMarketPreviousClose: prev,
-      marketCap: (meta.marketCap ?? 0) as number,
-      regularMarketVolume: (meta.regularMarketVolume ?? 0) as number,
+      regularMarketOpen: (meta.regularMarketOpen as number) ?? undefined,
+      regularMarketDayHigh: (meta.regularMarketDayHigh as number) ?? undefined,
+      regularMarketDayLow: (meta.regularMarketDayLow as number) ?? undefined,
+      regularMarketVolume: (meta.regularMarketVolume as number) ?? 0,
+      fiftyTwoWeekHigh: (meta.fiftyTwoWeekHigh as number) ?? undefined,
+      fiftyTwoWeekLow: (meta.fiftyTwoWeekLow as number) ?? undefined,
+      marketCap: (meta.marketCap as number) ?? 0,
+      preMarketPrice: (meta.preMarketPrice as number) ?? undefined,
+      preMarketChangePercent: (meta.preMarketChangePercent as number) ?? undefined,
+      postMarketPrice: (meta.postMarketPrice as number) ?? undefined,
+      postMarketChangePercent: (meta.postMarketChangePercent as number) ?? undefined,
     };
   } catch {
     return null;

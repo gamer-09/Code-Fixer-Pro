@@ -315,12 +315,24 @@ const CAT_COLORS: Record<Category, { bg: string; text: string }> = {
 
 interface QuoteRow {
   symbol: string;
+  shortName?: string;
   regularMarketPrice: number;
   regularMarketChangePercent: number;
   regularMarketChange: number;
-  marketCap: number;
-  regularMarketVolume: number;
   regularMarketPreviousClose: number;
+  regularMarketOpen?: number;
+  regularMarketDayHigh?: number;
+  regularMarketDayLow?: number;
+  regularMarketVolume: number;
+  fiftyTwoWeekHigh?: number;
+  fiftyTwoWeekLow?: number;
+  marketCap: number;
+  preMarketPrice?: number;
+  preMarketChangePercent?: number;
+  postMarketPrice?: number;
+  postMarketChangePercent?: number;
+  bid?: number;
+  ask?: number;
 }
 
 async function fetchQuotes(symbols: string[]): Promise<Record<string, QuoteRow>> {
@@ -412,6 +424,17 @@ function WatchRow({
     router.navigate({ pathname: '/(tabs)/advisor', params: { q: query } });
   };
 
+  const isForex = entry?.cat === 'Forex';
+  const isCrypto = entry?.cat === 'Crypto';
+  const isBond = entry?.cat === 'Bond';
+  const decimals = isForex ? 4 : isBond ? 3 : 2;
+  const prefix = isForex || isBond || isCrypto ? '' : '$';
+
+  // Extended hours: show pre/post market price if available
+  const extPrice = q?.preMarketPrice ?? q?.postMarketPrice;
+  const extChgPct = q?.preMarketChangePercent ?? q?.postMarketChangePercent;
+  const extLabel = q?.preMarketPrice ? 'PRE' : q?.postMarketPrice ? 'POST' : null;
+
   return (
     <View style={[styles.watchRow, { backgroundColor: colors.card, borderColor: colors.rim }]}>
       <View style={styles.watchLeft}>
@@ -420,13 +443,44 @@ function WatchRow({
           {entry && <CatBadge cat={entry.cat} />}
         </View>
         {entry && <Text style={[styles.watchName, { color: colors.t4 }]} numberOfLines={1}>{entry.name}</Text>}
-        <Text style={[styles.watchMcap, { color: colors.t4 }]}>{q ? fmtMcap(q.marketCap) : '—'}</Text>
+        {q && (
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
+            {q.regularMarketOpen != null && (
+              <Text style={[styles.ohlcText, { color: colors.t4 }]}>O {prefix}{fmt(q.regularMarketOpen, decimals)}</Text>
+            )}
+            {q.regularMarketDayHigh != null && (
+              <Text style={[styles.ohlcText, { color: colors.gain }]}>H {prefix}{fmt(q.regularMarketDayHigh, decimals)}</Text>
+            )}
+            {q.regularMarketDayLow != null && (
+              <Text style={[styles.ohlcText, { color: colors.loss }]}>L {prefix}{fmt(q.regularMarketDayLow, decimals)}</Text>
+            )}
+          </View>
+        )}
+        {q && (
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 1 }}>
+            <Text style={[styles.ohlcText, { color: colors.t4 }]}>Prev {prefix}{fmt(q.regularMarketPreviousClose, decimals)}</Text>
+            {q.fiftyTwoWeekHigh != null && q.fiftyTwoWeekLow != null && (
+              <Text style={[styles.ohlcText, { color: colors.t4 }]}>52W {prefix}{fmt(q.fiftyTwoWeekLow, decimals)}–{prefix}{fmt(q.fiftyTwoWeekHigh, decimals)}</Text>
+            )}
+          </View>
+        )}
+        {!isForex && !isBond && <Text style={[styles.watchMcap, { color: colors.t4 }]}>{q ? fmtMcap(q.marketCap) : '—'}</Text>}
       </View>
       <View style={styles.watchMid}>
         <Text style={[styles.watchPrice, { color: colors.t1 }]}>
-          {q ? `$${fmt(q.regularMarketPrice)}` : '—'}
+          {q ? `${prefix}${fmt(q.regularMarketPrice, decimals)}` : '—'}
         </Text>
         <Text style={[styles.watchChg, { color: chgColor }]}>{q ? fmtChg(chg) : '—'}</Text>
+        {extPrice != null && extLabel && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 }}>
+            <View style={[styles.extLabel, { backgroundColor: colors.amberDim }]}>
+              <Text style={[styles.extLabelText, { color: colors.amber }]}>{extLabel}</Text>
+            </View>
+            <Text style={[styles.extPrice, { color: extChgPct != null && extChgPct >= 0 ? colors.gain : colors.loss }]}>
+              {prefix}{fmt(extPrice, decimals)}{extChgPct != null ? ` (${extChgPct >= 0 ? '+' : ''}${fmt(extChgPct)}%)` : ''}
+            </Text>
+          </View>
+        )}
       </View>
       <View style={styles.watchActions}>
         <Pressable
@@ -695,6 +749,10 @@ const styles = StyleSheet.create({
   watchMid: { flex: 1.4, alignItems: 'flex-end' },
   watchPrice: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
   watchChg: { fontSize: 11, fontFamily: 'Inter_500Medium', marginTop: 2 },
+  ohlcText: { fontSize: 9, fontFamily: 'Inter_500Medium' },
+  extLabel: { borderRadius: 3, paddingHorizontal: 4, paddingVertical: 1 },
+  extLabelText: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.5 },
+  extPrice: { fontSize: 9, fontFamily: 'Inter_500Medium' },
   watchActions: { flexDirection: 'row', gap: 6, marginLeft: 8 },
   aiBtn: { borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 5 },
   aiBtnText: { fontSize: 10, fontFamily: 'Inter_700Bold' },

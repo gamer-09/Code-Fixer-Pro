@@ -81,6 +81,11 @@ interface QuoteRow {
   regularMarketChangePercent: number;
   regularMarketChange: number;
   regularMarketPreviousClose: number;
+  regularMarketOpen?: number;
+  regularMarketDayHigh?: number;
+  regularMarketDayLow?: number;
+  bid?: number;
+  ask?: number;
 }
 
 async function fetchPairQuotes(symbols: string[]): Promise<Record<string, QuoteRow>> {
@@ -152,16 +157,28 @@ function PairRow({
           <Text style={[styles.pairLabel, { color: colors.t1 }]}>{pair.pair}</Text>
           <GroupBadge group={pair.group} />
         </View>
-        <Text
-          style={[styles.pairDesc, { color: colors.t4 }]}
-          numberOfLines={1}
-        >
+        <Text style={[styles.pairDesc, { color: colors.t4 }]} numberOfLines={1}>
           {pair.desc}
         </Text>
+        {quote && (
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 3 }}>
+            {quote.regularMarketOpen != null && (
+              <Text style={[styles.pairPrev, { color: colors.t4 }]}>O {fmt(quote.regularMarketOpen, dec)}</Text>
+            )}
+            {quote.regularMarketDayHigh != null && (
+              <Text style={[styles.pairPrev, { color: colors.gain }]}>H {fmt(quote.regularMarketDayHigh, dec)}</Text>
+            )}
+            {quote.regularMarketDayLow != null && (
+              <Text style={[styles.pairPrev, { color: colors.loss }]}>L {fmt(quote.regularMarketDayLow, dec)}</Text>
+            )}
+          </View>
+        )}
         {prevClose != null && price != null && (
-          <Text style={[styles.pairPrev, { color: colors.t4 }]}>
-            Prev close: {fmt(prevClose, dec)}
-          </Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Text style={[styles.pairPrev, { color: colors.t4 }]}>Prev {fmt(prevClose, dec)}</Text>
+            {quote?.bid != null && <Text style={[styles.pairPrev, { color: colors.t4 }]}>Bid {fmt(quote.bid, dec)}</Text>}
+            {quote?.ask != null && <Text style={[styles.pairPrev, { color: colors.t4 }]}>Ask {fmt(quote.ask, dec)}</Text>}
+          </View>
         )}
       </View>
 
