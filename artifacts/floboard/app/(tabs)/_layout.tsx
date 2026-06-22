@@ -101,7 +101,7 @@ export default function TabLayout() {
           backgroundColor: isIOS ? "transparent" : colors.base,
           borderTopWidth: 1,
           borderTopColor: colors.rim,
-          elevation: 0,
+          elevation: 8,
           paddingBottom: isWeb ? 0 : insets.bottom,
           height: isWeb ? 60 : 54 + insets.bottom,
         },
