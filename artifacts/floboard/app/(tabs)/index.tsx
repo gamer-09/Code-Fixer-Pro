@@ -16,24 +16,22 @@ import { IconRefreshCw } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
 import { useSettings } from '@/context/SettingsContext';
-import { BONDS, COMMODITIES, FOREX, INDICES, MACRO, SECTORS, STOCKS } from '@/constants/marketData';
+import { BONDS, COMMODITIES, FOREX, INDICES, SECTORS, STOCKS } from '@/constants/marketData';
 
 function LivePulse() {
   const anim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 0.3, duration: 1200, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0.25, duration: 900, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: true }),
       ])
     ).start();
   }, []);
-  return (
-    <Animated.View style={[styles.pulse, { opacity: anim }]} />
-  );
+  return <Animated.View style={[styles.pulse, { opacity: anim }]} />;
 }
 
-function SectionHeader({ label, count }: { label: string; count?: number }) {
+function SectionHeader({ label, count, right }: { label: string; count?: number; right?: React.ReactNode }) {
   const colors = useColors();
   return (
     <View style={styles.secHd}>
@@ -44,6 +42,7 @@ function SectionHeader({ label, count }: { label: string; count?: number }) {
         </View>
       )}
       <View style={[styles.secLine, { backgroundColor: colors.rim }]} />
+      {right}
     </View>
   );
 }
@@ -60,7 +59,7 @@ function ChangeBadge({ value }: { value: number | null | undefined }) {
   );
 }
 
-// ── FEATURE 1: Market Hours ────────────────────────────────────────────────
+// ── Market Hours ──────────────────────────────────────────────────────────
 
 const EXCHANGES = [
   { name: 'NYSE', tz: 'America/New_York', oh: 9, om: 30, ch: 16, cm: 0 },
@@ -74,11 +73,7 @@ const EXCHANGES = [
 function isOpen(tz: string, oh: number, om: number, ch: number, cm: number): boolean {
   try {
     const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: tz,
-      hour: 'numeric',
-      minute: 'numeric',
-      weekday: 'short',
-      hour12: false,
+      timeZone: tz, hour: 'numeric', minute: 'numeric', weekday: 'short', hour12: false,
     }).formatToParts(new Date());
     const weekday = parts.find((p) => p.type === 'weekday')?.value ?? '';
     if (weekday === 'Sat' || weekday === 'Sun') return false;
@@ -86,9 +81,7 @@ function isOpen(tz: string, oh: number, om: number, ch: number, cm: number): boo
     const m = parseInt(parts.find((p) => p.type === 'minute')?.value ?? '0');
     const now = h * 60 + m;
     return now >= oh * 60 + om && now < ch * 60 + cm;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 function MarketHoursSection() {
@@ -106,7 +99,7 @@ function MarketHoursSection() {
 
   return (
     <View style={styles.section}>
-      <SectionHeader label={`Market Hours — ${open} of ${EXCHANGES.length} Open`} />
+      <SectionHeader label={`Market Hours — ${open} / ${EXCHANGES.length} Open`} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
         {EXCHANGES.map((ex, i) => {
           const live = statuses[i] ?? false;
@@ -115,14 +108,11 @@ function MarketHoursSection() {
               key={ex.name}
               style={[
                 styles.hoursChip,
-                {
-                  backgroundColor: live ? colors.gainDim : colors.card,
-                  borderColor: live ? 'rgba(0,229,160,0.25)' : colors.rim,
-                },
+                { backgroundColor: live ? colors.gainDim : colors.card, borderColor: live ? 'rgba(0,229,160,0.3)' : colors.rim },
               ]}
             >
               <View style={[styles.hoursDot, { backgroundColor: live ? colors.gain : colors.t4 }]} />
-              <Text style={[styles.hoursName, { color: live ? colors.gain : colors.t3 }]}>{ex.name}</Text>
+              <Text style={[styles.hoursName, { color: live ? colors.gain : colors.t2 }]}>{ex.name}</Text>
               <Text style={[styles.hoursStatus, { color: live ? colors.gain : colors.t4 }]}>
                 {live ? 'OPEN' : 'CLOSED'}
               </Text>
@@ -134,7 +124,43 @@ function MarketHoursSection() {
   );
 }
 
-// ── FEATURE 2: S&P Sector Heatmap ─────────────────────────────────────────
+// ── Macro Pulse Ribbon ────────────────────────────────────────────────────
+
+const RIBBON_SYMBOLS = [
+  { sym: '^GSPC', label: 'S&P 500' },
+  { sym: '^IXIC', label: 'Nasdaq' },
+  { sym: 'BTC-USD', label: 'Bitcoin' },
+  { sym: 'GC=F', label: 'Gold' },
+  { sym: 'DX-Y.NYB', label: 'DXY' },
+  { sym: '^TNX', label: '10Y' },
+];
+
+function MacroRibbon() {
+  const colors = useColors();
+  const { data } = useMarket();
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ribbonScroll}>
+      {RIBBON_SYMBOLS.map(({ sym, label }) => {
+        const d = data[sym];
+        const chg = d?.regularMarketChangePercent ?? 0;
+        const dir = chgDir(chg);
+        const col = dir === 'up' ? colors.gain : dir === 'dn' ? colors.loss : colors.amber;
+        const arrow = dir === 'up' ? '▲' : dir === 'dn' ? '▼' : '—';
+        return (
+          <View key={sym} style={[styles.ribbonChip, { backgroundColor: colors.card, borderColor: colors.rim }]}>
+            <Text style={[styles.ribbonLabel, { color: colors.t4 }]}>{label}</Text>
+            <Text style={[styles.ribbonVal, { color: colors.t1 }]}>
+              {d ? (sym === '^TNX' || sym === '^VIX' ? `${fmt(d.regularMarketPrice, 2)}%` : sym === 'DX-Y.NYB' ? fmt(d.regularMarketPrice, 2) : sym === '^GSPC' || sym === '^IXIC' ? fmt(d.regularMarketPrice, 0) : sym === 'BTC-USD' ? `$${fmt(d.regularMarketPrice, 0)}` : `$${fmt(d.regularMarketPrice)}`) : '—'}
+            </Text>
+            {d && <Text style={[styles.ribbonArrow, { color: col }]}>{arrow} {Math.abs(chg).toFixed(1)}%</Text>}
+          </View>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+// ── Sector Heatmap ────────────────────────────────────────────────────────
 
 function SectorTile({ sym, label }: { sym: string; label: string }) {
   const colors = useColors();
@@ -144,37 +170,44 @@ function SectorTile({ sym, label }: { sym: string; label: string }) {
   const dir = chgDir(chg);
   const abs = Math.abs(chg);
 
-  let bg: string;
-  let textCol: string;
-  if (!d) {
-    bg = colors.card;
-    textCol = colors.t3;
-  } else if (dir === 'up') {
-    bg = abs > 1.5 ? '#00E5A022' : '#00E5A011';
-    textCol = colors.gain;
+  let bg: string, textCol: string, borderCol: string;
+  if (!d) { bg = colors.card; textCol = colors.t3; borderCol = colors.rim; }
+  else if (dir === 'up') {
+    bg = abs > 2 ? '#00E5A030' : abs > 1 ? '#00E5A01A' : '#00E5A00D';
+    textCol = colors.gain; borderCol = 'rgba(0,229,160,0.2)';
   } else if (dir === 'dn') {
-    bg = abs > 1.5 ? '#FF4D6A22' : '#FF4D6A11';
-    textCol = colors.loss;
-  } else {
-    bg = colors.amberDim;
-    textCol = colors.amber;
-  }
+    bg = abs > 2 ? '#FF4D6A30' : abs > 1 ? '#FF4D6A1A' : '#FF4D6A0D';
+    textCol = colors.loss; borderCol = 'rgba(255,77,106,0.2)';
+  } else { bg = colors.amberDim; textCol = colors.amber; borderCol = colors.rim; }
 
   return (
-    <View style={[styles.sectorTile, { backgroundColor: bg, borderColor: d ? (dir === 'up' ? 'rgba(0,229,160,0.2)' : dir === 'dn' ? 'rgba(255,77,106,0.2)' : colors.rim) : colors.rim }]}>
+    <View style={[styles.sectorTile, { backgroundColor: bg, borderColor: borderCol }]}>
       <Text style={[styles.sectorSym, { color: colors.t4 }]}>{sym}</Text>
-      <Text style={[styles.sectorLabel, { color: colors.t2 }]} numberOfLines={1}>{label}</Text>
-      <Text style={[styles.sectorChg, { color: textCol }]}>
-        {d ? fmtChg(chg) : '—'}
-      </Text>
+      <Text style={[styles.sectorLabel, { color: colors.t2 }]} numberOfLines={2}>{label.replace(' SPDR', '').replace(' ETF', '')}</Text>
+      <Text style={[styles.sectorChg, { color: textCol }]}>{d ? fmtChg(chg) : '—'}</Text>
     </View>
   );
 }
 
 function SectorsSection() {
+  const colors = useColors();
+  const { data } = useMarket();
+  const loaded = SECTORS.filter((s) => data[s.sym]);
+  const up = loaded.filter((s) => (data[s.sym]?.regularMarketChangePercent ?? 0) > 0).length;
+  const dn = loaded.filter((s) => (data[s.sym]?.regularMarketChangePercent ?? 0) < 0).length;
+
   return (
     <View style={styles.section}>
-      <SectionHeader label="S&P 500 Sectors" count={SECTORS.length} />
+      <SectionHeader
+        label="S&P 500 Sectors"
+        count={SECTORS.length}
+        right={loaded.length > 0 ? (
+          <View style={styles.adRatioWrap}>
+            <Text style={[styles.adUp, { color: colors.gain }]}>{up}↑</Text>
+            <Text style={[styles.adDn, { color: colors.loss }]}>{dn}↓</Text>
+          </View>
+        ) : undefined}
+      />
       <View style={styles.sectorGrid}>
         {SECTORS.map((s) => (
           <SectorTile key={s.sym} sym={s.sym} label={s.label} />
@@ -184,7 +217,7 @@ function SectorsSection() {
   );
 }
 
-// ── FEATURE 3: Bond Yields + VIX + DXY ────────────────────────────────────
+// ── Bond Yields ────────────────────────────────────────────────────────────
 
 function BondsSection() {
   const colors = useColors();
@@ -193,15 +226,9 @@ function BondsSection() {
   const vix = data['^VIX'];
   const dxy = data['DX-Y.NYB'];
   const vixVal = vix?.regularMarketPrice;
-  const vixChg = vix?.regularMarketChangePercent;
-  const dxyVal = dxy?.regularMarketPrice;
   const dxyChg = dxy?.regularMarketChangePercent;
 
-  const maxYield = Math.max(
-    ...BONDS.map((b) => data[b.sym]?.regularMarketPrice ?? 0),
-    6
-  );
-
+  const maxYield = Math.max(...BONDS.map((b) => data[b.sym]?.regularMarketPrice ?? 0), 6);
   const vixLevel = !vixVal ? 'neutral' : vixVal < 15 ? 'greed' : vixVal > 25 ? 'fear' : 'neutral';
   const vixColor = vixLevel === 'greed' ? colors.gain : vixLevel === 'fear' ? colors.loss : colors.amber;
   const vixLabel = vixLevel === 'greed' ? 'LOW FEAR' : vixLevel === 'fear' ? 'HIGH FEAR' : 'NEUTRAL';
@@ -210,7 +237,7 @@ function BondsSection() {
     <View style={styles.section}>
       <SectionHeader label="Bond Yields & Volatility" />
       <View style={[styles.bondsCard, { backgroundColor: colors.card, borderColor: colors.rim }]}>
-        <Text style={[styles.bondsTitle, { color: colors.t3 }]}>US TREASURY YIELD CURVE</Text>
+        <Text style={[styles.bondsTitle, { color: colors.t4 }]}>US TREASURY YIELD CURVE</Text>
         {BONDS.map((b) => {
           const d = data[b.sym];
           const y = d?.regularMarketPrice;
@@ -227,30 +254,27 @@ function BondsSection() {
               <Text style={[styles.yieldVal, { color: colors.t1 }]}>
                 {y != null ? `${fmt(y, 2)}%` : '—'}
               </Text>
-              <Text style={[styles.yieldChg, { color: dir === 'up' ? colors.loss : dir === 'dn' ? colors.gain : colors.amber }]}>
+              <Text style={[styles.yieldChg, { color: barCol }]}>
                 {d ? (chg >= 0 ? `+${fmt(Math.abs(chg), 1)}` : `-${fmt(Math.abs(chg), 1)}`) : ''}
               </Text>
             </View>
           );
         })}
-
         <View style={[styles.macroRow, { borderTopColor: colors.rim }]}>
           <View style={styles.macroItem}>
             <Text style={[styles.macroLabel, { color: colors.t4 }]}>VIX</Text>
-            <Text style={[styles.macroVal, { color: vixColor }]}>
-              {vixVal != null ? fmt(vixVal, 1) : '—'}
-            </Text>
-            <Text style={[styles.macroTag, { color: vixColor }]}>{vixVal ? vixLabel : ''}</Text>
+            <Text style={[styles.macroVal, { color: vixColor }]}>{vixVal != null ? fmt(vixVal, 1) : '—'}</Text>
+            <View style={[styles.macroTagWrap, { backgroundColor: vixLevel === 'fear' ? colors.lossDim : vixLevel === 'greed' ? colors.gainDim : colors.amberDim }]}>
+              <Text style={[styles.macroTag, { color: vixColor }]}>{vixVal ? vixLabel : 'N/A'}</Text>
+            </View>
           </View>
           <View style={[styles.macroDivider, { backgroundColor: colors.rim }]} />
           <View style={styles.macroItem}>
             <Text style={[styles.macroLabel, { color: colors.t4 }]}>US DOLLAR INDEX</Text>
             <Text style={[styles.macroVal, { color: chgDir(dxyChg) === 'up' ? colors.gain : chgDir(dxyChg) === 'dn' ? colors.loss : colors.t1 }]}>
-              {dxyVal != null ? fmt(dxyVal, 2) : '—'}
+              {dxy?.regularMarketPrice != null ? fmt(dxy.regularMarketPrice, 2) : '—'}
             </Text>
-            <Text style={[styles.macroTag, { color: colors.t4 }]}>
-              {dxyChg != null ? fmtChg(dxyChg) : ''}
-            </Text>
+            <Text style={[styles.macroTag, { color: colors.t4 }]}>{dxyChg != null ? fmtChg(dxyChg) : ''}</Text>
           </View>
         </View>
       </View>
@@ -258,32 +282,35 @@ function BondsSection() {
   );
 }
 
-// ── FEATURE 4: Top Day Movers ──────────────────────────────────────────────
+// ── Top Movers ────────────────────────────────────────────────────────────
 
 function MoversSection() {
   const colors = useColors();
   const { data } = useMarket();
 
   const loaded = STOCKS.filter((s) => data[s.sym] != null);
-  if (loaded.length < 3) return null;
+  if (loaded.length < 4) return null;
 
   const sorted = [...loaded].sort(
     (a, b) => (data[b.sym]?.regularMarketChangePercent ?? 0) - (data[a.sym]?.regularMarketChangePercent ?? 0)
   );
-  const gainers = sorted.slice(0, 4);
-  const losers = sorted.slice(-4).reverse();
+  const gainers = sorted.slice(0, 5);
+  const losers = sorted.slice(-5).reverse();
 
   const MoverRow = ({ sym, name, col }: { sym: string; name: string; col: string }) => {
     const d = data[sym];
     const chg = d?.regularMarketChangePercent ?? 0;
+    const chgAbs = d?.regularMarketChange ?? 0;
     return (
       <View style={[styles.moverRow, { borderBottomColor: colors.rim }]}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.moverSym, { color: colors.t1 }]}>{sym}</Text>
-          <Text style={[styles.moverName, { color: colors.t4 }]}>{name}</Text>
+          <Text style={[styles.moverName, { color: colors.t4 }]} numberOfLines={1}>{name}</Text>
         </View>
-        <Text style={[styles.moverPrice, { color: colors.t2 }]}>${fmt(d?.regularMarketPrice)}</Text>
-        <Text style={[styles.moverChg, { color: col }]}>{fmtChg(chg)}</Text>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={[styles.moverChg, { color: col }]}>{fmtChg(chg)}</Text>
+          <Text style={[styles.moverPrice, { color: colors.t3 }]}>${fmt(d?.regularMarketPrice)}</Text>
+        </View>
       </View>
     );
   };
@@ -292,24 +319,26 @@ function MoversSection() {
     <View style={styles.section}>
       <SectionHeader label="Today's Top Movers" />
       <View style={styles.moversGrid}>
-        <View style={[styles.moversCol, { backgroundColor: colors.card, borderColor: colors.rim }]}>
-          <Text style={[styles.moversColTitle, { color: colors.gain }]}>▲ GAINERS</Text>
-          {gainers.map((s) => (
-            <MoverRow key={s.sym} sym={s.sym} name={s.name} col={colors.gain} />
-          ))}
+        <View style={[styles.moversCol, { backgroundColor: colors.card, borderColor: 'rgba(0,229,160,0.2)' }]}>
+          <View style={[styles.moversColHd, { borderBottomColor: colors.rim }]}>
+            <View style={[styles.moversDot, { backgroundColor: colors.gain }]} />
+            <Text style={[styles.moversColTitle, { color: colors.gain }]}>GAINERS</Text>
+          </View>
+          {gainers.map((s) => <MoverRow key={s.sym} sym={s.sym} name={s.name} col={colors.gain} />)}
         </View>
-        <View style={[styles.moversCol, { backgroundColor: colors.card, borderColor: colors.rim }]}>
-          <Text style={[styles.moversColTitle, { color: colors.loss }]}>▼ LOSERS</Text>
-          {losers.map((s) => (
-            <MoverRow key={s.sym} sym={s.sym} name={s.name} col={colors.loss} />
-          ))}
+        <View style={[styles.moversCol, { backgroundColor: colors.card, borderColor: 'rgba(255,77,106,0.2)' }]}>
+          <View style={[styles.moversColHd, { borderBottomColor: colors.rim }]}>
+            <View style={[styles.moversDot, { backgroundColor: colors.loss }]} />
+            <Text style={[styles.moversColTitle, { color: colors.loss }]}>LOSERS</Text>
+          </View>
+          {losers.map((s) => <MoverRow key={s.sym} sym={s.sym} name={s.name} col={colors.loss} />)}
         </View>
       </View>
     </View>
   );
 }
 
-// ── Existing section components ────────────────────────────────────────────
+// ── Index Cards ───────────────────────────────────────────────────────────
 
 function IndexCard({ sym, name, region }: { sym: string; name: string; region: string }) {
   const colors = useColors();
@@ -318,16 +347,26 @@ function IndexCard({ sym, name, region }: { sym: string; name: string; region: s
   const chg = d?.regularMarketChangePercent ?? 0;
   const dir = chgDir(chg);
   const accent = dir === 'up' ? colors.gain : dir === 'dn' ? colors.loss : colors.rim;
+  const accentBg = dir === 'up' ? colors.gainDim : dir === 'dn' ? colors.lossDim : 'transparent';
 
   return (
-    <View style={[styles.idxCard, { backgroundColor: colors.card, borderColor: colors.rim, borderBottomColor: d ? accent : colors.rim }]}>
-      <Text style={[styles.idxRegion, { color: colors.t3 }]}>{region}</Text>
-      <Text style={[styles.idxName, { color: colors.t1 }]} numberOfLines={1}>{name}</Text>
-      <Text style={[styles.idxPrice, { color: colors.t1 }]}>{d ? fmt(d.regularMarketPrice) : '—'}</Text>
-      {d && <ChangeBadge value={chg} />}
+    <View style={[styles.idxCard, { backgroundColor: colors.card, borderColor: colors.rim }]}>
+      <View style={[styles.idxAccent, { backgroundColor: accent }]} />
+      <View style={styles.idxBody}>
+        <Text style={[styles.idxRegion, { color: colors.t4 }]}>{region}</Text>
+        <Text style={[styles.idxName, { color: colors.t2 }]} numberOfLines={1}>{name}</Text>
+        <Text style={[styles.idxPrice, { color: colors.t1 }]}>{d ? fmt(d.regularMarketPrice, 0) : '—'}</Text>
+        {d && (
+          <View style={[styles.idxBadge, { backgroundColor: accentBg }]}>
+            <Text style={[styles.idxBadgeText, { color: accent }]}>{fmtChg(chg)}</Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
+
+// ── Forex Chips ───────────────────────────────────────────────────────────
 
 function ForexChip({ sym, label }: { sym: string; label: string }) {
   const colors = useColors();
@@ -350,22 +389,27 @@ function ForexChip({ sym, label }: { sym: string; label: string }) {
   );
 }
 
+// ── Commodity Cards ───────────────────────────────────────────────────────
+
 function CommodityCard({ sym, label, unit }: { sym: string; label: string; unit: string }) {
   const colors = useColors();
   const { data } = useMarket();
   const d = data[sym];
   const chg = d?.regularMarketChangePercent ?? 0;
+  const dir = chgDir(chg);
   return (
     <View style={[styles.comCard, { backgroundColor: colors.card, borderColor: colors.rim }]}>
-      <Text style={[styles.comName, { color: colors.t3 }]}>{label}</Text>
-      <Text style={[styles.comPrice, { color: colors.amber }]}>{d ? fmt(d.regularMarketPrice) : '—'}</Text>
+      <Text style={[styles.comName, { color: colors.t4 }]}>{label}</Text>
+      <Text style={[styles.comPrice, { color: colors.amber }]}>{d ? `$${fmt(d.regularMarketPrice)}` : '—'}</Text>
       <Text style={[styles.comUnit, { color: colors.t4 }]}>{unit}</Text>
       {d && <ChangeBadge value={chg} />}
     </View>
   );
 }
 
-function StockRow({ sym, name }: { sym: string; name: string }) {
+// ── Stock Table ───────────────────────────────────────────────────────────
+
+function StockRow({ sym, name, even }: { sym: string; name: string; even: boolean }) {
   const colors = useColors();
   const { data } = useMarket();
   const { settings } = useSettings();
@@ -376,26 +420,19 @@ function StockRow({ sym, name }: { sym: string; name: string }) {
   const dec = settings.priceDecimals;
 
   return (
-    <View style={[styles.stockRow, { borderBottomColor: colors.rim }]}>
+    <View style={[styles.stockRow, { backgroundColor: even ? colors.surface : 'transparent', borderBottomColor: colors.rim }]}>
       <View style={styles.stockInfo}>
         <Text style={[styles.stockSym, { color: colors.t1 }]}>{sym}</Text>
-        <Text style={[styles.stockName, { color: colors.t4 }]}>{name}</Text>
-        {d && d.regularMarketDayHigh != null && d.regularMarketDayLow != null && (
-          <Text style={[styles.stockHiLo, { color: colors.t4 }]}>
-            H ${fmt(d.regularMarketDayHigh, dec)} · L ${fmt(d.regularMarketDayLow, dec)}
-          </Text>
-        )}
+        <Text style={[styles.stockName, { color: colors.t4 }]} numberOfLines={1}>{name}</Text>
       </View>
-      <View style={{ alignItems: 'flex-end' }}>
-        <Text style={[styles.stockPrice, { color: colors.t1 }]}>{d ? `$${fmt(d.regularMarketPrice, dec)}` : '—'}</Text>
-        <Text style={[styles.stockChg, { color: chgColor }]}>{d ? fmtChg(chg) : '—'}</Text>
-        <Text style={[styles.stockMcap, { color: colors.t3 }]}>{d ? fmtMcap(d.marketCap, settings.compactNumbers) : '—'}</Text>
-      </View>
+      <Text style={[styles.stockPrice, { color: colors.t1 }]}>{d ? `$${fmt(d.regularMarketPrice, dec)}` : '—'}</Text>
+      <Text style={[styles.stockChg, { color: chgColor }]}>{d ? fmtChg(chg) : '—'}</Text>
+      <Text style={[styles.stockMcap, { color: colors.t3 }]}>{d ? fmtMcap(d.marketCap, settings.compactNumbers) : '—'}</Text>
     </View>
   );
 }
 
-// ── Main screen ────────────────────────────────────────────────────────────
+// ── Main Screen ───────────────────────────────────────────────────────────
 
 export default function MarketsScreen() {
   const colors = useColors();
@@ -442,6 +479,11 @@ export default function MarketsScreen() {
         </View>
       </View>
 
+      {/* Macro ribbon */}
+      <View style={[styles.ribbonBar, { backgroundColor: colors.base, borderBottomColor: colors.rim }]}>
+        <MacroRibbon />
+      </View>
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={{ paddingBottom: tabBarHeight + 8 }}
@@ -457,8 +499,8 @@ export default function MarketsScreen() {
         </View>
 
         <SectorsSection />
-        <BondsSection />
         <MoversSection />
+        <BondsSection />
 
         <View style={styles.section}>
           <SectionHeader label="Foreign Exchange" />
@@ -478,22 +520,20 @@ export default function MarketsScreen() {
           <SectionHeader label="Major Stocks" count={STOCKS.length} />
           <View style={[styles.tableWrap, { backgroundColor: colors.card, borderColor: colors.rim }]}>
             <View style={[styles.tableHead, { backgroundColor: colors.surface, borderBottomColor: colors.rim }]}>
-              <Text style={[styles.thText, { color: colors.t3, flex: 2 }]}>COMPANY</Text>
-              <Text style={[styles.thText, { color: colors.t3, flex: 1, textAlign: 'right' }]}>PRICE</Text>
-              <Text style={[styles.thText, { color: colors.t3, flex: 1, textAlign: 'right' }]}>CHG%</Text>
-              <Text style={[styles.thText, { color: colors.t3, flex: 1.2, textAlign: 'right' }]}>MKT CAP</Text>
+              <Text style={[styles.thText, { color: colors.t4, flex: 2 }]}>COMPANY</Text>
+              <Text style={[styles.thText, { color: colors.t4, textAlign: 'right' }]}>PRICE</Text>
+              <Text style={[styles.thText, { color: colors.t4, textAlign: 'right' }]}>CHG%</Text>
+              <Text style={[styles.thText, { color: colors.t4, flex: 1.2, textAlign: 'right' }]}>MKT CAP</Text>
             </View>
             {STOCKS.map((s, i) => (
-              <View key={s.sym} style={i < STOCKS.length - 1 ? undefined : { borderBottomWidth: 0 }}>
-                <StockRow sym={s.sym} name={s.name} />
-              </View>
+              <StockRow key={s.sym} sym={s.sym} name={s.name} even={i % 2 === 1} />
             ))}
           </View>
         </View>
 
         {lastUpdated && (
           <Text style={[styles.updated, { color: colors.t4 }]}>
-            Updated {lastUpdated.toLocaleTimeString()}
+            Last updated {lastUpdated.toLocaleTimeString()}
           </Text>
         )}
       </ScrollView>
@@ -504,15 +544,20 @@ export default function MarketsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1,
   },
+  ribbonBar: { borderBottomWidth: 1 },
+  ribbonScroll: { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
+  ribbonChip: {
+    borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6,
+    alignItems: 'center', minWidth: 72,
+  },
+  ribbonLabel: { fontSize: 7, fontFamily: 'Inter_700Bold', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 },
+  ribbonVal: { fontSize: 11, fontFamily: 'Inter_700Bold' },
+  ribbonArrow: { fontSize: 9, fontFamily: 'Inter_500Medium', marginTop: 1 },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoText: { fontSize: 16, fontFamily: 'Inter_700Bold', letterSpacing: -0.3 },
+  logoText: { fontSize: 18, fontFamily: 'Inter_700Bold', letterSpacing: -0.5 },
   liveChip: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2 },
   liveText: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -526,16 +571,16 @@ const styles = StyleSheet.create({
   secCount: { borderRadius: 3, borderWidth: 1, paddingHorizontal: 5, paddingVertical: 1 },
   secLine: { flex: 1, height: 1 },
   hScroll: { paddingRight: 14, gap: 6 },
+  adRatioWrap: { flexDirection: 'row', gap: 6 },
+  adUp: { fontSize: 9, fontFamily: 'Inter_700Bold' },
+  adDn: { fontSize: 9, fontFamily: 'Inter_700Bold' },
+  badge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, alignSelf: 'flex-start' },
+  badgeText: { fontSize: 10, fontFamily: 'Inter_500Medium' },
 
   // Market Hours
   hoursChip: {
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    alignItems: 'center',
-    gap: 4,
-    minWidth: 68,
+    borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8,
+    alignItems: 'center', gap: 4, minWidth: 68,
   },
   hoursDot: { width: 6, height: 6, borderRadius: 3 },
   hoursName: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.3 },
@@ -543,15 +588,10 @@ const styles = StyleSheet.create({
 
   // Sectors
   sectorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  sectorTile: {
-    width: '31%',
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 10,
-  },
-  sectorSym: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.5, marginBottom: 2 },
-  sectorLabel: { fontSize: 10, fontFamily: 'Inter_500Medium', marginBottom: 4 },
-  sectorChg: { fontSize: 13, fontFamily: 'Inter_700Bold' },
+  sectorTile: { width: '31%', borderRadius: 8, borderWidth: 1, padding: 10 },
+  sectorSym: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.5, marginBottom: 3 },
+  sectorLabel: { fontSize: 10, fontFamily: 'Inter_500Medium', marginBottom: 5, lineHeight: 13 },
+  sectorChg: { fontSize: 14, fontFamily: 'Inter_700Bold' },
 
   // Bonds
   bondsCard: { borderRadius: 8, borderWidth: 1, padding: 14, gap: 10 },
@@ -563,30 +603,35 @@ const styles = StyleSheet.create({
   yieldVal: { fontSize: 12, fontFamily: 'Inter_700Bold', width: 48, textAlign: 'right' },
   yieldChg: { fontSize: 9, fontFamily: 'Inter_500Medium', width: 30, textAlign: 'right' },
   macroRow: { flexDirection: 'row', borderTopWidth: 1, paddingTop: 10, marginTop: 2 },
-  macroItem: { flex: 1, alignItems: 'center', gap: 2 },
+  macroItem: { flex: 1, alignItems: 'center', gap: 3 },
   macroLabel: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
-  macroVal: { fontSize: 18, fontFamily: 'Inter_700Bold' },
+  macroVal: { fontSize: 20, fontFamily: 'Inter_700Bold' },
+  macroTagWrap: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
   macroTag: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
   macroDivider: { width: 1, marginVertical: 4 },
 
   // Movers
   moversGrid: { flexDirection: 'row', gap: 8 },
   moversCol: { flex: 1, borderRadius: 8, borderWidth: 1, overflow: 'hidden' },
-  moversColTitle: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 1, padding: 10, paddingBottom: 6 },
-  moverRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 7, borderBottomWidth: 1 },
+  moversColHd: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, paddingBottom: 8, borderBottomWidth: 1 },
+  moversDot: { width: 5, height: 5, borderRadius: 3 },
+  moversColTitle: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
+  moverRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, borderBottomWidth: 1 },
   moverSym: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
-  moverName: { fontSize: 8, marginTop: 1 },
-  moverPrice: { fontSize: 10, fontFamily: 'Inter_500Medium', marginRight: 4 },
-  moverChg: { fontSize: 11, fontFamily: 'Inter_700Bold', minWidth: 50, textAlign: 'right' },
+  moverName: { fontSize: 8, marginTop: 1, maxWidth: 90 },
+  moverChg: { fontSize: 12, fontFamily: 'Inter_700Bold' },
+  moverPrice: { fontSize: 9, fontFamily: 'Inter_400Regular', marginTop: 1 },
 
   // Indices
   idxGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  idxCard: { width: '47.5%', borderRadius: 8, borderWidth: 1, borderBottomWidth: 2, padding: 11 },
-  idxRegion: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
-  idxName: { fontSize: 12, fontFamily: 'Inter_600SemiBold', marginBottom: 6 },
-  idxPrice: { fontSize: 16, fontFamily: 'Inter_700Bold', letterSpacing: -0.5, marginBottom: 4 },
-  badge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, alignSelf: 'flex-start' },
-  badgeText: { fontSize: 10, fontFamily: 'Inter_500Medium' },
+  idxCard: { width: '47.5%', borderRadius: 8, borderWidth: 1, flexDirection: 'row', overflow: 'hidden' },
+  idxAccent: { width: 3, alignSelf: 'stretch' },
+  idxBody: { flex: 1, padding: 11 },
+  idxRegion: { fontSize: 7, fontFamily: 'Inter_700Bold', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
+  idxName: { fontSize: 11, fontFamily: 'Inter_500Medium', marginBottom: 6 },
+  idxPrice: { fontSize: 17, fontFamily: 'Inter_700Bold', letterSpacing: -0.5, marginBottom: 4 },
+  idxBadge: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2, alignSelf: 'flex-start' },
+  idxBadgeText: { fontSize: 10, fontFamily: 'Inter_600SemiBold' },
 
   // Forex
   fxChip: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 20, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 7 },
@@ -596,21 +641,20 @@ const styles = StyleSheet.create({
   // Commodities
   comCard: { borderRadius: 8, borderWidth: 1, padding: 11, minWidth: 110 },
   comName: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 },
-  comPrice: { fontSize: 15, fontFamily: 'Inter_700Bold', marginBottom: 2 },
+  comPrice: { fontSize: 15, fontFamily: 'Inter_700Bold', marginBottom: 1 },
   comUnit: { fontSize: 8, marginBottom: 6 },
 
   // Stocks
   tableWrap: { borderRadius: 8, borderWidth: 1, overflow: 'hidden' },
   tableHead: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 7, borderBottomWidth: 1 },
-  thText: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 1, textTransform: 'uppercase' },
+  thText: { flex: 1, fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 1, textTransform: 'uppercase' },
   stockRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 9, borderBottomWidth: 1 },
   stockInfo: { flex: 2 },
   stockSym: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
-  stockName: { fontSize: 9, marginTop: 1 },
+  stockName: { fontSize: 9, marginTop: 1, maxWidth: 110 },
   stockPrice: { flex: 1, fontSize: 12, fontFamily: 'Inter_500Medium', textAlign: 'right' },
-  stockChg: { flex: 1, fontSize: 11, fontFamily: 'Inter_500Medium', textAlign: 'right' },
-  stockMcap: { fontSize: 11 },
-  stockHiLo: { fontSize: 9, fontFamily: 'Inter_500Medium', marginTop: 1 },
+  stockChg: { flex: 1, fontSize: 11, fontFamily: 'Inter_600SemiBold', textAlign: 'right' },
+  stockMcap: { flex: 1.2, fontSize: 10, textAlign: 'right' },
 
-  updated: { textAlign: 'center', fontSize: 10, marginTop: 12, marginBottom: 4 },
+  updated: { textAlign: 'center', fontSize: 10, marginTop: 12, marginBottom: 6 },
 });

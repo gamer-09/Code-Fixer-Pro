@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useSettings } from '@/context/SettingsContext';
 import {
   Alert,
@@ -39,11 +39,15 @@ function resolveDisplayName(sym: string): string {
   return sym;
 }
 
-function getKnownSymbols(): string[] {
-  return ALL_SYMBOLS;
-}
-
-function HoldingCard({ holding, onRemove }: { holding: Holding; onRemove: () => void }) {
+function HoldingCard({
+  holding,
+  onRemove,
+  totalPortfolioValue,
+}: {
+  holding: Holding;
+  onRemove: () => void;
+  totalPortfolioValue: number;
+}) {
   const colors = useColors();
   const { data } = useMarket();
   const { settings } = useSettings();
@@ -56,6 +60,7 @@ function HoldingCard({ holding, onRemove }: { holding: Holding; onRemove: () => 
   const dir = chgDir(d?.regularMarketChangePercent);
   const dayColor = dir === 'up' ? colors.gain : dir === 'dn' ? colors.loss : colors.amber;
   const pnlColor = pnl >= 0 ? colors.gain : colors.loss;
+  const allocPct = totalPortfolioValue > 0 ? (value / totalPortfolioValue) * 100 : 0;
 
   const alertThreshold = settings.alertThreshold;
   const dayChangePct = Math.abs(d?.regularMarketChangePercent ?? 0);
@@ -68,45 +73,84 @@ function HoldingCard({ holding, onRemove }: { holding: Holding; onRemove: () => 
       { backgroundColor: colors.card, borderColor: isAlerted ? alertColor : colors.rim },
       isAlerted && { borderWidth: 1.5 },
     ]}>
-      <View style={styles.holdHd}>
-        <View>
-          <Text style={[styles.holdSym, { color: colors.t1 }]}>{holding.sym}</Text>
-          <Text style={[styles.holdName, { color: colors.t3 }]}>{holding.name}</Text>
-        </View>
-        <Pressable onPress={onRemove} style={[styles.removeBtn, { borderColor: colors.rim }]}>
-          <IconTrash2 size={12} color={colors.loss} />
-        </Pressable>
-      </View>
+      {/* Left accent based on day direction */}
+      <View style={[styles.holdAccent, { backgroundColor: dayColor }]} />
 
-      <View style={styles.holdStats}>
-        <View style={styles.statCol}>
-          <Text style={[styles.statLabel, { color: colors.t4 }]}>Qty</Text>
-          <Text style={[styles.statVal, { color: colors.t1 }]}>{holding.qty}</Text>
+      <View style={styles.holdInner}>
+        {/* Header row */}
+        <View style={styles.holdHd}>
+          <View style={styles.holdHdLeft}>
+            <View style={styles.holdSymRow}>
+              <Text style={[styles.holdSym, { color: colors.t1 }]}>{holding.sym}</Text>
+              {allocPct > 0 && (
+                <View style={[styles.allocBadge, { backgroundColor: colors.surface }]}>
+                  <Text style={[styles.allocText, { color: colors.t3 }]}>{allocPct.toFixed(1)}%</Text>
+                </View>
+              )}
+              {isAlerted && (
+                <View style={[styles.alertBadge, { backgroundColor: alertColor + '22' }]}>
+                  <Text style={[styles.alertBadgeText, { color: alertColor }]}>ALERT</Text>
+                </View>
+              )}
+            </View>
+            <Text style={[styles.holdName, { color: colors.t4 }]}>{holding.name}</Text>
+          </View>
+          <Pressable onPress={onRemove} style={[styles.removeBtn, { borderColor: colors.rim }]}>
+            <IconTrash2 size={12} color={colors.loss} />
+          </Pressable>
         </View>
-        <View style={styles.statCol}>
-          <Text style={[styles.statLabel, { color: colors.t4 }]}>Price</Text>
-          <Text style={[styles.statVal, { color: colors.t1 }]}>{price ? `$${fmt(price, settings.priceDecimals)}` : '—'}</Text>
-        </View>
-        <View style={styles.statCol}>
-          <Text style={[styles.statLabel, { color: colors.t4 }]}>Value</Text>
-          <Text style={[styles.statVal, { color: colors.amber }]}>{value ? `$${fmt(value)}` : '—'}</Text>
-        </View>
-        <View style={styles.statCol}>
-          <Text style={[styles.statLabel, { color: colors.t4 }]}>Day</Text>
-          <Text style={[styles.statVal, { color: dayColor }]}>
-            {d ? fmtChg(d.regularMarketChangePercent) : '—'}
-          </Text>
-        </View>
-      </View>
 
-      {costBasis > 0 && (
-        <View style={[styles.pnlRow, { backgroundColor: pnl >= 0 ? colors.gainDim : colors.lossDim, borderColor: pnl >= 0 ? 'rgba(0,229,160,0.12)' : 'rgba(255,77,106,0.12)' }]}>
-          <Text style={[styles.pnlLabel, { color: pnlColor }]}>Unrealised P&L</Text>
-          <Text style={[styles.pnlVal, { color: pnlColor }]}>
-            {pnl >= 0 ? '+' : ''}${fmt(pnl)} ({pnlPct >= 0 ? '+' : ''}{fmt(pnlPct)}%)
-          </Text>
+        {/* Stats row */}
+        <View style={[styles.holdStats, { borderTopColor: colors.rim, borderBottomColor: colors.rim }]}>
+          <View style={styles.statCol}>
+            <Text style={[styles.statLabel, { color: colors.t4 }]}>Qty</Text>
+            <Text style={[styles.statVal, { color: colors.t1 }]}>{holding.qty}</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.rim }]} />
+          <View style={styles.statCol}>
+            <Text style={[styles.statLabel, { color: colors.t4 }]}>Price</Text>
+            <Text style={[styles.statVal, { color: colors.t1 }]}>
+              {price ? `$${fmt(price, settings.priceDecimals)}` : '—'}
+            </Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.rim }]} />
+          <View style={styles.statCol}>
+            <Text style={[styles.statLabel, { color: colors.t4 }]}>Value</Text>
+            <Text style={[styles.statVal, { color: colors.amber }]}>{value ? `$${fmt(value)}` : '—'}</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.rim }]} />
+          <View style={styles.statCol}>
+            <Text style={[styles.statLabel, { color: colors.t4 }]}>Today</Text>
+            <Text style={[styles.statVal, { color: dayColor }]}>
+              {d ? fmtChg(d.regularMarketChangePercent) : '—'}
+            </Text>
+          </View>
         </View>
-      )}
+
+        {/* P&L bar */}
+        {costBasis > 0 && (
+          <View style={styles.pnlSection}>
+            <View style={styles.pnlRow}>
+              <Text style={[styles.pnlLabel, { color: pnlColor }]}>Unrealised P&L</Text>
+              <Text style={[styles.pnlVal, { color: pnlColor }]}>
+                {pnl >= 0 ? '+' : ''}${fmt(Math.abs(pnl))} ({pnlPct >= 0 ? '+' : ''}{fmt(pnlPct)}%)
+              </Text>
+            </View>
+            {/* Visual P&L bar */}
+            <View style={[styles.pnlTrack, { backgroundColor: colors.surface }]}>
+              <View
+                style={[
+                  styles.pnlFill,
+                  {
+                    width: `${Math.min(100, Math.abs(pnlPct) / 2)}%`,
+                    backgroundColor: pnlColor,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -115,6 +159,7 @@ export default function PortfolioScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { data } = useMarket();
+  const { settings } = useSettings();
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [sym, setSym] = useState('');
   const [qty, setQty] = useState('');
@@ -136,8 +181,7 @@ export default function PortfolioScreen() {
 
   const handleAdd = () => {
     const upper = sym.trim().toUpperCase();
-    const knownSyms = getKnownSymbols();
-    if (!upper || !knownSyms.includes(upper)) {
+    if (!upper || !ALL_SYMBOLS.includes(upper)) {
       Alert.alert('Unknown symbol', `"${upper}" is not in our data set. Try symbols like AAPL, BTC-USD, EURUSD=X.`);
       return;
     }
@@ -147,73 +191,75 @@ export default function PortfolioScreen() {
       return;
     }
     const c = parseFloat(cost) || 0;
-
     const existing = holdings.findIndex((h) => h.sym === upper);
     if (existing >= 0) {
       const updated = [...holdings];
       updated[existing] = { ...updated[existing], qty: q, cost: c };
       saveHoldings(updated);
     } else {
-      saveHoldings([
-        ...holdings,
-        { sym: upper, name: resolveDisplayName(upper), qty: q, cost: c },
-      ]);
+      saveHoldings([...holdings, { sym: upper, name: resolveDisplayName(upper), qty: q, cost: c }]);
     }
-
-    setSym('');
-    setQty('');
-    setCost('');
+    setSym(''); setQty(''); setCost('');
     setAddVisible(false);
     Keyboard.dismiss();
   };
 
   const handleRemove = (i: number) => {
-    const updated = holdings.filter((_, idx) => idx !== i);
-    saveHoldings(updated);
+    saveHoldings(holdings.filter((_, idx) => idx !== i));
   };
 
-  const totalValue = holdings.reduce((acc, h) => {
-    const price = data[h.sym]?.regularMarketPrice ?? 0;
-    return acc + price * h.qty;
-  }, 0);
-
+  const totalValue = holdings.reduce((acc, h) => acc + (data[h.sym]?.regularMarketPrice ?? 0) * h.qty, 0);
   const totalCost = holdings.reduce((acc, h) => acc + h.cost * h.qty, 0);
   const totalPnl = totalValue - totalCost;
   const totalPnlPct = totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0;
+  const pnlColor = totalPnl >= 0 ? colors.gain : colors.loss;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.void }]}>
+      {/* Header */}
       <View style={[styles.header, { paddingTop: topPad + 8, backgroundColor: colors.base, borderBottomColor: colors.rim }]}>
         <Text style={[styles.pageTitle, { color: colors.t1 }]}>Portfolio</Text>
         <Pressable
           onPress={() => setAddVisible((v) => !v)}
-          style={[styles.addBtn, { backgroundColor: addVisible ? colors.gain : colors.card, borderColor: addVisible ? 'transparent' : colors.rim }]}
+          style={[
+            styles.addBtn,
+            { backgroundColor: addVisible ? colors.gain : colors.card, borderColor: addVisible ? 'transparent' : colors.rim },
+          ]}
         >
-          {addVisible ? <IconX size={14} color='#000' /> : <IconPlus size={14} color={colors.t2} />}
+          {addVisible ? <IconX size={13} color="#000" /> : <IconPlus size={13} color={colors.t2} />}
           <Text style={[styles.addBtnText, { color: addVisible ? '#000' : colors.t2 }]}>
             {addVisible ? 'Close' : 'Add'}
           </Text>
         </Pressable>
       </View>
 
-      {/* Summary bar */}
+      {/* Summary banner */}
       {holdings.length > 0 && (
-        <View style={[styles.summaryBar, { backgroundColor: colors.card, borderBottomColor: colors.rim }]}>
-          <View style={styles.sumItem}>
-            <Text style={[styles.sumLabel, { color: colors.t4 }]}>Total Value</Text>
-            <Text style={[styles.sumValue, { color: colors.amber }]}>${fmt(totalValue)}</Text>
+        <View style={[styles.summaryBanner, { backgroundColor: colors.card, borderBottomColor: colors.rim }]}>
+          <View style={styles.summaryMain}>
+            <View style={styles.summaryBlock}>
+              <Text style={[styles.summaryBig, { color: colors.amber }]}>${fmt(totalValue)}</Text>
+              <Text style={[styles.summaryCaption, { color: colors.t4 }]}>TOTAL VALUE</Text>
+            </View>
+            <View style={[styles.summaryDivider, { backgroundColor: colors.rim }]} />
+            <View style={styles.summaryBlock}>
+              <Text style={[styles.summaryBig, { color: colors.t2 }]}>${fmt(totalCost)}</Text>
+              <Text style={[styles.summaryCaption, { color: colors.t4 }]}>COST BASIS</Text>
+            </View>
+            <View style={[styles.summaryDivider, { backgroundColor: colors.rim }]} />
+            <View style={styles.summaryBlock}>
+              <Text style={[styles.summaryBig, { color: pnlColor }]}>
+                {totalPnl >= 0 ? '+' : ''}{fmt(totalPnlPct)}%
+              </Text>
+              <Text style={[styles.summaryCaption, { color: colors.t4 }]}>UNREALISED P&L</Text>
+            </View>
           </View>
-          <View style={[styles.divider, { backgroundColor: colors.rim }]} />
-          <View style={styles.sumItem}>
-            <Text style={[styles.sumLabel, { color: colors.t4 }]}>Cost Basis</Text>
-            <Text style={[styles.sumValue, { color: colors.t1 }]}>${fmt(totalCost)}</Text>
-          </View>
-          <View style={[styles.divider, { backgroundColor: colors.rim }]} />
-          <View style={styles.sumItem}>
-            <Text style={[styles.sumLabel, { color: colors.t4 }]}>P&L</Text>
-            <Text style={[styles.sumValue, { color: totalPnl >= 0 ? colors.gain : colors.loss }]}>
-              {totalPnl >= 0 ? '+' : ''}${fmt(totalPnl)} ({totalPnlPct >= 0 ? '+' : ''}{fmt(totalPnlPct)}%)
+          {/* P&L absolute */}
+          <View style={[styles.pnlAbsRow, { backgroundColor: totalPnl >= 0 ? colors.gainDim : colors.lossDim, borderTopColor: totalPnl >= 0 ? 'rgba(0,229,160,0.1)' : 'rgba(255,77,106,0.1)' }]}>
+            <Text style={[styles.pnlAbsText, { color: pnlColor }]}>
+              {totalPnl >= 0 ? '▲' : '▼'} {totalPnl >= 0 ? '+' : ''}${fmt(Math.abs(totalPnl))} unrealised
             </Text>
+            <Text style={[styles.holdingCount, { color: pnlColor }]}>{holdings.length} position{holdings.length !== 1 ? 's' : ''}</Text>
           </View>
         </View>
       )}
@@ -221,7 +267,7 @@ export default function PortfolioScreen() {
       {/* Add form */}
       {addVisible && (
         <View style={[styles.addForm, { backgroundColor: colors.surface, borderBottomColor: colors.rim }]}>
-          <Text style={[styles.addTitle, { color: colors.t3 }]}>Add / Update Holding</Text>
+          <Text style={[styles.addTitle, { color: colors.t4 }]}>ADD / UPDATE HOLDING</Text>
           <View style={styles.addRow}>
             <TextInput
               style={[styles.addInput, { backgroundColor: colors.card, borderColor: colors.rim, color: colors.t1, flex: 1.2 }]}
@@ -232,7 +278,7 @@ export default function PortfolioScreen() {
               autoCapitalize="characters"
             />
             <TextInput
-              style={[styles.addInput, { backgroundColor: colors.card, borderColor: colors.rim, color: colors.t1, flex: 0.8 }]}
+              style={[styles.addInput, { backgroundColor: colors.card, borderColor: colors.rim, color: colors.t1, flex: 0.7 }]}
               value={qty}
               onChangeText={setQty}
               placeholder="Qty"
@@ -240,32 +286,31 @@ export default function PortfolioScreen() {
               keyboardType="decimal-pad"
             />
             <TextInput
-              style={[styles.addInput, { backgroundColor: colors.card, borderColor: colors.rim, color: colors.t1, flex: 1 }]}
+              style={[styles.addInput, { backgroundColor: colors.card, borderColor: colors.rim, color: colors.t1, flex: 0.9 }]}
               value={cost}
               onChangeText={setCost}
               placeholder="Avg cost"
               placeholderTextColor={colors.t4}
               keyboardType="decimal-pad"
             />
-            <Pressable
-              onPress={handleAdd}
-              style={[styles.addSubmit, { backgroundColor: colors.gain }]}
-            >
+            <Pressable onPress={handleAdd} style={[styles.addSubmit, { backgroundColor: colors.gain }]}>
               <IconCheck size={16} color="#000" />
             </Pressable>
           </View>
           <Text style={[styles.addHint, { color: colors.t4 }]}>
-            Known symbols: AAPL, MSFT, TSLA, BTC-USD, ETH-USD, EURUSD=X, GC=F, ^GSPC…
+            Supports: AAPL, MSFT, BTC-USD, ETH-USD, EURUSD=X, GC=F, ^GSPC…
           </Text>
         </View>
       )}
 
       {holdings.length === 0 ? (
         <View style={styles.empty}>
-          <IconBriefcase size={40} color={colors.t4} />
+          <View style={[styles.emptyIcon, { backgroundColor: colors.card, borderColor: colors.rim }]}>
+            <IconBriefcase size={32} color={colors.t3} />
+          </View>
           <Text style={[styles.emptyTitle, { color: colors.t2 }]}>No holdings yet</Text>
           <Text style={[styles.emptyBody, { color: colors.t4 }]}>
-            Tap "+ Add" to track stocks, crypto, indices, or forex pairs.
+            Tap "+ Add" above to track stocks, crypto, indices, or forex with live P&L.
           </Text>
         </View>
       ) : (
@@ -273,9 +318,13 @@ export default function PortfolioScreen() {
           data={holdings}
           keyExtractor={(h) => h.sym}
           renderItem={({ item, index }) => (
-            <HoldingCard holding={item} onRemove={() => handleRemove(index)} />
+            <HoldingCard
+              holding={item}
+              onRemove={() => handleRemove(index)}
+              totalPortfolioValue={totalValue}
+            />
           )}
-          contentContainerStyle={{ padding: 14, paddingBottom: tabBarHeight + 8 }}
+          contentContainerStyle={{ padding: 12, paddingBottom: tabBarHeight + 8, gap: 8 }}
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -286,74 +335,72 @@ export default function PortfolioScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1,
   },
   pageTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    borderRadius: 8, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 7,
   },
   addBtnText: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
-  summaryBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
+
+  // Summary banner
+  summaryBanner: { borderBottomWidth: 1 },
+  summaryMain: { flexDirection: 'row', alignItems: 'center' },
+  summaryBlock: { flex: 1, alignItems: 'center', paddingVertical: 14 },
+  summaryBig: { fontSize: 16, fontFamily: 'Inter_700Bold' },
+  summaryCaption: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.8, marginTop: 3 },
+  summaryDivider: { width: 1, height: 36 },
+  pnlAbsRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 1,
   },
-  sumItem: { flex: 1, alignItems: 'center' },
-  sumLabel: { fontSize: 9, fontFamily: 'Inter_400Regular', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
-  sumValue: { fontSize: 12, fontFamily: 'Inter_700Bold' },
-  divider: { width: 1, height: 30 },
+  pnlAbsText: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
+  holdingCount: { fontSize: 10, fontFamily: 'Inter_500Medium' },
+
+  // Add form
   addForm: { padding: 14, borderBottomWidth: 1 },
-  addTitle: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 },
+  addTitle: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 1.2, marginBottom: 10, textTransform: 'uppercase' },
   addRow: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  addInput: {
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
+  addInput: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 10, fontSize: 12, fontFamily: 'Inter_400Regular' },
+  addSubmit: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  addHint: { fontSize: 10, marginTop: 8, lineHeight: 15 },
+
+  // Holding card
+  holdCard: {
+    borderRadius: 10, borderWidth: 1, flexDirection: 'row', overflow: 'hidden',
   },
-  addSubmit: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addHint: { fontSize: 10, marginTop: 6, lineHeight: 15 },
-  holdCard: { borderRadius: 8, borderWidth: 1, padding: 12, marginBottom: 8 },
-  holdHd: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  holdSym: { fontSize: 14, fontFamily: 'Inter_700Bold' },
-  holdName: { fontSize: 10, marginTop: 1 },
+  holdAccent: { width: 3 },
+  holdInner: { flex: 1, padding: 12 },
+  holdHd: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 },
+  holdHdLeft: { flex: 1 },
+  holdSymRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  holdSym: { fontSize: 15, fontFamily: 'Inter_700Bold' },
+  holdName: { fontSize: 10 },
+  allocBadge: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 },
+  allocText: { fontSize: 9, fontFamily: 'Inter_600SemiBold' },
+  alertBadge: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2 },
+  alertBadgeText: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.5 },
   removeBtn: { borderRadius: 6, borderWidth: 1, padding: 6 },
-  holdStats: { flexDirection: 'row', gap: 6 },
-  statCol: { flex: 1 },
-  statLabel: { fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  statVal: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
-  pnlRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginTop: 10,
+  holdStats: {
+    flexDirection: 'row', alignItems: 'center',
+    borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: 8, marginBottom: 10,
   },
+  statCol: { flex: 1, alignItems: 'center' },
+  statLabel: { fontSize: 7, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3, fontFamily: 'Inter_700Bold' },
+  statVal: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+  statDivider: { width: 1, height: 28 },
+  pnlSection: {},
+  pnlRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   pnlLabel: { fontSize: 10, fontFamily: 'Inter_600SemiBold' },
-  pnlVal: { fontSize: 10, fontFamily: 'Inter_700Bold' },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 40 },
+  pnlVal: { fontSize: 11, fontFamily: 'Inter_700Bold' },
+  pnlTrack: { height: 4, borderRadius: 2, overflow: 'hidden' },
+  pnlFill: { height: '100%', borderRadius: 2 },
+
+  // Empty state
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 40 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontSize: 18, fontFamily: 'Inter_600SemiBold' },
   emptyBody: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
 });

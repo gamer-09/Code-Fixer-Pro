@@ -4,6 +4,7 @@ import {
   FlatList,
   Platform,
   Pressable,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -16,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { IconFlash, IconSend } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
-import { fmt, fmtChg, useMarket } from '@/context/MarketContext';
+import { chgDir, fmt, fmtChg, useMarket } from '@/context/MarketContext';
 import { useSettings } from '@/context/SettingsContext';
 
 interface ChatMessage {
@@ -33,13 +34,19 @@ const BASE_URL = process.env.EXPO_PUBLIC_DOMAIN
 const QUICK_QUESTIONS = [
   'What are the top market movers today?',
   'Is now a good time to buy Bitcoin?',
-  'Explain the impact of rising interest rates',
+  'Explain impact of rising interest rates',
   'Best sectors to invest in right now?',
   'How is the US economy performing?',
   'Should I be worried about inflation?',
 ];
 
-const AI_UNAVAILABLE = false;
+const CONTEXT_SYMS = [
+  { sym: '^GSPC', label: 'S&P 500' },
+  { sym: 'BTC-USD', label: 'BTC' },
+  { sym: 'GC=F', label: 'Gold' },
+  { sym: '^TNX', label: '10Y' },
+  { sym: '^VIX', label: 'VIX' },
+];
 
 const INITIAL_MSG: ChatMessage = {
   id: 'init',
@@ -77,12 +84,10 @@ function buildSystemPrompt(
     'You have access to live market data. Here is a snapshot:',
     '',
   ];
-
   const entries = Object.entries(data).slice(0, 20);
   for (const [sym, d] of entries) {
     lines.push(`${sym}: $${fmt(d.regularMarketPrice)} (${fmtChg(d.regularMarketChangePercent)})`);
   }
-
   lines.push(
     '',
     'Guidelines:',
@@ -93,9 +98,45 @@ function buildSystemPrompt(
     '- Stay factual; highlight uncertainty when present',
     ...RISK_GUIDANCE[riskProfile],
   );
-
   return lines.join('\n');
 }
+
+// ── Market Context Ribbon ─────────────────────────────────────────────────
+
+function MarketContextRibbon() {
+  const colors = useColors();
+  const { data } = useMarket();
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.ribbonScroll}
+    >
+      {CONTEXT_SYMS.map(({ sym, label }) => {
+        const d = data[sym];
+        const chg = d?.regularMarketChangePercent ?? 0;
+        const dir = chgDir(chg);
+        const col = dir === 'up' ? colors.gain : dir === 'dn' ? colors.loss : colors.amber;
+        const arrow = dir === 'up' ? '▲' : dir === 'dn' ? '▼' : '–';
+        const priceStr = d == null ? '—'
+          : sym === '^GSPC' ? fmt(d.regularMarketPrice, 0)
+          : sym === 'BTC-USD' ? `$${fmt(d.regularMarketPrice, 0)}`
+          : sym === '^TNX' ? `${fmt(d.regularMarketPrice, 2)}%`
+          : sym === '^VIX' ? fmt(d.regularMarketPrice, 1)
+          : `$${fmt(d.regularMarketPrice)}`;
+        return (
+          <View key={sym} style={[styles.ribbonChip, { backgroundColor: colors.card, borderColor: colors.rim }]}>
+            <Text style={[styles.ribbonLabel, { color: colors.t4 }]}>{label}</Text>
+            <Text style={[styles.ribbonVal, { color: colors.t1 }]}>{priceStr}</Text>
+            {d && <Text style={[styles.ribbonChg, { color: col }]}>{arrow} {Math.abs(chg).toFixed(1)}%</Text>}
+          </View>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+// ── Chat Components ───────────────────────────────────────────────────────
 
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const colors = useColors();
@@ -104,7 +145,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   return (
     <View style={[styles.bubbleWrap, isUser ? styles.bubbleRight : styles.bubbleLeft]}>
       {!isUser && (
-        <View style={[styles.aiIcon, { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }]}>
+        <View style={[styles.aiAvatar, { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.25)' }]}>
           <IconFlash size={12} color={colors.gain} />
         </View>
       )}
@@ -117,7 +158,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
         ]}
       >
         <Text style={[styles.bubbleText, { color: isUser ? '#fff' : colors.t1 }]}>{msg.content}</Text>
-        <Text style={[styles.timeText, { color: isUser ? 'rgba(255,255,255,0.5)' : colors.t4 }]}>
+        <Text style={[styles.timeText, { color: isUser ? 'rgba(255,255,255,0.45)' : colors.t4 }]}>
           {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </Text>
       </View>
@@ -127,27 +168,42 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 
 function TypingIndicator() {
   const colors = useColors();
-  const anim = useRef<{ [k: string]: ReturnType<typeof setTimeout> }>({});
-  const [dots, setDots] = useState(0);
-
+  const [tick, setTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setDots((d) => (d + 1) % 4), 450);
+    const id = setInterval(() => setTick((t) => (t + 1) % 4), 420);
     return () => clearInterval(id);
   }, []);
-
+  const dots = ['●○○', '●●○', '●●●', '○●●'];
   return (
     <View style={[styles.bubbleWrap, styles.bubbleLeft]}>
-      <View style={[styles.aiIcon, { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }]}>
+      <View style={[styles.aiAvatar, { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.25)' }]}>
         <IconFlash size={12} color={colors.gain} />
       </View>
-      <View style={[styles.bubble, styles.aiBubble, { backgroundColor: colors.card, borderColor: colors.rim, minWidth: 60 }]}>
-        <Text style={[styles.bubbleText, { color: colors.t3, letterSpacing: 3 }]}>
-          {'●'.repeat(dots) + '○'.repeat(3 - dots)}
-        </Text>
+      <View style={[styles.bubble, styles.aiBubble, { backgroundColor: colors.card, borderColor: colors.rim, paddingVertical: 14, paddingHorizontal: 16 }]}>
+        <Text style={[styles.bubbleText, { color: colors.gain, letterSpacing: 4 }]}>{dots[tick]}</Text>
       </View>
     </View>
   );
 }
+
+// ── Risk Profile Badge ────────────────────────────────────────────────────
+
+function RiskBadge({ risk }: { risk: string }) {
+  const colors = useColors();
+  const map: Record<string, { bg: string; col: string; label: string }> = {
+    conservative: { bg: colors.blueDim, col: colors.blue, label: 'CONSERVATIVE' },
+    moderate: { bg: colors.amberDim, col: colors.amber, label: 'MODERATE' },
+    aggressive: { bg: colors.lossDim, col: colors.loss, label: 'AGGRESSIVE' },
+  };
+  const s = map[risk] ?? map.moderate;
+  return (
+    <View style={[styles.riskBadge, { backgroundColor: s.bg }]}>
+      <Text style={[styles.riskText, { color: s.col }]}>{s.label}</Text>
+    </View>
+  );
+}
+
+// ── Main Screen ───────────────────────────────────────────────────────────
 
 export default function AdvisorScreen() {
   const colors = useColors();
@@ -165,11 +221,8 @@ export default function AdvisorScreen() {
   const lastHandledParamRef = useRef<string | null>(null);
   const prevClearKeyRef = useRef(0);
 
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
-  // Respond to clear chat trigger (from header button or Settings screen)
   useEffect(() => {
     if (settings.clearChatKey !== prevClearKeyRef.current) {
       prevClearKeyRef.current = settings.clearChatKey;
@@ -193,19 +246,9 @@ export default function AdvisorScreen() {
       const trimmed = text.trim();
       if (!trimmed || streaming) return;
 
-      const userMsg: ChatMessage = {
-        id: Date.now().toString(),
-        role: 'user',
-        content: trimmed,
-        timestamp: new Date(),
-      };
+      const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', content: trimmed, timestamp: new Date() };
       const aiId = (Date.now() + 1).toString();
-      const aiMsg: ChatMessage = {
-        id: aiId,
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-      };
+      const aiMsg: ChatMessage = { id: aiId, role: 'assistant', content: '', timestamp: new Date() };
 
       const prev = messagesRef.current;
       const nextMessages = [aiMsg, userMsg, ...prev];
@@ -222,47 +265,32 @@ export default function AdvisorScreen() {
 
       try {
         if (isNative) {
-          // Native: use non-streaming JSON endpoint — React Native / Expo Go
-          // doesn't reliably support ReadableStream / getReader()
           const response = await fetch(`${BASE_URL}/api/chat?stream=false`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages: historyForApi,
-              systemPrompt: buildSystemPrompt(data, settings.riskProfile),
-            }),
+            body: JSON.stringify({ messages: historyForApi, systemPrompt: buildSystemPrompt(data, settings.riskProfile) }),
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const json = await response.json() as { content?: string; error?: string };
           if (json.error) throw new Error(json.error);
           streamedContent = json.content ?? '';
-          setMessages((cur) =>
-            cur.map((m) => (m.id === aiId ? { ...m, content: streamedContent } : m))
-          );
+          setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: streamedContent } : m)));
         } else {
-          // Web: SSE streaming for real-time token display
           const response = await fetch(`${BASE_URL}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages: historyForApi,
-              systemPrompt: buildSystemPrompt(data, settings.riskProfile),
-            }),
+            body: JSON.stringify({ messages: historyForApi, systemPrompt: buildSystemPrompt(data, settings.riskProfile) }),
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
           const reader = response.body!.getReader();
           const decoder = new TextDecoder();
           let buffer = '';
-
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
             buffer = lines.pop() ?? '';
-
             for (const line of lines) {
               if (line.startsWith('data: ')) {
                 const raw = line.slice(6).trim();
@@ -271,36 +299,21 @@ export default function AdvisorScreen() {
                   const parsed = JSON.parse(raw) as { content?: string; error?: string };
                   if (parsed.content) {
                     streamedContent += parsed.content;
-                    setMessages((cur) =>
-                      cur.map((m) => (m.id === aiId ? { ...m, content: streamedContent } : m))
-                    );
+                    setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: streamedContent } : m)));
                   }
                   if (parsed.error) {
-                    setMessages((cur) =>
-                      cur.map((m) => (m.id === aiId ? { ...m, content: `Error: ${parsed.error}` } : m))
-                    );
+                    setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: `Error: ${parsed.error}` } : m)));
                   }
                 } catch {}
               }
             }
           }
         }
-
         if (!streamedContent) {
-          setMessages((cur) =>
-            cur.map((m) =>
-              m.id === aiId ? { ...m, content: 'No response received. Please try again.' } : m
-            )
-          );
+          setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: 'No response received. Please try again.' } : m)));
         }
       } catch (e) {
-        setMessages((cur) =>
-          cur.map((m) =>
-            m.id === aiId
-              ? { ...m, content: 'Connection error. Please check your network and try again.' }
-              : m
-          )
-        );
+        setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: 'Connection error. Check your network and try again.' } : m)));
       } finally {
         setStreaming(false);
       }
@@ -315,21 +328,29 @@ export default function AdvisorScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: topPad + 8, backgroundColor: colors.base, borderBottomColor: colors.rim }]}>
         <View>
-          <Text style={[styles.pageTitle, { color: colors.t1 }]}>FloAI</Text>
-          <Text style={[styles.subTitle, { color: colors.gain }]}>Powered by Gemini</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={[styles.pageTitle, { color: colors.t1 }]}>FloAI</Text>
+            <View style={[styles.onlineChip, { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }]}>
+              <View style={[styles.onlineDot, { backgroundColor: colors.gain }]} />
+              <Text style={[styles.onlineText, { color: colors.gain }]}>ONLINE</Text>
+            </View>
+          </View>
+          <Text style={[styles.subTitle, { color: colors.t4 }]}>Powered by Gemini</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <RiskBadge risk={settings.riskProfile} />
           <Pressable
             onPress={triggerClearChat}
             style={[styles.clearBtn, { backgroundColor: colors.card, borderColor: colors.rim }]}
           >
             <Text style={[styles.clearBtnText, { color: colors.t3 }]}>Clear</Text>
           </Pressable>
-          <View style={[styles.statusChip, { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }]}>
-            <View style={[styles.statusDot, { backgroundColor: colors.gain }]} />
-            <Text style={[styles.statusText, { color: colors.gain }]}>ONLINE</Text>
-          </View>
         </View>
+      </View>
+
+      {/* Market context ribbon */}
+      <View style={[styles.ribbonBar, { backgroundColor: colors.base, borderBottomColor: colors.rim }]}>
+        <MarketContextRibbon />
       </View>
 
       <KeyboardAvoidingView
@@ -337,7 +358,6 @@ export default function AdvisorScreen() {
         behavior="padding"
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        {/* Messages (inverted) */}
         <View style={{ flex: 1 }}>
           <FlatList
             ref={listRef}
@@ -353,26 +373,27 @@ export default function AdvisorScreen() {
 
         {/* Quick questions */}
         {messages.length === 1 && !streaming && (
-          <View style={styles.quickRow}>
-            <FlatList
-              data={QUICK_QUESTIONS}
+          <View style={[styles.quickWrap, { borderTopColor: colors.rim }]}>
+            <Text style={[styles.quickHint, { color: colors.t4 }]}>Try asking:</Text>
+            <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              keyExtractor={(q, i) => String(i)}
               contentContainerStyle={styles.quickScroll}
-              renderItem={({ item }) => (
+            >
+              {QUICK_QUESTIONS.map((q, i) => (
                 <Pressable
-                  onPress={() => sendMessage(item)}
+                  key={i}
+                  onPress={() => sendMessage(q)}
                   style={({ pressed }) => [
                     styles.quickChip,
                     { backgroundColor: colors.card, borderColor: pressed ? colors.blue : colors.rim },
                     pressed && { opacity: 0.8 },
                   ]}
                 >
-                  <Text style={[styles.quickText, { color: colors.t2 }]}>{item}</Text>
+                  <Text style={[styles.quickText, { color: colors.t2 }]}>{q}</Text>
                 </Pressable>
-              )}
-            />
+              ))}
+            </ScrollView>
           </View>
         )}
 
@@ -388,7 +409,7 @@ export default function AdvisorScreen() {
           ]}
         >
           <TextInput
-            style={[styles.textInput, { backgroundColor: colors.card, borderColor: colors.rim, color: colors.t1 }]}
+            style={[styles.textInput, { backgroundColor: colors.card, borderColor: input ? colors.blue + '66' : colors.rim, color: colors.t1 }]}
             value={input}
             onChangeText={setInput}
             placeholder="Ask about markets, stocks, crypto..."
@@ -405,7 +426,7 @@ export default function AdvisorScreen() {
               styles.sendBtn,
               {
                 backgroundColor: streaming || !input.trim() ? colors.card : colors.gain,
-                borderColor: colors.rim,
+                borderColor: streaming || !input.trim() ? colors.rim : 'transparent',
               },
             ]}
           >
@@ -424,88 +445,64 @@ export default function AdvisorScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1,
   },
   pageTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  subTitle: { fontSize: 10, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5 },
-  clearBtn: {
-    borderRadius: 7,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+  subTitle: { fontSize: 10, marginTop: 1 },
+  onlineChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 20,
+    borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2,
   },
+  onlineDot: { width: 5, height: 5, borderRadius: 3 },
+  onlineText: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
+  riskBadge: { borderRadius: 4, paddingHorizontal: 7, paddingVertical: 3 },
+  riskText: { fontSize: 8, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
+  clearBtn: { borderRadius: 7, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 5 },
   clearBtnText: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
-  statusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  ribbonBar: { borderBottomWidth: 1 },
+  ribbonScroll: { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
+  ribbonChip: {
+    borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6,
+    alignItems: 'center', minWidth: 66,
   },
-  statusDot: { width: 5, height: 5, borderRadius: 3 },
-  statusText: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
+  ribbonLabel: { fontSize: 7, fontFamily: 'Inter_700Bold', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 },
+  ribbonVal: { fontSize: 11, fontFamily: 'Inter_700Bold' },
+  ribbonChg: { fontSize: 9, fontFamily: 'Inter_500Medium', marginTop: 1 },
+
+  // Chat
   bubbleWrap: { marginBottom: 10 },
   bubbleLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   bubbleRight: { flexDirection: 'row', justifyContent: 'flex-end' },
-  aiIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
+  aiAvatar: {
+    width: 28, height: 28, borderRadius: 14, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center', marginTop: 2,
   },
-  bubble: { maxWidth: '80%', borderRadius: 12, borderWidth: 1, padding: 12 },
-  userBubble: { borderBottomRightRadius: 3 },
-  aiBubble: { borderTopLeftRadius: 3 },
-  bubbleText: { fontSize: 13, lineHeight: 20, fontFamily: 'Inter_400Regular' },
-  timeText: { fontSize: 9, marginTop: 4, textAlign: 'right' },
-  quickRow: { height: 52, flexShrink: 0 },
-  quickScroll: { paddingHorizontal: 14, paddingVertical: 8, gap: 6 },
-  quickChip: { borderRadius: 16, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 7 },
+  bubble: { maxWidth: '80%', borderRadius: 14, borderWidth: 1, padding: 12 },
+  userBubble: { borderBottomRightRadius: 4 },
+  aiBubble: { borderTopLeftRadius: 4 },
+  bubbleText: { fontSize: 13, lineHeight: 21, fontFamily: 'Inter_400Regular' },
+  timeText: { fontSize: 9, marginTop: 5, textAlign: 'right' },
+
+  // Quick questions
+  quickWrap: { borderTopWidth: 1, paddingTop: 8 },
+  quickHint: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 0.8, paddingHorizontal: 14, marginBottom: 6, textTransform: 'uppercase' },
+  quickScroll: { paddingHorizontal: 14, paddingBottom: 6, gap: 6 },
+  quickChip: { borderRadius: 16, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 },
   quickText: { fontSize: 12, fontFamily: 'Inter_500Medium' },
+
+  // Input bar
   inputBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-    paddingTop: 8,
-    paddingHorizontal: 14,
-    borderTopWidth: 1,
+    flexDirection: 'row', alignItems: 'flex-end', gap: 8,
+    paddingTop: 8, paddingHorizontal: 14, borderTopWidth: 1,
   },
   textInput: {
-    flex: 1,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
-    maxHeight: 100,
-    fontFamily: 'Inter_400Regular',
+    flex: 1, borderRadius: 12, borderWidth: 1, paddingHorizontal: 14,
+    paddingVertical: 11, fontSize: 13, fontFamily: 'Inter_400Regular',
+    maxHeight: 100, lineHeight: 20,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 42, height: 42, borderRadius: 12, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
   },
-  unavailableBanner: {
-    marginHorizontal: 14,
-    marginTop: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    padding: 12,
-    gap: 4,
-  },
-  unavailableTitle: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  unavailableBody: { fontSize: 11, lineHeight: 17 },
 });
