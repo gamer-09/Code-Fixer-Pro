@@ -61,65 +61,208 @@ function ChangeBadge({ value }: { value: number | null | undefined }) {
 
 // ── Market Hours ──────────────────────────────────────────────────────────
 
-const EXCHANGES = [
-  { name: 'NYSE', tz: 'America/New_York', oh: 9, om: 30, ch: 16, cm: 0 },
-  { name: 'LSE', tz: 'Europe/London', oh: 8, om: 0, ch: 16, cm: 30 },
-  { name: 'TSE', tz: 'Asia/Tokyo', oh: 9, om: 0, ch: 15, cm: 30 },
-  { name: 'SSE', tz: 'Asia/Shanghai', oh: 9, om: 30, ch: 15, cm: 0 },
-  { name: 'BSE', tz: 'Asia/Kolkata', oh: 9, om: 15, ch: 15, cm: 30 },
-  { name: 'ASX', tz: 'Australia/Sydney', oh: 10, om: 0, ch: 16, cm: 0 },
+interface Session { oh: number; om: number; ch: number; cm: number; }
+interface Exchange {
+  name: string;
+  full: string;
+  flag: string;
+  tz: string;
+  sessions: Session[];
+  region: string;
+  weekends?: number[]; // 0=Sun,6=Sat; default [0,6]
+}
+
+const EXCHANGES: Exchange[] = [
+  // ── Americas
+  { name: 'NYSE', full: 'New York Stock Exchange', flag: '🇺🇸', tz: 'America/New_York', sessions: [{ oh: 9, om: 30, ch: 16, cm: 0 }], region: 'Americas' },
+  { name: 'NASDAQ', full: 'NASDAQ', flag: '🇺🇸', tz: 'America/New_York', sessions: [{ oh: 9, om: 30, ch: 16, cm: 0 }], region: 'Americas' },
+  { name: 'TSX', full: 'Toronto Stock Exchange', flag: '🇨🇦', tz: 'America/Toronto', sessions: [{ oh: 9, om: 30, ch: 16, cm: 0 }], region: 'Americas' },
+  { name: 'BMV', full: 'Bolsa Mexicana de Valores', flag: '🇲🇽', tz: 'America/Mexico_City', sessions: [{ oh: 8, om: 30, ch: 15, cm: 0 }], region: 'Americas' },
+  { name: 'B3', full: 'B3 Brazil', flag: '🇧🇷', tz: 'America/Sao_Paulo', sessions: [{ oh: 10, om: 0, ch: 17, cm: 55 }], region: 'Americas' },
+  { name: 'BYMA', full: 'Buenos Aires Stock Exchange', flag: '🇦🇷', tz: 'America/Argentina/Buenos_Aires', sessions: [{ oh: 11, om: 0, ch: 17, cm: 0 }], region: 'Americas' },
+  // ── Europe
+  { name: 'LSE', full: 'London Stock Exchange', flag: '🇬🇧', tz: 'Europe/London', sessions: [{ oh: 8, om: 0, ch: 16, cm: 30 }], region: 'Europe' },
+  { name: 'XETRA', full: 'Deutsche Börse (Frankfurt)', flag: '🇩🇪', tz: 'Europe/Berlin', sessions: [{ oh: 9, om: 0, ch: 17, cm: 30 }], region: 'Europe' },
+  { name: 'Euronext', full: 'Euronext Paris / Amsterdam', flag: '🇫🇷', tz: 'Europe/Paris', sessions: [{ oh: 9, om: 0, ch: 17, cm: 30 }], region: 'Europe' },
+  { name: 'SIX', full: 'SIX Swiss Exchange', flag: '🇨🇭', tz: 'Europe/Zurich', sessions: [{ oh: 9, om: 0, ch: 17, cm: 30 }], region: 'Europe' },
+  { name: 'OMX', full: 'OMX Stockholm', flag: '🇸🇪', tz: 'Europe/Stockholm', sessions: [{ oh: 9, om: 0, ch: 17, cm: 30 }], region: 'Europe' },
+  { name: 'Oslo', full: 'Oslo Børs', flag: '🇳🇴', tz: 'Europe/Oslo', sessions: [{ oh: 9, om: 0, ch: 16, cm: 30 }], region: 'Europe' },
+  { name: 'MOEX', full: 'Moscow Exchange', flag: '🇷🇺', tz: 'Europe/Moscow', sessions: [{ oh: 9, om: 50, ch: 18, cm: 50 }], region: 'Europe' },
+  { name: 'WSE', full: 'Warsaw Stock Exchange', flag: '🇵🇱', tz: 'Europe/Warsaw', sessions: [{ oh: 9, om: 0, ch: 17, cm: 5 }], region: 'Europe' },
+  { name: 'BVB', full: 'Bucharest Stock Exchange', flag: '🇷🇴', tz: 'Europe/Bucharest', sessions: [{ oh: 10, om: 0, ch: 18, cm: 0 }], region: 'Europe' },
+  { name: 'IBEX', full: 'BME (Madrid)', flag: '🇪🇸', tz: 'Europe/Madrid', sessions: [{ oh: 9, om: 0, ch: 17, cm: 30 }], region: 'Europe' },
+  // ── Asia-Pacific
+  { name: 'TSE', full: 'Tokyo Stock Exchange', flag: '🇯🇵', tz: 'Asia/Tokyo', sessions: [{ oh: 9, om: 0, ch: 11, cm: 30 }, { oh: 12, om: 30, ch: 15, cm: 30 }], region: 'Asia-Pacific' },
+  { name: 'SSE', full: 'Shanghai Stock Exchange', flag: '🇨🇳', tz: 'Asia/Shanghai', sessions: [{ oh: 9, om: 30, ch: 11, cm: 30 }, { oh: 13, om: 0, ch: 15, cm: 0 }], region: 'Asia-Pacific' },
+  { name: 'HKEX', full: 'Hong Kong Exchange', flag: '🇭🇰', tz: 'Asia/Hong_Kong', sessions: [{ oh: 9, om: 30, ch: 12, cm: 0 }, { oh: 13, om: 0, ch: 16, cm: 0 }], region: 'Asia-Pacific' },
+  { name: 'SGX', full: 'Singapore Exchange', flag: '🇸🇬', tz: 'Asia/Singapore', sessions: [{ oh: 9, om: 0, ch: 17, cm: 0 }], region: 'Asia-Pacific' },
+  { name: 'BSE', full: 'BSE / NSE India', flag: '🇮🇳', tz: 'Asia/Kolkata', sessions: [{ oh: 9, om: 15, ch: 15, cm: 30 }], region: 'Asia-Pacific' },
+  { name: 'ASX', full: 'Australian Securities Exchange', flag: '🇦🇺', tz: 'Australia/Sydney', sessions: [{ oh: 10, om: 0, ch: 16, cm: 0 }], region: 'Asia-Pacific' },
+  { name: 'KRX', full: 'Korea Exchange', flag: '🇰🇷', tz: 'Asia/Seoul', sessions: [{ oh: 9, om: 0, ch: 15, cm: 30 }], region: 'Asia-Pacific' },
+  { name: 'TWSE', full: 'Taiwan Stock Exchange', flag: '🇹🇼', tz: 'Asia/Taipei', sessions: [{ oh: 9, om: 0, ch: 13, cm: 30 }], region: 'Asia-Pacific' },
+  { name: 'NZX', full: 'NZX New Zealand', flag: '🇳🇿', tz: 'Pacific/Auckland', sessions: [{ oh: 10, om: 0, ch: 17, cm: 0 }], region: 'Asia-Pacific' },
+  { name: 'SET', full: 'Stock Exchange of Thailand', flag: '🇹🇭', tz: 'Asia/Bangkok', sessions: [{ oh: 10, om: 0, ch: 12, cm: 30 }, { oh: 14, om: 30, ch: 16, cm: 30 }], region: 'Asia-Pacific' },
+  { name: 'IDX', full: 'Indonesia Stock Exchange', flag: '🇮🇩', tz: 'Asia/Jakarta', sessions: [{ oh: 9, om: 0, ch: 11, cm: 30 }, { oh: 13, om: 30, ch: 16, cm: 0 }], region: 'Asia-Pacific' },
+  // ── Middle East & Africa
+  { name: 'Tadawul', full: 'Saudi Exchange', flag: '🇸🇦', tz: 'Asia/Riyadh', sessions: [{ oh: 10, om: 0, ch: 15, cm: 0 }], weekends: [5, 6], region: 'Mid East & Africa' },
+  { name: 'DFM', full: 'Dubai Financial Market', flag: '🇦🇪', tz: 'Asia/Dubai', sessions: [{ oh: 10, om: 0, ch: 14, cm: 0 }], weekends: [5, 6], region: 'Mid East & Africa' },
+  { name: 'TASE', full: 'Tel Aviv Stock Exchange', flag: '🇮🇱', tz: 'Asia/Jerusalem', sessions: [{ oh: 9, om: 59, ch: 17, cm: 25 }], weekends: [5, 6], region: 'Mid East & Africa' },
+  { name: 'JSE', full: 'Johannesburg Stock Exchange', flag: '🇿🇦', tz: 'Africa/Johannesburg', sessions: [{ oh: 9, om: 0, ch: 17, cm: 0 }], region: 'Mid East & Africa' },
+  { name: 'EGX', full: 'Egyptian Exchange', flag: '🇪🇬', tz: 'Africa/Cairo', sessions: [{ oh: 10, om: 0, ch: 14, cm: 30 }], weekends: [5, 6], region: 'Mid East & Africa' },
+  { name: 'NGX', full: 'Nigerian Exchange Group', flag: '🇳🇬', tz: 'Africa/Lagos', sessions: [{ oh: 9, om: 30, ch: 14, cm: 30 }], region: 'Mid East & Africa' },
 ];
 
-function isOpen(tz: string, oh: number, om: number, ch: number, cm: number): boolean {
+function getLocalMinutes(tz: string): { minutes: number; weekday: number } {
   try {
+    const now = new Date();
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: tz, hour: 'numeric', minute: 'numeric', weekday: 'short', hour12: false,
-    }).formatToParts(new Date());
-    const weekday = parts.find((p) => p.type === 'weekday')?.value ?? '';
-    if (weekday === 'Sat' || weekday === 'Sun') return false;
+    }).formatToParts(now);
+    const weekdayStr = parts.find((p) => p.type === 'weekday')?.value ?? '';
+    const weekdayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const weekday = weekdayMap[weekdayStr] ?? 0;
     const h = parseInt(parts.find((p) => p.type === 'hour')?.value ?? '0');
     const m = parseInt(parts.find((p) => p.type === 'minute')?.value ?? '0');
-    const now = h * 60 + m;
-    return now >= oh * 60 + om && now < ch * 60 + cm;
-  } catch { return false; }
+    return { minutes: h * 60 + m, weekday };
+  } catch { return { minutes: 0, weekday: 0 }; }
+}
+
+function getLocalTimeStr(tz: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true,
+    }).format(new Date());
+  } catch { return ''; }
+}
+
+interface ExchangeStatus {
+  open: boolean;
+  localTime: string;
+  minutesToChange: number; // minutes until next open/close, 0 if unknown
+  changeLabel: string;     // 'Opens' or 'Closes'
+}
+
+function getStatus(ex: Exchange): ExchangeStatus {
+  const { minutes, weekday } = getLocalMinutes(ex.tz);
+  const localTime = getLocalTimeStr(ex.tz);
+  const weekends = ex.weekends ?? [0, 6];
+  const isWeekend = weekends.includes(weekday);
+
+  if (isWeekend) {
+    return { open: false, localTime, minutesToChange: 0, changeLabel: 'Opens' };
+  }
+
+  for (const s of ex.sessions) {
+    const start = s.oh * 60 + s.om;
+    const end = s.ch * 60 + s.cm;
+    if (minutes >= start && minutes < end) {
+      return { open: true, localTime, minutesToChange: end - minutes, changeLabel: 'Closes' };
+    }
+  }
+
+  // Find next session open
+  const nextOpen = ex.sessions.map((s) => s.oh * 60 + s.om).filter((t) => t > minutes).sort((a, b) => a - b)[0];
+  if (nextOpen != null) {
+    return { open: false, localTime, minutesToChange: nextOpen - minutes, changeLabel: 'Opens' };
+  }
+  return { open: false, localTime, minutesToChange: 0, changeLabel: 'Opens' };
+}
+
+function fmtCountdown(mins: number): string {
+  if (mins <= 0) return '';
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+function LiveStatusDot({ open }: { open: boolean }) {
+  const colors = useColors();
+  const anim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!open) { anim.setValue(0.4); return; }
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    ).start();
+    return () => anim.stopAnimation();
+  }, [open]);
+  return <Animated.View style={[styles.hoursDot, { backgroundColor: open ? colors.gain : colors.t4, opacity: anim }]} />;
 }
 
 function MarketHoursSection() {
   const colors = useColors();
-  const [statuses, setStatuses] = useState<boolean[]>([]);
+  const [statuses, setStatuses] = useState<ExchangeStatus[]>([]);
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    const update = () => setStatuses(EXCHANGES.map((e) => isOpen(e.tz, e.oh, e.om, e.ch, e.cm)));
+    const update = () => {
+      setNow(new Date());
+      setStatuses(EXCHANGES.map(getStatus));
+    };
     update();
-    const id = setInterval(update, 30000);
+    const id = setInterval(update, 60000);
     return () => clearInterval(id);
   }, []);
 
-  const open = statuses.filter(Boolean).length;
+  const openCount = statuses.filter((s) => s.open).length;
+  const regions = Array.from(new Set(EXCHANGES.map((e) => e.region)));
 
   return (
     <View style={styles.section}>
-      <SectionHeader label={`Market Hours — ${open} / ${EXCHANGES.length} Open`} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
-        {EXCHANGES.map((ex, i) => {
-          const live = statuses[i] ?? false;
-          return (
-            <View
-              key={ex.name}
-              style={[
-                styles.hoursChip,
-                { backgroundColor: live ? colors.gainDim : colors.card, borderColor: live ? 'rgba(0,229,160,0.3)' : colors.rim },
-              ]}
-            >
-              <View style={[styles.hoursDot, { backgroundColor: live ? colors.gain : colors.t4 }]} />
-              <Text style={[styles.hoursName, { color: live ? colors.gain : colors.t2 }]}>{ex.name}</Text>
-              <Text style={[styles.hoursStatus, { color: live ? colors.gain : colors.t4 }]}>
-                {live ? 'OPEN' : 'CLOSED'}
-              </Text>
+      <SectionHeader
+        label={`Market Hours`}
+        right={
+          <View style={styles.hoursCountWrap}>
+            <View style={[styles.hoursOpenBadge, { backgroundColor: colors.gainDim }]}>
+              <View style={[styles.hoursDotSmall, { backgroundColor: colors.gain }]} />
+              <Text style={[styles.hoursOpenText, { color: colors.gain }]}>{openCount} open</Text>
             </View>
-          );
-        })}
-      </ScrollView>
+            <Text style={[styles.hoursTotalText, { color: colors.t4 }]}>/ {EXCHANGES.length}</Text>
+          </View>
+        }
+      />
+      {regions.map((region) => {
+        const regionExchanges = EXCHANGES.filter((e) => e.region === region);
+        return (
+          <View key={region} style={styles.regionBlock}>
+            <Text style={[styles.regionLabel, { color: colors.t4 }]}>{region.toUpperCase()}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
+              {regionExchanges.map((ex, i) => {
+                const s = statuses[EXCHANGES.indexOf(ex)];
+                if (!s) return null;
+                const countdown = fmtCountdown(s.minutesToChange);
+                return (
+                  <View
+                    key={ex.name}
+                    style={[
+                      styles.hoursChip,
+                      { backgroundColor: s.open ? colors.gainDim : colors.card, borderColor: s.open ? 'rgba(0,229,160,0.3)' : colors.rim },
+                    ]}
+                  >
+                    <View style={styles.hoursChipTop}>
+                      <Text style={styles.hoursFlag}>{ex.flag}</Text>
+                      <LiveStatusDot open={s.open} />
+                    </View>
+                    <Text style={[styles.hoursName, { color: s.open ? colors.gain : colors.t2 }]}>{ex.name}</Text>
+                    <Text style={[styles.hoursLocalTime, { color: s.open ? colors.gain : colors.t4 }]}>{s.localTime}</Text>
+                    <Text style={[styles.hoursStatus, { color: s.open ? colors.gain : colors.t4 }]}>
+                      {s.open ? 'OPEN' : 'CLOSED'}
+                    </Text>
+                    {countdown !== '' && (
+                      <Text style={[styles.hoursCountdown, { color: s.open ? colors.amber : colors.t4 }]}>
+                        {s.changeLabel} {countdown}
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -578,13 +721,24 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 10, fontFamily: 'Inter_500Medium' },
 
   // Market Hours
+  hoursCountWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  hoursOpenBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
+  hoursDotSmall: { width: 5, height: 5, borderRadius: 3 },
+  hoursOpenText: { fontSize: 9, fontFamily: 'Inter_700Bold' },
+  hoursTotalText: { fontSize: 9, fontFamily: 'Inter_400Regular' },
+  regionBlock: { marginBottom: 8 },
+  regionLabel: { fontSize: 7, fontFamily: 'Inter_700Bold', letterSpacing: 1.2, marginBottom: 6, textTransform: 'uppercase', paddingLeft: 2 },
   hoursChip: {
-    borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8,
-    alignItems: 'center', gap: 4, minWidth: 68,
+    borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8,
+    alignItems: 'center', gap: 3, minWidth: 76,
   },
+  hoursChipTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 2 },
+  hoursFlag: { fontSize: 14 },
   hoursDot: { width: 6, height: 6, borderRadius: 3 },
   hoursName: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.3 },
-  hoursStatus: { fontSize: 7, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.8 },
+  hoursLocalTime: { fontSize: 9, fontFamily: 'Inter_500Medium' },
+  hoursStatus: { fontSize: 7, fontFamily: 'Inter_700Bold', letterSpacing: 0.8 },
+  hoursCountdown: { fontSize: 8, fontFamily: 'Inter_500Medium' },
 
   // Sectors
   sectorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
