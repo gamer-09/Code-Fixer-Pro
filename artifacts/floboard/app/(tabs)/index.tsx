@@ -203,7 +203,7 @@ function MarketHoursSection() {
       setStatuses(EXCHANGES.map(getStatus));
     };
     update();
-    const id = setInterval(update, 60000);
+    const id = setInterval(update, 30000);
     return () => clearInterval(id);
   }, []);
 
@@ -730,9 +730,9 @@ const styles = StyleSheet.create({
   regionLabel: { fontSize: 7, fontFamily: 'Inter_700Bold', letterSpacing: 1.2, marginBottom: 6, textTransform: 'uppercase', paddingLeft: 2 },
   hoursChip: {
     borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8,
-    alignItems: 'center', gap: 3, minWidth: 76,
+    width: 96, gap: 3,
   },
-  hoursChipTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 2 },
+  hoursChipTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
   hoursFlag: { fontSize: 14 },
   hoursDot: { width: 6, height: 6, borderRadius: 3 },
   hoursName: { fontSize: 11, fontFamily: 'Inter_700Bold', letterSpacing: 0.3 },

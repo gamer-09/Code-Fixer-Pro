@@ -224,6 +224,12 @@ export default function AdvisorScreen() {
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+    }
+  }, [messages, streaming]);
+
+  useEffect(() => {
     if (settings.clearChatKey !== prevClearKeyRef.current) {
       prevClearKeyRef.current = settings.clearChatKey;
       const fresh: ChatMessage = { ...INITIAL_MSG, timestamp: new Date() };
@@ -251,13 +257,13 @@ export default function AdvisorScreen() {
       const aiMsg: ChatMessage = { id: aiId, role: 'assistant', content: '', timestamp: new Date() };
 
       const prev = messagesRef.current;
-      const nextMessages = [aiMsg, userMsg, ...prev];
+      const nextMessages = [...prev, userMsg, aiMsg];
       setMessages(nextMessages);
       messagesRef.current = nextMessages;
       setStreaming(true);
       setInput('');
 
-      const historyForApi = [...prev].reverse().map((m) => ({ role: m.role, content: m.content }));
+      const historyForApi = prev.map((m) => ({ role: m.role, content: m.content }));
       historyForApi.push({ role: 'user', content: trimmed });
 
       let streamedContent = '';
@@ -364,10 +370,10 @@ export default function AdvisorScreen() {
             data={messages}
             keyExtractor={(m) => m.id}
             renderItem={({ item }) => <MessageBubble msg={item} />}
-            inverted
-            contentContainerStyle={{ padding: 14, paddingBottom: 10 }}
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', padding: 14, paddingBottom: 10 }}
             showsVerticalScrollIndicator={false}
-            ListHeaderComponent={streaming ? <TypingIndicator /> : null}
+            ListFooterComponent={streaming ? <TypingIndicator /> : null}
+            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
           />
         </View>
 
