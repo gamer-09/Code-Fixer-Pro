@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "cb27c5d7-9e3b-45e1-a48e-1896dde0b89a"
+      }
+    },
+    "android": {
+      "package": "flowboard.admin111111.workspace"
+    }
+  }
+}
