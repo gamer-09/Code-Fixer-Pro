@@ -7,7 +7,9 @@
       "android": {
         "buildType": "app-bundle"
       },
-      "npmInstallCommand": "pnpm install --no-frozen-lockfile"
+      "env": {
+        "PNPM_FLAGS": "--no-frozen-lockfile"
+      }
     }
   }
 }
