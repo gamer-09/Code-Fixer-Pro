@@ -201,27 +201,41 @@ export const MACRO = [
 
 // Extra symbols available in watchlist but not in other tabs (additional forex crosses, indices, crypto)
 export const EXTRA_SYMBOLS = [
+  // Precious metals spot forex
+  'XAUUSD=X', 'XAGUSD=X', 'XPTUSD=X', 'XPDUSD=X',
   // EUR crosses
   'EURGBP=X', 'EURJPY=X', 'EURCHF=X', 'EURAUD=X', 'EURCAD=X', 'EURNZD=X', 'EURSGD=X', 'EURHKD=X',
   'EURTRY=X', 'EURPLN=X', 'EURHUF=X', 'EURCZK=X', 'EURSEK=X', 'EURNOK=X', 'EURDKK=X', 'EURZAR=X',
+  'EURRON=X', 'EURBGN=X', 'EURINR=X', 'EURKRW=X', 'EURTHB=X', 'EURMXN=X', 'EURBRL=X', 'EURILS=X', 'EURRUB=X',
   // GBP crosses
   'GBPJPY=X', 'GBPCHF=X', 'GBPAUD=X', 'GBPCAD=X', 'GBPNZD=X', 'GBPSGD=X', 'GBPTRY=X', 'GBPZAR=X', 'GBPPLN=X',
+  'GBPHKD=X', 'GBPINR=X', 'GBPSEK=X', 'GBPNOK=X', 'GBPDKK=X', 'GBPCZK=X', 'GBPHUF=X',
   // AUD crosses
   'AUDJPY=X', 'AUDCHF=X', 'AUDCAD=X', 'AUDNZD=X', 'AUDSGD=X',
   // NZD crosses
   'NZDJPY=X', 'NZDCHF=X', 'NZDCAD=X', 'NZDSGD=X',
   // CAD/CHF/SGD crosses
   'CADJPY=X', 'CADCHF=X', 'CHFJPY=X', 'SGDJPY=X',
+  // CHF crosses
+  'CHFSGD=X', 'CHFHKD=X', 'CHFTRY=X', 'CHFPLN=X', 'CHFNOK=X', 'CHFSEK=X', 'CHFCZK=X', 'CHFHUF=X', 'CHFZAR=X',
   // USD vs Asia-Pacific EM
   'USDCNH=X', 'USDTWD=X', 'USDTHB=X', 'USDMYR=X', 'USDIDR=X', 'USDPHP=X', 'USDVND=X', 'USDPKR=X', 'USDBDT=X',
+  'USDLKR=X', 'USDNPR=X', 'USDMNT=X', 'USDKHR=X', 'USDLAK=X', 'USDBND=X', 'USDMMK=X',
   // USD vs Europe EM
   'USDPLN=X', 'USDHUF=X', 'USDCZK=X', 'USDSEK=X', 'USDNOK=X', 'USDDKK=X', 'USDRUB=X', 'USDILS=X',
+  'USDRON=X', 'USDBGN=X', 'USDRSD=X', 'USDUAH=X', 'USDBYN=X', 'USDGEL=X', 'USDAZN=X', 'USDAMD=X',
+  'USDALL=X', 'USDKZT=X', 'USDUZS=X', 'USDKGS=X', 'USDTJS=X', 'USDMKD=X', 'USDBAM=X',
   // USD vs LatAm
   'USDCLP=X', 'USDCOP=X', 'USDPEN=X', 'USDARS=X',
+  'USDUYU=X', 'USDBOB=X', 'USDPYG=X', 'USDDOP=X', 'USDGTQ=X', 'USDHNL=X', 'USDCRC=X',
+  'USDJMD=X', 'USDTTD=X', 'USDBBD=X', 'USDNIO=X', 'USDSVC=X',
   // USD vs Africa
   'USDKES=X', 'USDEGP=X', 'USDGHS=X', 'USDTZS=X', 'USDMAD=X',
+  'USDETB=X', 'USDZMW=X', 'USDMZN=X', 'USDTND=X', 'USDDZD=X', 'USDMUR=X', 'USDAOA=X',
+  'USDUGX=X', 'USDRWF=X', 'USDLYD=X', 'USDMWK=X', 'USDBWP=X', 'USDSCR=X', 'USDNAD=X', 'USDSZL=X',
   // USD vs Middle East
   'USDAED=X', 'USDSAR=X', 'USDQAR=X', 'USDKWD=X', 'USDBHD=X', 'USDOMR=X', 'USDJOD=X',
+  'USDLBP=X', 'USDIQD=X', 'USDYER=X', 'USDAFN=X',
   // Additional indices
   '^AEX', '^SSMI', '^OMXS30', '^STOXX50E', '^N100', '^STI', '^JKSE', '^KLSE', '^SET.BK', '^PSI', '^VN30', '^MERV', '^IPSA', '^BVSP',
   // Additional crypto
