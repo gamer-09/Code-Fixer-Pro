@@ -1,11 +1,19 @@
 # FloBoard
 
-FloBoard is a financial markets app with an AI advisor. This repo has two main pieces you need running together:
+FloBoard is a financial markets app with an AI advisor. The AI advisor lives on the **`ai-part`** branch, so make sure you're on that branch before doing anything else.
+
+This repo has two main pieces you need running together:
 
 1. **The API server** — fetches market data and talks to the AI
 2. **The FloBoard app** — the actual app you use (mobile/Expo)
 
 Run every command below from the **root of the project** (the top-level `Code-Fixer-Pro` folder).
+
+## 0. Switch to the ai-part branch
+
+```bash
+git checkout ai-part
+```
 
 ## 1. Install everything
 
