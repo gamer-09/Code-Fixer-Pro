@@ -6,8 +6,7 @@
     "production": {
       "android": {
         "buildType": "app-bundle"
-      },
-      "npmInstallCommand": "pnpm install --no-frozen-lockfile"
+      }
     }
   }
 }
