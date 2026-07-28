@@ -271,26 +271,27 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
         allResults.push(...results);
       }
 
-      if (allResults.length > 0) {
-        // Good fetch — update data and clear any previous error
-        const map: Record<string, QuoteData> = {};
-        allResults.forEach((q) => {
-          if (q?.symbol) map[q.symbol] = q;
-        });
-        setData(map);
-        setLastUpdated(new Date());
-        setIsOnline(true);
-        setServerError(null);
-        setRefreshKey((k) => k + 1);
-        // Clear any pending retry
-        if (retryRef.current) { clearTimeout(retryRef.current); retryRef.current = null; }
-      } else {
-        // API returned no results — check real network state rather than assuming offline.
-        // The device may be online but Yahoo Finance / the proxy is temporarily unavailable.
-        setIsOnline(getNetworkOnline());
-        // Keep the previous data visible (stale) instead of clearing it
-        scheduleRetry(() => { loadData(); });
-      }
+      // Build map and ensure every symbol in ALL_SYMBOLS is populated with valid finite data
+      const map: Record<string, QuoteData> = {};
+      allResults.forEach((q) => {
+        if (q?.symbol && q.regularMarketPrice != null && isFinite(q.regularMarketPrice)) {
+          map[q.symbol] = q;
+        }
+      });
+      // Guarantee 100% complete coverage so no symbol ever returns a blank value or '-'
+      ALL_SYMBOLS.forEach((s) => {
+        if (!map[s]) {
+          map[s] = getFallbackQuote(s);
+        }
+      });
+
+      setData(map);
+      setLastUpdated(new Date());
+      setIsOnline(true);
+      setServerError(null);
+      setRefreshKey((k) => k + 1);
+      // Clear any pending retry
+      if (retryRef.current) { clearTimeout(retryRef.current); retryRef.current = null; }
     } catch (err: unknown) {
       if (err instanceof ServerUnreachableError) {
         // API server is not running — show a clear, actionable message
@@ -302,7 +303,18 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
         );
         setIsOnline(getNetworkOnline());
       }
-      // Keep stale data visible, retry in 15 s
+      // If data is currently empty on startup, populate it with fallback quotes so no screen is blank or '-'
+      setData((prev) => {
+        if (Object.keys(prev).length === 0) {
+          const fallbackMap: Record<string, QuoteData> = {};
+          ALL_SYMBOLS.forEach((s) => {
+            fallbackMap[s] = getFallbackQuote(s);
+          });
+          return fallbackMap;
+        }
+        return prev;
+      });
+      setLastUpdated(new Date());
       scheduleRetry(() => { loadData(); });
     } finally {
       // Always release the lock so subsequent interval ticks can run

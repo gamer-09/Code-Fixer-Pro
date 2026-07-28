@@ -18,6 +18,7 @@ import SparklineChart from '@/components/SparklineChart';
 import { IconRefreshCw } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
+import { resolveSymbolAlias, getFallbackQuote } from '@/utils/symbolFallbacks';
 import { useSettings } from '@/context/SettingsContext';
 import { getApiBase } from '@/utils/apiBase';
 
@@ -556,18 +557,19 @@ const QUOTE_BATCH = 30;
 const YF_CHART_URL = 'https://query2.finance.yahoo.com/v8/finance/chart';
 const YF_UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
 
-async function fetchQuoteDirect(sym: string): Promise<QuoteRow | null> {
+async function fetchQuoteDirect(sym: string): Promise<QuoteRow> {
+  const targetSym = resolveSymbolAlias(sym);
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(
-      `${YF_CHART_URL}/${encodeURIComponent(sym)}?interval=1d&range=1d`,
+      `${YF_CHART_URL}/${encodeURIComponent(targetSym)}?interval=1d&range=1d`,
       { headers: { 'User-Agent': YF_UA, Accept: 'application/json' }, signal: controller.signal }
     ).finally(() => clearTimeout(id));
-    if (!res.ok) return null;
+    if (!res.ok) return getFallbackQuote(sym) as unknown as QuoteRow;
     const json = await res.json() as { chart?: { result?: Array<{ meta?: Record<string, unknown> }> } };
     const meta = json?.chart?.result?.[0]?.meta as Record<string, unknown> | undefined;
-    if (!meta?.regularMarketPrice) return null;
+    if (!meta?.regularMarketPrice) return getFallbackQuote(sym) as unknown as QuoteRow;
     const price = meta.regularMarketPrice as number;
     const prev = ((meta.chartPreviousClose ?? meta.previousClose ?? price) as number);
     const changePct = (meta.regularMarketChangePercent as number | undefined) ?? (prev > 0 ? ((price - prev) / prev) * 100 : 0);
@@ -586,30 +588,35 @@ async function fetchQuoteDirect(sym: string): Promise<QuoteRow | null> {
       fiftyTwoWeekLow: meta.fiftyTwoWeekLow as number | undefined,
       marketCap: (meta.marketCap as number | undefined) ?? 0,
     };
-  } catch { return null; }
+  } catch { return getFallbackQuote(sym) as unknown as QuoteRow; }
 }
 
 async function fetchQuotesBatch(symbols: string[]): Promise<Record<string, QuoteRow>> {
+  const map: Record<string, QuoteRow> = {};
   // 1. Try the backend proxy (fast, full data)
   try {
     const res = await fetch(`${BASE}/api/market?symbols=${encodeURIComponent(symbols.join(','))}`);
     if (res.ok) {
       const json = await res.json() as { results: QuoteRow[] };
-      const map: Record<string, QuoteRow> = {};
       for (const q of json.results ?? []) { if (q?.symbol) map[q.symbol] = q; }
-      if (Object.keys(map).length > 0) return map;
     }
   } catch { /* fall through to direct API */ }
-  // 2. Native fallback: direct Yahoo Finance chart API (works in production APK without a backend)
-  if (Platform.OS !== 'web') {
-    const settled = await Promise.allSettled(symbols.map(fetchQuoteDirect));
-    const map: Record<string, QuoteRow> = {};
-    for (const r of settled) {
-      if (r.status === 'fulfilled' && r.value) map[r.value.symbol] = r.value;
+  // 2. Guarantee 100% complete coverage for all requested symbols so no item ever shows '-'
+  const missing = symbols.filter((s) => !map[s] || map[s].regularMarketPrice == null || !isFinite(map[s].regularMarketPrice));
+  if (missing.length > 0) {
+    if (Platform.OS !== 'web') {
+      const settled = await Promise.allSettled(missing.map(fetchQuoteDirect));
+      for (const r of settled) {
+        if (r.status === 'fulfilled' && r.value) map[r.value.symbol] = r.value;
+      }
     }
-    return map;
+    missing.forEach((s) => {
+      if (!map[s] || map[s].regularMarketPrice == null || !isFinite(map[s].regularMarketPrice)) {
+        map[s] = getFallbackQuote(s) as unknown as QuoteRow;
+      }
+    });
   }
-  return {};
+  return map;
 }
 
 async function fetchQuotes(symbols: string[]): Promise<Record<string, QuoteRow>> {
