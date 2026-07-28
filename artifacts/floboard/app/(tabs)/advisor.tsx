@@ -250,7 +250,18 @@ export default function AdvisorScreen() {
   const lastHandledParamRef = useRef<string | null>(null);
   const prevClearKeyRef = useRef(0);
 
-  const hasKey = settings.geminiApiKey.length > 0;
+  // Optimistically true so the UI is never blocked before the check resolves.
+  // Falls back gracefully — if neither the server nor the user has a key,
+  // the chat error message from the API explains what to do.
+  const [serverHasKey, setServerHasKey] = useState(true);
+  useEffect(() => {
+    fetch(`${BASE_URL}/api/chat/status`)
+      .then((r) => r.json() as Promise<{ hasServerKey?: boolean }>)
+      .then((j) => setServerHasKey(!!j.hasServerKey))
+      .catch(() => setServerHasKey(false));
+  }, []);
+
+  const hasKey = settings.geminiApiKey.length > 0 || serverHasKey;
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 

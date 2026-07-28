@@ -169,6 +169,13 @@ function buildSystemPrompt(clientSystemPrompt: string | undefined, marketContext
   return parts.join("\n");
 }
 
+// ── Server key status ─────────────────────────────────────────────────────
+// Lets the mobile app know whether a server-side Gemini key is configured
+// so it can unlock the chat UI without requiring users to supply their own.
+router.get("/chat/status", (_req, res) => {
+  res.json({ hasServerKey: !!SERVER_GEMINI_API_KEY });
+});
+
 router.post("/chat", async (req, res) => {
   const { messages, systemPrompt: clientSystemPrompt, geminiApiKey: clientApiKey } = req.body as {
     messages?: ChatMessageInput[];

@@ -4,6 +4,29 @@ import { Router } from "express";
 const router = Router();
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
+// ── In-memory chart history cache ─────────────────────────────────────────
+// Prevents the ~100-request burst on app startup from hitting Yahoo Finance
+// rate limits. TTL: 60 s for intraday (1d), 5 min for daily/weekly ranges.
+interface CacheEntry {
+  data: unknown;
+  expiresAt: number;
+}
+const historyCache = new Map<string, CacheEntry>();
+
+function getCached(key: string): unknown | null {
+  const entry = historyCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    historyCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCache(key: string, data: unknown, ttlMs: number): void {
+  historyCache.set(key, { data, expiresAt: Date.now() + ttlMs });
+}
+
 router.get("/market", async (req, res) => {
   const raw = req.query.symbols;
   if (!raw || typeof raw !== "string") {
@@ -129,6 +152,15 @@ router.get("/market/history", async (req, res) => {
       break;
   }
 
+  // TTL: 60 s for intraday (5m bars), 5 min for daily/hourly
+  const ttlMs = interval === "5m" ? 60_000 : 5 * 60_000;
+  const cacheKey = `${sym}:${range}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    res.json(cached);
+    return;
+  }
+
   try {
     const result = await yf.chart(sym, { period1, interval }, { validateResult: false });
 
@@ -138,7 +170,9 @@ router.get("/market/history", async (req, res) => {
       )
       .map((q) => ({ t: Math.floor(q.date.getTime() / 1000), c: q.close }));
 
-    res.json({ symbol: sym, range, prices });
+    const payload = { symbol: sym, range, prices };
+    setCache(cacheKey, payload, ttlMs);
+    res.json(payload);
   } catch (err) {
     req.log.error({ err }, "Failed to fetch chart history");
     res.status(503).json({ error: "Failed to fetch chart data" });
