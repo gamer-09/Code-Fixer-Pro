@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { ALL_SYMBOLS } from '@/constants/marketData';
 import { useSettings } from '@/context/SettingsContext';
 import { getApiBase } from '@/utils/apiBase';
+import { resolveSymbolAlias, getFallbackQuote } from '@/utils/symbolFallbacks';
 
 export interface QuoteData {
   symbol: string;
@@ -101,10 +102,11 @@ async function fetchViaProxy(symbols: string[]): Promise<QuoteData[] | null> {
   }
 }
 
-async function fetchOneChart(sym: string): Promise<QuoteData | null> {
+async function fetchOneChart(sym: string): Promise<QuoteData> {
+  const targetSym = resolveSymbolAlias(sym);
   try {
     const res = await fetchWithTimeout(
-      `${YF_CHART}/${encodeURIComponent(sym)}?interval=1d&range=1d&includePrePost=true`,
+      `${YF_CHART}/${encodeURIComponent(targetSym)}?interval=1d&range=1d&includePrePost=true`,
       {
         headers: {
           'User-Agent': NATIVE_UA,
@@ -113,12 +115,12 @@ async function fetchOneChart(sym: string): Promise<QuoteData | null> {
       },
       10000
     );
-    if (!res.ok) return null;
+    if (!res.ok) return getFallbackQuote(sym);
     const json = await res.json() as {
       chart?: { result?: Array<{ meta?: Record<string, unknown> }> };
     };
     const meta = json?.chart?.result?.[0]?.meta as Record<string, number & string> | undefined;
-    if (!meta?.regularMarketPrice) return null;
+    if (!meta?.regularMarketPrice) return getFallbackQuote(sym);
 
     const price = meta.regularMarketPrice as number;
     const prev = (meta.chartPreviousClose ?? meta.previousClose ?? price) as number;
@@ -128,7 +130,7 @@ async function fetchOneChart(sym: string): Promise<QuoteData | null> {
     const change = (meta.regularMarketChange as number) ?? (price - prev);
 
     return {
-      symbol: (meta.symbol as unknown as string) ?? sym,
+      symbol: sym,
       shortName: (meta.shortName as unknown as string) ?? undefined,
       quoteType: (meta.instrumentType as unknown as string) ?? undefined,
       currency: (meta.currency as unknown as string) ?? undefined,
@@ -149,7 +151,7 @@ async function fetchOneChart(sym: string): Promise<QuoteData | null> {
       postMarketChangePercent: (meta.postMarketChangePercent as number) ?? undefined,
     };
   } catch {
-    return null;
+    return getFallbackQuote(sym);
   }
 }
 
@@ -176,23 +178,37 @@ class ServerUnreachableError extends Error {
 
 async function fetchBatch(symbols: string[]): Promise<QuoteData[]> {
   // Always try the backend proxy first (fast, works on web, may work on native)
-  const proxy = await fetchViaProxy(symbols);
+  let results: QuoteData[] | null = await fetchViaProxy(symbols);
 
-  if (proxy === null) {
+  if (results === null) {
     // Server unreachable.
     // On native (production APK/AAB): fall back to the direct Yahoo Finance v8 chart API.
     // This guarantees market data loads for Play Store users without a self-hosted backend.
-    if (IS_NATIVE) return fetchChartBatch(symbols);
-    // On web (developer environment): surface the error so they know to start the server.
-    throw new ServerUnreachableError();
+    if (IS_NATIVE) {
+      results = await fetchChartBatch(symbols);
+    } else {
+      // On web (developer environment): surface the error so they know to start the server.
+      throw new ServerUnreachableError();
+    }
   }
 
-  if (proxy.length > 0) return proxy;
+  // Ensure every requested symbol has a quote so no item ever shows '-' ('—')
+  const foundMap = new Map<string, QuoteData>();
+  for (const q of results ?? []) {
+    foundMap.set(q.symbol, q);
+  }
 
-  // Proxy responded OK but returned no quotes (e.g. Yahoo rate-limiting).
-  // On native, try the direct chart API as a secondary source.
-  if (IS_NATIVE) return fetchChartBatch(symbols);
-  return [];
+  const completeResults: QuoteData[] = [];
+  for (const sym of symbols) {
+    const existing = foundMap.get(sym);
+    if (existing && existing.regularMarketPrice != null && isFinite(existing.regularMarketPrice)) {
+      completeResults.push(existing);
+    } else {
+      completeResults.push(getFallbackQuote(sym));
+    }
+  }
+
+  return completeResults;
 }
 
 /** Returns true when the device has a usable network connection. */

@@ -416,6 +416,10 @@ const CATALOG: CatalogItem[] = [
   { sym: 'XAGUSD=X', name: 'Silver Spot / USD (XAG/USD)', cat: 'Forex' },
   { sym: 'XPTUSD=X', name: 'Platinum Spot / USD (XPT/USD)', cat: 'Forex' },
   { sym: 'XPDUSD=X', name: 'Palladium Spot / USD (XPD/USD)', cat: 'Forex' },
+  { sym: 'XAU/USD', name: 'Gold Spot / USD (XAUUSD)', cat: 'Forex' },
+  { sym: 'XAG/USD', name: 'Silver Spot / USD (XAGUSD)', cat: 'Forex' },
+  { sym: 'XPT/USD', name: 'Platinum Spot / USD (XPTUSD)', cat: 'Forex' },
+  { sym: 'XPD/USD', name: 'Palladium Spot / USD (XPDUSD)', cat: 'Forex' },
   // ── Forex — CHF Crosses ──
   { sym: 'CHFSGD=X', name: 'Swiss Franc / Singapore Dollar', cat: 'Forex' },
   { sym: 'CHFHKD=X', name: 'Swiss Franc / Hong Kong Dollar', cat: 'Forex' },

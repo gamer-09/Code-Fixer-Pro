@@ -33,9 +33,9 @@ interface PairInfo {
   desc: string;
 }
 
-type Group = 'Majors' | 'Minors' | 'Emerging' | 'Metals' | 'Index';
+type Group = 'Majors' | 'Minors' | 'Exotics' | 'Commodity' | 'Metals' | 'Index';
 
-const GROUPS: Group[] = ['Majors', 'Minors', 'Emerging', 'Metals', 'Index'];
+const GROUPS: Group[] = ['Majors', 'Minors', 'Exotics', 'Commodity', 'Metals', 'Index'];
 
 // ── Currency name lookup ──────────────────────────────────────────────────────
 
@@ -100,26 +100,77 @@ const MAJOR_SYMS = new Set([
   'AUDUSD=X', 'NZDUSD=X', 'USDCAD=X',
 ]);
 
-const EM_CURRENCIES = new Set([
+const COMMODITY_SYMS = new Set([
+  'AUDUSD=X', 'USDCAD=X', 'NZDUSD=X',
+  'AUDNZD=X', 'AUDCAD=X', 'NZDCAD=X',
+]);
+
+const EXOTIC_CURRENCIES = new Set([
+  'TRY', 'MXN', 'ZAR', 'HKD', 'SGD', 'SEK', 'NOK', 'DKK', 'PLN', 'HUF', 'CZK',
   'CNY', 'CNH', 'INR', 'KRW', 'TWD', 'THB', 'MYR', 'IDR', 'PHP', 'VND', 'PKR', 'BDT',
-  'TRY', 'PLN', 'HUF', 'CZK', 'SEK', 'NOK', 'DKK', 'RUB', 'ILS',
-  'RON', 'BGN', 'RSD', 'UAH', 'BYN', 'GEL', 'AZN', 'AMD', 'ALL', 'KZT', 'UZS', 'MKD', 'BAM',
-  'BRL', 'MXN', 'CLP', 'COP', 'PEN', 'ARS', 'UYU', 'BOB', 'PYG', 'DOP',
-  'GTQ', 'HNL', 'CRC', 'JMD', 'TTD', 'BBD', 'NIO', 'SVC',
-  'ZAR', 'NGN', 'KES', 'EGP', 'GHS', 'TZS', 'MAD', 'ETB', 'ZMW', 'MZN',
-  'TND', 'DZD', 'MUR', 'AOA', 'UGX', 'RWF', 'LYD', 'MWK', 'BWP', 'SCR', 'NAD', 'SZL',
-  'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR', 'JOD', 'LBP', 'IQD', 'YER', 'AFN',
-  'SGD', 'HKD',
+  'RUB', 'ILS', 'RON', 'BGN', 'RSD', 'UAH', 'BYN', 'GEL', 'AZN', 'AMD', 'ALL', 'KZT',
+  'UZS', 'MKD', 'BAM', 'BRL', 'CLP', 'COP', 'PEN', 'ARS', 'UYU', 'BOB', 'PYG', 'DOP',
+  'GTQ', 'HNL', 'CRC', 'JMD', 'TTD', 'BBD', 'NIO', 'SVC', 'NGN', 'KES', 'EGP', 'GHS',
+  'TZS', 'MAD', 'ETB', 'ZMW', 'MZN', 'TND', 'DZD', 'MUR', 'AOA', 'UGX', 'RWF', 'LYD',
+  'MWK', 'BWP', 'SCR', 'NAD', 'SZL', 'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR', 'JOD',
+  'LBP', 'IQD', 'YER', 'AFN',
 ]);
 
 const METAL_CODES = new Set(['XAU', 'XAG', 'XPT', 'XPD']);
+
+const GROUP_DESCRIPTIONS: Record<Group, { title: string; desc: string; highlights: string }> = {
+  Majors: {
+    title: 'Major Pairs',
+    desc: 'The 7 most liquid pairs in the world, all featuring USD.',
+    highlights: 'EUR/USD, USD/JPY, GBP/USD, USD/CHF, AUD/USD, USD/CAD, NZD/USD',
+  },
+  Minors: {
+    title: 'Minor / Cross Pairs',
+    desc: 'Major currencies traded against each other without USD.',
+    highlights:
+      'EUR/GBP, EUR/JPY, GBP/JPY, EUR/AUD, EUR/CAD, GBP/CHF, AUD/NZD, AUD/JPY, CAD/JPY, CHF/JPY, NZD/JPY, AUD/CAD, AUD/CHF, CAD/CHF',
+  },
+  Exotics: {
+    title: 'Exotic Pairs',
+    desc: 'One major currency paired with an emerging economy currency. Lower liquidity, wider spreads.',
+    highlights:
+      'USD/TRY (Turkish Lira), USD/MXN (Mexican Peso), USD/ZAR (South African Rand), USD/HKD, USD/SGD, EUR/TRY, USD/SEK, USD/NOK',
+  },
+  Commodity: {
+    title: 'Commodity Pairs',
+    desc: 'Major pairs heavily influenced by global raw commodity prices (oil, gold, minerals).',
+    highlights: 'AUD/USD (Gold/Iron), USD/CAD (Crude Oil), NZD/USD (Dairy/Agriculture), AUD/NZD, AUD/CAD, NZD/CAD',
+  },
+  Metals: {
+    title: 'Precious Metals (Spot FX)',
+    desc: 'Spot precious metal prices quoted in US dollars per troy ounce.',
+    highlights: 'XAU/USD (Gold Spot), XAG/USD (Silver Spot), XPT/USD (Platinum Spot), XPD/USD (Palladium Spot)',
+  },
+  Index: {
+    title: 'US Dollar Index (DXY)',
+    desc: 'Measures the value of the United States dollar relative to a basket of foreign currencies.',
+    highlights: 'DX-Y.NYB — Trade-weighted USD basket',
+  },
+};
 
 function classifyGroup(sym: string, base: string, quote: string): Group {
   if (sym === 'DX-Y.NYB') return 'Index';
   if (METAL_CODES.has(base) || METAL_CODES.has(quote)) return 'Metals';
   if (MAJOR_SYMS.has(sym)) return 'Majors';
-  if (EM_CURRENCIES.has(base) || EM_CURRENCIES.has(quote)) return 'Emerging';
+  if (EXOTIC_CURRENCIES.has(base) || EXOTIC_CURRENCIES.has(quote)) return 'Exotics';
   return 'Minors';
+}
+
+function matchesGroup(pair: PairInfo, group: Group): boolean {
+  if (group === 'Commodity') {
+    return (
+      COMMODITY_SYMS.has(pair.sym) ||
+      (pair.group === 'Minors' &&
+        (pair.base === 'AUD' || pair.base === 'NZD' || pair.base === 'CAD' ||
+         pair.quote === 'AUD' || pair.quote === 'NZD' || pair.quote === 'CAD'))
+    );
+  }
+  return pair.group === group;
 }
 
 // ── Build PAIRS from the FOREX constant + DXY ────────────────────────────────
@@ -274,11 +325,12 @@ async function fetchQuotesBatched(symbols: string[]): Promise<Record<string, Quo
 // ── Group color palette ───────────────────────────────────────────────────────
 
 const GROUP_PALETTE: Record<Group, { bg: string; text: string; accent: string }> = {
-  Majors:   { bg: 'rgba(77,166,255,0.15)',  text: '#4DA6FF', accent: '#4DA6FF' },
-  Minors:   { bg: 'rgba(155,143,255,0.15)', text: '#9B8FFF', accent: '#9B8FFF' },
-  Emerging: { bg: 'rgba(255,182,39,0.15)',  text: '#FFB627', accent: '#FFB627' },
-  Metals:   { bg: 'rgba(255,215,0,0.15)',   text: '#FFD700', accent: '#FFD700' },
-  Index:    { bg: 'rgba(0,229,160,0.15)',   text: '#00E5A0', accent: '#00E5A0' },
+  Majors:    { bg: 'rgba(77,166,255,0.15)',  text: '#4DA6FF', accent: '#4DA6FF' },
+  Minors:    { bg: 'rgba(155,143,255,0.15)', text: '#9B8FFF', accent: '#9B8FFF' },
+  Exotics:   { bg: 'rgba(255,182,39,0.15)',  text: '#FFB627', accent: '#FFB627' },
+  Commodity: { bg: 'rgba(255,140,0,0.15)',   text: '#FF8C00', accent: '#FF8C00' },
+  Metals:    { bg: 'rgba(255,215,0,0.15)',   text: '#FFD700', accent: '#FFD700' },
+  Index:     { bg: 'rgba(0,229,160,0.15)',   text: '#00E5A0', accent: '#00E5A0' },
 };
 
 // ── DayRangeBar component ─────────────────────────────────────────────────────
@@ -560,7 +612,7 @@ export default function CurrencyPairsScreen() {
 
   // Filter + sort
   const displayed = React.useMemo(() => {
-    const filtered = activeGroup ? PAIRS.filter((p) => p.group === activeGroup) : PAIRS;
+    const filtered = activeGroup ? PAIRS.filter((p) => matchesGroup(p, activeGroup)) : PAIRS;
     return [...filtered].sort((a, b) => {
       if (sort === 'pair') return a.pair.localeCompare(b.pair);
       if (sort === 'chgPct') {
@@ -643,6 +695,27 @@ export default function CurrencyPairsScreen() {
         </ScrollView>
       </View>
 
+      {/* ── Category description banner when filtered ────────────────────── */}
+      {activeGroup && GROUP_DESCRIPTIONS[activeGroup] && (
+        <View style={[styles.catBanner, { backgroundColor: GROUP_PALETTE[activeGroup].bg, borderBottomColor: colors.rim }]}>
+          <View style={styles.catBannerTop}>
+            <Text style={[styles.catBannerTitle, { color: GROUP_PALETTE[activeGroup].text }]}>
+              {GROUP_DESCRIPTIONS[activeGroup].title}
+            </Text>
+            <Text style={[styles.catBannerCount, { color: colors.t3 }]}>
+              {displayed.length} pair{displayed.length !== 1 ? 's' : ''}
+            </Text>
+          </View>
+          <Text style={[styles.catBannerDesc, { color: colors.t2 }]}>
+            {GROUP_DESCRIPTIONS[activeGroup].desc}
+          </Text>
+          <Text style={[styles.catBannerHighlights, { color: colors.t4 }]}>
+            <Text style={{ fontFamily: 'Inter_600SemiBold' }}>Included: </Text>
+            {GROUP_DESCRIPTIONS[activeGroup].highlights}
+          </Text>
+        </View>
+      )}
+
       {/* ── Stats strip ─────────────────────────────────────────────────── */}
       {loaded.length > 0 && (
         <View style={[styles.statsStrip, { backgroundColor: colors.surface, borderBottomColor: colors.rim }]}>
@@ -720,6 +793,38 @@ export default function CurrencyPairsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
+  // Category Banner
+  catBanner: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    gap: 4,
+  },
+  catBannerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  catBannerTitle: {
+    fontSize: 13,
+    fontFamily: 'Inter_700Bold',
+  },
+  catBannerCount: {
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  catBannerDesc: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontFamily: 'Inter_400Regular',
+  },
+  catBannerHighlights: {
+    fontSize: 10,
+    lineHeight: 14,
+    fontFamily: 'Inter_400Regular',
+    marginTop: 2,
+  },
 
   // Header
   header: {
