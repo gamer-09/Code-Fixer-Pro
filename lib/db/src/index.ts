@@ -4,13 +4,12 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
+const connectionString = process.env.DATABASE_URL || "postgres://localhost:5432/floboard";
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+  console.warn("[DB] DATABASE_URL not set — defaulting to postgres://localhost:5432/floboard");
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool({ connectionString });
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";
