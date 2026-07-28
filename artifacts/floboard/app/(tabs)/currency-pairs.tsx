@@ -18,6 +18,7 @@ import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg } from '@/context/MarketContext';
 import { IconRefreshCw } from '@/components/Icons';
 import { getApiBase } from '@/utils/apiBase';
+import { FOREX } from '@/constants/marketData';
 
 const BASE = getApiBase();
 
@@ -28,68 +29,155 @@ interface PairInfo {
   pair: string;
   base: string;
   quote: string;
-  group: 'Majors' | 'Minors' | 'Emerging' | 'Index';
+  group: Group;
   desc: string;
 }
 
+type Group = 'Majors' | 'Minors' | 'Emerging' | 'Metals' | 'Index';
+
+const GROUPS: Group[] = ['Majors', 'Minors', 'Emerging', 'Metals', 'Index'];
+
+// ── Currency name lookup ──────────────────────────────────────────────────────
+
+const CURRENCY_NAMES: Record<string, string> = {
+  // Metals (ISO 4217 precious metal codes)
+  XAU: 'Gold Spot', XAG: 'Silver Spot', XPT: 'Platinum Spot', XPD: 'Palladium Spot',
+  // G10 / Majors
+  EUR: 'Euro', GBP: 'British Pound', USD: 'US Dollar', JPY: 'Japanese Yen',
+  CHF: 'Swiss Franc', AUD: 'Australian Dollar', NZD: 'New Zealand Dollar',
+  CAD: 'Canadian Dollar',
+  // Other developed market
+  SGD: 'Singapore Dollar', HKD: 'Hong Kong Dollar', NOK: 'Norwegian Krone',
+  SEK: 'Swedish Krona', DKK: 'Danish Krone',
+  // Asia-Pacific EM
+  CNY: 'Chinese Yuan', CNH: 'Chinese Yuan (Offshore)', INR: 'Indian Rupee',
+  KRW: 'South Korean Won', TWD: 'New Taiwan Dollar', THB: 'Thai Baht',
+  MYR: 'Malaysian Ringgit', IDR: 'Indonesian Rupiah', PHP: 'Philippine Peso',
+  VND: 'Vietnamese Dong', PKR: 'Pakistani Rupee', BDT: 'Bangladeshi Taka',
+  // Europe EM
+  TRY: 'Turkish Lira', PLN: 'Polish Zloty', HUF: 'Hungarian Forint',
+  CZK: 'Czech Koruna', RUB: 'Russian Ruble', ILS: 'Israeli Shekel',
+  RON: 'Romanian Leu', BGN: 'Bulgarian Lev', RSD: 'Serbian Dinar',
+  UAH: 'Ukrainian Hryvnia', BYN: 'Belarusian Ruble', GEL: 'Georgian Lari',
+  AZN: 'Azerbaijani Manat', AMD: 'Armenian Dram', ALL: 'Albanian Lek',
+  KZT: 'Kazakhstani Tenge', UZS: 'Uzbekistani Som', MKD: 'Macedonian Denar',
+  BAM: 'Bosnian Mark',
+  // LatAm
+  BRL: 'Brazilian Real', MXN: 'Mexican Peso', CLP: 'Chilean Peso',
+  COP: 'Colombian Peso', PEN: 'Peruvian Sol', ARS: 'Argentine Peso',
+  UYU: 'Uruguayan Peso', BOB: 'Bolivian Boliviano', PYG: 'Paraguayan Guaraní',
+  DOP: 'Dominican Peso', GTQ: 'Guatemalan Quetzal', HNL: 'Honduran Lempira',
+  CRC: 'Costa Rican Colón', JMD: 'Jamaican Dollar', TTD: 'Trinidad Dollar',
+  BBD: 'Barbados Dollar',
+  // Africa
+  ZAR: 'South African Rand', NGN: 'Nigerian Naira', KES: 'Kenyan Shilling',
+  EGP: 'Egyptian Pound', GHS: 'Ghanaian Cedi', TZS: 'Tanzanian Shilling',
+  MAD: 'Moroccan Dirham', ETB: 'Ethiopian Birr', ZMW: 'Zambian Kwacha',
+  MZN: 'Mozambican Metical', TND: 'Tunisian Dinar', DZD: 'Algerian Dinar',
+  MUR: 'Mauritian Rupee', AOA: 'Angolan Kwanza', UGX: 'Ugandan Shilling',
+  RWF: 'Rwandan Franc', LYD: 'Libyan Dinar', MWK: 'Malawian Kwacha',
+  BWP: 'Botswana Pula', NAD: 'Namibian Dollar', SCR: 'Seychellois Rupee',
+  SZL: 'Swazi Lilangeni',
+  // Middle East
+  AED: 'UAE Dirham', SAR: 'Saudi Riyal', QAR: 'Qatari Riyal',
+  KWD: 'Kuwaiti Dinar', BHD: 'Bahraini Dinar', OMR: 'Omani Rial',
+  JOD: 'Jordanian Dinar', LBP: 'Lebanese Pound', IQD: 'Iraqi Dinar',
+  YER: 'Yemeni Rial', AFN: 'Afghan Afghani',
+  // Other
+  BASKET: 'Trade-Weighted Basket',
+};
+
+function currencyDesc(base: string, quote: string): string {
+  const b = CURRENCY_NAMES[base] ?? base;
+  const q = CURRENCY_NAMES[quote] ?? quote;
+  return `${b} / ${q}`;
+}
+
+// ── Classify forex pairs into groups ─────────────────────────────────────────
+
+const MAJOR_SYMS = new Set([
+  'EURUSD=X', 'GBPUSD=X', 'USDJPY=X', 'USDCHF=X',
+  'AUDUSD=X', 'NZDUSD=X', 'USDCAD=X',
+]);
+
+const EM_CURRENCIES = new Set([
+  'CNY', 'CNH', 'INR', 'KRW', 'TWD', 'THB', 'MYR', 'IDR', 'PHP', 'VND', 'PKR', 'BDT',
+  'TRY', 'PLN', 'HUF', 'CZK', 'SEK', 'NOK', 'DKK', 'RUB', 'ILS',
+  'RON', 'BGN', 'RSD', 'UAH', 'BYN', 'GEL', 'AZN', 'AMD', 'ALL', 'KZT', 'UZS', 'MKD', 'BAM',
+  'BRL', 'MXN', 'CLP', 'COP', 'PEN', 'ARS', 'UYU', 'BOB', 'PYG', 'DOP',
+  'GTQ', 'HNL', 'CRC', 'JMD', 'TTD', 'BBD', 'NIO', 'SVC',
+  'ZAR', 'NGN', 'KES', 'EGP', 'GHS', 'TZS', 'MAD', 'ETB', 'ZMW', 'MZN',
+  'TND', 'DZD', 'MUR', 'AOA', 'UGX', 'RWF', 'LYD', 'MWK', 'BWP', 'SCR', 'NAD', 'SZL',
+  'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR', 'JOD', 'LBP', 'IQD', 'YER', 'AFN',
+  'SGD', 'HKD',
+]);
+
+const METAL_CODES = new Set(['XAU', 'XAG', 'XPT', 'XPD']);
+
+function classifyGroup(sym: string, base: string, quote: string): Group {
+  if (sym === 'DX-Y.NYB') return 'Index';
+  if (METAL_CODES.has(base) || METAL_CODES.has(quote)) return 'Metals';
+  if (MAJOR_SYMS.has(sym)) return 'Majors';
+  if (EM_CURRENCIES.has(base) || EM_CURRENCIES.has(quote)) return 'Emerging';
+  return 'Minors';
+}
+
+// ── Build PAIRS from the FOREX constant + DXY ────────────────────────────────
+
 const PAIRS: PairInfo[] = [
-  // Majors
-  { sym: 'EURUSD=X', pair: 'EUR/USD', base: 'EUR', quote: 'USD', group: 'Majors', desc: 'Euro / US Dollar' },
-  { sym: 'GBPUSD=X', pair: 'GBP/USD', base: 'GBP', quote: 'USD', group: 'Majors', desc: 'British Pound / US Dollar' },
-  { sym: 'USDJPY=X', pair: 'USD/JPY', base: 'USD', quote: 'JPY', group: 'Majors', desc: 'US Dollar / Japanese Yen' },
-  { sym: 'USDCHF=X', pair: 'USD/CHF', base: 'USD', quote: 'CHF', group: 'Majors', desc: 'US Dollar / Swiss Franc' },
-  { sym: 'USDCAD=X', pair: 'USD/CAD', base: 'USD', quote: 'CAD', group: 'Majors', desc: 'US Dollar / Canadian Dollar' },
-  { sym: 'AUDUSD=X', pair: 'AUD/USD', base: 'AUD', quote: 'USD', group: 'Majors', desc: 'Australian Dollar / US Dollar' },
-  { sym: 'NZDUSD=X', pair: 'NZD/USD', base: 'NZD', quote: 'USD', group: 'Majors', desc: 'New Zealand Dollar / US Dollar' },
-  // Minors
-  { sym: 'EURGBP=X', pair: 'EUR/GBP', base: 'EUR', quote: 'GBP', group: 'Minors', desc: 'Euro / British Pound' },
-  { sym: 'EURJPY=X', pair: 'EUR/JPY', base: 'EUR', quote: 'JPY', group: 'Minors', desc: 'Euro / Japanese Yen' },
-  { sym: 'EURAUD=X', pair: 'EUR/AUD', base: 'EUR', quote: 'AUD', group: 'Minors', desc: 'Euro / Australian Dollar' },
-  { sym: 'EURCHF=X', pair: 'EUR/CHF', base: 'EUR', quote: 'CHF', group: 'Minors', desc: 'Euro / Swiss Franc' },
-  { sym: 'EURNZD=X', pair: 'EUR/NZD', base: 'EUR', quote: 'NZD', group: 'Minors', desc: 'Euro / New Zealand Dollar' },
-  { sym: 'GBPJPY=X', pair: 'GBP/JPY', base: 'GBP', quote: 'JPY', group: 'Minors', desc: 'British Pound / Japanese Yen' },
-  { sym: 'GBPCHF=X', pair: 'GBP/CHF', base: 'GBP', quote: 'CHF', group: 'Minors', desc: 'British Pound / Swiss Franc' },
-  { sym: 'GBPAUD=X', pair: 'GBP/AUD', base: 'GBP', quote: 'AUD', group: 'Minors', desc: 'British Pound / Australian Dollar' },
-  { sym: 'GBPNZD=X', pair: 'GBP/NZD', base: 'GBP', quote: 'NZD', group: 'Minors', desc: 'British Pound / New Zealand Dollar' },
-  { sym: 'AUDCAD=X', pair: 'AUD/CAD', base: 'AUD', quote: 'CAD', group: 'Minors', desc: 'Australian Dollar / Canadian Dollar' },
-  { sym: 'AUDNZD=X', pair: 'AUD/NZD', base: 'AUD', quote: 'NZD', group: 'Minors', desc: 'Australian Dollar / New Zealand Dollar' },
-  { sym: 'AUDJPY=X', pair: 'AUD/JPY', base: 'AUD', quote: 'JPY', group: 'Minors', desc: 'Australian Dollar / Japanese Yen' },
-  { sym: 'CADJPY=X', pair: 'CAD/JPY', base: 'CAD', quote: 'JPY', group: 'Minors', desc: 'Canadian Dollar / Japanese Yen' },
-  { sym: 'CHFJPY=X', pair: 'CHF/JPY', base: 'CHF', quote: 'JPY', group: 'Minors', desc: 'Swiss Franc / Japanese Yen' },
-  { sym: 'NZDJPY=X', pair: 'NZD/JPY', base: 'NZD', quote: 'JPY', group: 'Minors', desc: 'New Zealand Dollar / Japanese Yen' },
-  // Emerging
-  { sym: 'USDCNY=X', pair: 'USD/CNY', base: 'USD', quote: 'CNY', group: 'Emerging', desc: 'US Dollar / Chinese Yuan' },
-  { sym: 'USDINR=X', pair: 'USD/INR', base: 'USD', quote: 'INR', group: 'Emerging', desc: 'US Dollar / Indian Rupee' },
-  { sym: 'USDBRL=X', pair: 'USD/BRL', base: 'USD', quote: 'BRL', group: 'Emerging', desc: 'US Dollar / Brazilian Real' },
-  { sym: 'USDMXN=X', pair: 'USD/MXN', base: 'USD', quote: 'MXN', group: 'Emerging', desc: 'US Dollar / Mexican Peso' },
-  { sym: 'USDKRW=X', pair: 'USD/KRW', base: 'USD', quote: 'KRW', group: 'Emerging', desc: 'US Dollar / South Korean Won' },
-  { sym: 'USDSGD=X', pair: 'USD/SGD', base: 'USD', quote: 'SGD', group: 'Emerging', desc: 'US Dollar / Singapore Dollar' },
-  { sym: 'USDHKD=X', pair: 'USD/HKD', base: 'USD', quote: 'HKD', group: 'Emerging', desc: 'US Dollar / Hong Kong Dollar' },
-  { sym: 'USDZAR=X', pair: 'USD/ZAR', base: 'USD', quote: 'ZAR', group: 'Emerging', desc: 'US Dollar / South African Rand' },
-  { sym: 'USDNGN=X', pair: 'USD/NGN', base: 'USD', quote: 'NGN', group: 'Emerging', desc: 'US Dollar / Nigerian Naira' },
-  { sym: 'USDTRY=X', pair: 'USD/TRY', base: 'USD', quote: 'TRY', group: 'Emerging', desc: 'US Dollar / Turkish Lira' },
-  { sym: 'USDSEK=X', pair: 'USD/SEK', base: 'USD', quote: 'SEK', group: 'Emerging', desc: 'US Dollar / Swedish Krona' },
-  { sym: 'USDNOK=X', pair: 'USD/NOK', base: 'USD', quote: 'NOK', group: 'Emerging', desc: 'US Dollar / Norwegian Krone' },
-  { sym: 'USDPLN=X', pair: 'USD/PLN', base: 'USD', quote: 'PLN', group: 'Emerging', desc: 'US Dollar / Polish Zloty' },
-  // Index
-  { sym: 'DX-Y.NYB', pair: 'DXY', base: 'USD', quote: 'BASKET', group: 'Index', desc: 'US Dollar Index — trade-weighted basket' },
+  // Auto-generate from FOREX (includes metals, majors, crosses, EM)
+  ...FOREX.map((fx) => {
+    const parts = fx.label.split('/');
+    const base = parts[0] ?? '';
+    const quote = parts[1] ?? '';
+    return {
+      sym: fx.sym,
+      pair: fx.label,
+      base,
+      quote,
+      group: classifyGroup(fx.sym, base, quote),
+      desc: currencyDesc(base, quote),
+    };
+  }),
+  // DXY — US Dollar Index (not a currency pair but tracked in the FX tab)
+  {
+    sym: 'DX-Y.NYB',
+    pair: 'DXY',
+    base: 'USD',
+    quote: 'BASKET',
+    group: 'Index',
+    desc: 'US Dollar Index — trade-weighted basket',
+  },
 ];
 
 const ALL_SYMS = PAIRS.map((p) => p.sym);
-const GROUPS = ['Majors', 'Minors', 'Emerging', 'Index'] as const;
-type Group = typeof GROUPS[number];
+
 type SortKey = 'pair' | 'chgPct' | 'chgAbs';
 
 // ── Decimal precision ─────────────────────────────────────────────────────────
 
 function decimals(sym: string): number {
+  // Precious metals: 2dp (e.g. Gold $2315.50)
+  if (sym.startsWith('XAU') || sym.startsWith('XAG') || sym.startsWith('XPT') || sym.startsWith('XPD')) return 2;
+  // Yen, Won, and other high-unit currencies
   if (
     sym.includes('JPY') || sym.includes('KRW') || sym.includes('NGN') ||
     sym.includes('TRY') || sym.includes('INR') || sym.includes('MXN') ||
-    sym.includes('SEK') || sym.includes('NOK') || sym.includes('ZAR') ||
-    sym.includes('PLN') || sym.includes('HUF') || sym === 'DX-Y.NYB'
+    sym.includes('SEK') || sym.includes('NOK') || sym.includes('DKK') ||
+    sym.includes('ZAR') || sym.includes('PLN') || sym.includes('HUF') ||
+    sym.includes('IDR') || sym.includes('VND') || sym.includes('COP') ||
+    sym.includes('CLP') || sym.includes('PKR') || sym.includes('BDT') ||
+    sym.includes('UZS') || sym.includes('TZS') || sym.includes('MWK') ||
+    sym.includes('UGX') || sym.includes('RWF') || sym.includes('IQD') ||
+    sym.includes('LBP') || sym.includes('YER') || sym.includes('PYG') ||
+    sym === 'DX-Y.NYB'
   ) return 2;
-  if (sym.includes('CNY') || sym.includes('HKD') || sym.includes('SGD') || sym.includes('BRL')) return 4;
+  if (
+    sym.includes('CNY') || sym.includes('CNH') || sym.includes('HKD') ||
+    sym.includes('SGD') || sym.includes('BRL') || sym.includes('MYR') ||
+    sym.includes('TWD') || sym.includes('THB') || sym.includes('PHP') ||
+    sym.includes('ARS') || sym.includes('CZK')
+  ) return 4;
   return 4;
 }
 
@@ -158,7 +246,7 @@ async function fetchQuotes(symbols: string[]): Promise<Record<string, QuoteRow>>
       if (Object.keys(map).length > 0) return map;
     }
   } catch { /* fall through to direct API */ }
-  // 2. Native fallback: direct Yahoo Finance chart API (works in production APK without a backend)
+  // 2. Native fallback: direct Yahoo Finance chart API
   if (Platform.OS !== 'web') {
     const settled = await Promise.allSettled(symbols.map(fetchQuoteDirect));
     const map: Record<string, QuoteRow> = {};
@@ -170,12 +258,26 @@ async function fetchQuotes(symbols: string[]): Promise<Record<string, QuoteRow>>
   return {};
 }
 
+// ── Fetch in batches of 40 to avoid hitting URL-length limits ─────────────────
+
+async function fetchQuotesBatched(symbols: string[]): Promise<Record<string, QuoteRow>> {
+  const BATCH = 40;
+  const result: Record<string, QuoteRow> = {};
+  for (let i = 0; i < symbols.length; i += BATCH) {
+    const slice = symbols.slice(i, i + BATCH);
+    const batch = await fetchQuotes(slice);
+    Object.assign(result, batch);
+  }
+  return result;
+}
+
 // ── Group color palette ───────────────────────────────────────────────────────
 
 const GROUP_PALETTE: Record<Group, { bg: string; text: string; accent: string }> = {
   Majors:   { bg: 'rgba(77,166,255,0.15)',  text: '#4DA6FF', accent: '#4DA6FF' },
   Minors:   { bg: 'rgba(155,143,255,0.15)', text: '#9B8FFF', accent: '#9B8FFF' },
   Emerging: { bg: 'rgba(255,182,39,0.15)',  text: '#FFB627', accent: '#FFB627' },
+  Metals:   { bg: 'rgba(255,215,0,0.15)',   text: '#FFD700', accent: '#FFD700' },
   Index:    { bg: 'rgba(0,229,160,0.15)',   text: '#00E5A0', accent: '#00E5A0' },
 };
 
@@ -249,9 +351,6 @@ function PairCard({
     quote?.bid != null && quote?.ask != null
       ? +(quote.ask - quote.bid).toFixed(dec + 1)
       : null;
-
-  const detailHeight = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 86] });
-  const detailOpacity = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0, 1] });
 
   return (
     <Pressable
@@ -442,7 +541,7 @@ export default function CurrencyPairsScreen() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
-    const q = await fetchQuotes(ALL_SYMS);
+    const q = await fetchQuotesBatched(ALL_SYMS);
     const hasData = Object.keys(q).length > 0;
     setIsOnline(hasData);
     if (hasData) {
@@ -503,7 +602,7 @@ export default function CurrencyPairsScreen() {
         <View style={styles.headerLeft}>
           <View style={styles.titleRow}>
             <LiveDot online={isOnline} />
-            <Text style={[styles.pageTitle, { color: colors.t1 }]}>FX Pairs</Text>
+            <Text style={[styles.pageTitle, { color: colors.t1 }]}>FX & Metals</Text>
             {refreshing && <ActivityIndicator size="small" color={colors.blue} style={{ marginLeft: 6 }} />}
           </View>
           {updatedStr && (

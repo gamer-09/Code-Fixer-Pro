@@ -3,9 +3,11 @@ export const INDICES = [
   { sym: '^DJI', name: 'Dow Jones', region: 'USA' },
   { sym: '^IXIC', name: 'Nasdaq', region: 'USA' },
   { sym: '^RUT', name: 'Russell 2K', region: 'USA' },
+  { sym: '^GSPTSE', name: 'S&P/TSX', region: 'CA' },
   { sym: '^FTSE', name: 'FTSE 100', region: 'UK' },
   { sym: '^GDAXI', name: 'DAX', region: 'DE' },
   { sym: '^FCHI', name: 'CAC 40', region: 'FR' },
+  { sym: '^STOXX50E', name: 'Euro Stoxx 50', region: 'EU' },
   { sym: '^N225', name: 'Nikkei 225', region: 'JP' },
   { sym: '^HSI', name: 'Hang Seng', region: 'HK' },
   { sym: '^AXJO', name: 'ASX 200', region: 'AU' },
@@ -14,6 +16,7 @@ export const INDICES = [
   { sym: '^KS11', name: 'KOSPI', region: 'KR' },
   { sym: '^TWII', name: 'Taiwan', region: 'TW' },
   { sym: '^MXX', name: 'IPC Mexico', region: 'MX' },
+  { sym: '^BVSP', name: 'Bovespa', region: 'BR' },
   { sym: '^IBEX', name: 'IBEX 35', region: 'ES' },
 ];
 
@@ -29,18 +32,34 @@ export const STOCKS = [
   { sym: 'JPM', name: 'JPMorgan' },
   { sym: 'GS', name: 'Goldman Sachs' },
   { sym: 'BAC', name: 'Bank of America' },
+  { sym: 'MA', name: 'Mastercard' },
+  { sym: 'V', name: 'Visa' },
+  { sym: 'UNH', name: 'UnitedHealth' },
+  { sym: 'JNJ', name: 'Johnson & Johnson' },
+  { sym: 'PG', name: 'Procter & Gamble' },
+  { sym: 'KO', name: 'Coca-Cola' },
+  { sym: 'DIS', name: 'Disney' },
+  { sym: 'COST', name: 'Costco' },
+  { sym: 'HD', name: 'Home Depot' },
+  { sym: 'BRK-B', name: 'Berkshire Hathaway' },
   { sym: 'TSM', name: 'TSMC' },
   { sym: 'ORCL', name: 'Oracle' },
   { sym: 'AMD', name: 'AMD' },
-  { sym: 'INTC', name: 'Intel' },
   { sym: 'AVGO', name: 'Broadcom' },
   { sym: 'WMT', name: 'Walmart' },
-  { sym: 'V', name: 'Visa' },
-  { sym: 'UNH', name: 'UnitedHealth' },
   { sym: 'XOM', name: 'Exxon Mobil' },
+  { sym: 'PLTR', name: 'Palantir' },
+  { sym: 'COIN', name: 'Coinbase' },
+  { sym: 'MSTR', name: 'MicroStrategy' },
+  { sym: 'UBER', name: 'Uber' },
 ];
 
 export const CRYPTOS = [
+  // Stablecoins (top by volume on every exchange)
+  { sym: 'USDT-USD', label: 'USDT', name: 'Tether', color: '#26A17B' },
+  { sym: 'USDC-USD', label: 'USDC', name: 'USD Coin', color: '#2775CA' },
+  { sym: 'DAI-USD', label: 'DAI', name: 'Dai', color: '#F5AC37' },
+  { sym: 'WBTC-USD', label: 'WBTC', name: 'Wrapped Bitcoin', color: '#F09242' },
   // Mega-caps
   { sym: 'BTC-USD', label: 'BTC', name: 'Bitcoin', color: '#F7931A' },
   { sym: 'ETH-USD', label: 'ETH', name: 'Ethereum', color: '#627EEA' },
@@ -67,6 +86,10 @@ export const CRYPTOS = [
   { sym: 'TRX-USD', label: 'TRX', name: 'TRON', color: '#EF0027' },
   { sym: 'XLM-USD', label: 'XLM', name: 'Stellar', color: '#7D00FF' },
   { sym: 'XMR-USD', label: 'XMR', name: 'Monero', color: '#FF6600' },
+  // Newer widely-tracked coins
+  { sym: 'WLD-USD', label: 'WLD', name: 'Worldcoin', color: '#7B3FE4' },
+  { sym: 'JUP29210-USD', label: 'JUP', name: 'Jupiter', color: '#C7B86D' },
+  { sym: 'PYTH-USD', label: 'PYTH', name: 'Pyth Network', color: '#8B5CF6' },
   // Layer 2 / Scaling
   { sym: 'APT21794-USD', label: 'APT', name: 'Aptos', color: '#00B5D8' },
   { sym: 'ARB11841-USD', label: 'ARB', name: 'Arbitrum', color: '#28A0F0' },
@@ -123,20 +146,37 @@ export const CRYPTOS = [
 ];
 
 export const COMMODITIES = [
+  // Precious metals
   { sym: 'GC=F', label: 'Gold', unit: 'USD/oz' },
   { sym: 'SI=F', label: 'Silver', unit: 'USD/oz' },
+  { sym: 'PL=F', label: 'Platinum', unit: 'USD/oz' },
+  { sym: 'PA=F', label: 'Palladium', unit: 'USD/oz' },
+  // Energy
   { sym: 'CL=F', label: 'Crude Oil', unit: 'USD/bbl' },
   { sym: 'BZ=F', label: 'Brent Crude', unit: 'USD/bbl' },
   { sym: 'NG=F', label: 'Nat Gas', unit: 'USD/MMBtu' },
+  // Agricultural — grains
   { sym: 'ZW=F', label: 'Wheat', unit: 'USD/bu' },
   { sym: 'ZC=F', label: 'Corn', unit: 'USD/bu' },
+  // Agricultural — softs
+  { sym: 'KC=F', label: 'Coffee', unit: 'USD/lb' },
+  { sym: 'SB=F', label: 'Sugar', unit: 'USD/lb' },
+  { sym: 'CC=F', label: 'Cocoa', unit: 'USD/MT' },
+  { sym: 'CT=F', label: 'Cotton', unit: 'USD/lb' },
+  // Industrial metals
   { sym: 'HG=F', label: 'Copper', unit: 'USD/lb' },
-  { sym: 'PL=F', label: 'Platinum', unit: 'USD/oz' },
-  { sym: 'PA=F', label: 'Palladium', unit: 'USD/oz' },
+  { sym: 'ALI=F', label: 'Aluminum', unit: 'USD/MT' },
+  { sym: 'NI=F', label: 'Nickel', unit: 'USD/MT' },
+  { sym: 'ZI=F', label: 'Zinc', unit: 'USD/MT' },
 ];
 
 export const FOREX = [
-  // Majors
+  // ── Precious metal spot pairs (XAU/XAG/XPT/XPD vs USD)
+  { sym: 'XAUUSD=X', label: 'XAU/USD' },
+  { sym: 'XAGUSD=X', label: 'XAG/USD' },
+  { sym: 'XPTUSD=X', label: 'XPT/USD' },
+  { sym: 'XPDUSD=X', label: 'XPD/USD' },
+  // ── Majors
   { sym: 'EURUSD=X', label: 'EUR/USD' },
   { sym: 'GBPUSD=X', label: 'GBP/USD' },
   { sym: 'USDJPY=X', label: 'USD/JPY' },
@@ -146,7 +186,7 @@ export const FOREX = [
   { sym: 'USDCAD=X', label: 'USD/CAD' },
   { sym: 'USDSGD=X', label: 'USD/SGD' },
   { sym: 'USDHKD=X', label: 'USD/HKD' },
-  // EUR Crosses
+  // ── EUR Crosses
   { sym: 'EURGBP=X', label: 'EUR/GBP' },
   { sym: 'EURJPY=X', label: 'EUR/JPY' },
   { sym: 'EURCHF=X', label: 'EUR/CHF' },
@@ -155,31 +195,31 @@ export const FOREX = [
   { sym: 'EURNZD=X', label: 'EUR/NZD' },
   { sym: 'EURSGD=X', label: 'EUR/SGD' },
   { sym: 'EURHKD=X', label: 'EUR/HKD' },
-  // GBP Crosses
+  // ── GBP Crosses
   { sym: 'GBPJPY=X', label: 'GBP/JPY' },
   { sym: 'GBPCHF=X', label: 'GBP/CHF' },
   { sym: 'GBPAUD=X', label: 'GBP/AUD' },
   { sym: 'GBPCAD=X', label: 'GBP/CAD' },
   { sym: 'GBPNZD=X', label: 'GBP/NZD' },
   { sym: 'GBPSGD=X', label: 'GBP/SGD' },
-  // AUD Crosses
+  // ── AUD Crosses
   { sym: 'AUDJPY=X', label: 'AUD/JPY' },
   { sym: 'AUDCHF=X', label: 'AUD/CHF' },
   { sym: 'AUDCAD=X', label: 'AUD/CAD' },
   { sym: 'AUDNZD=X', label: 'AUD/NZD' },
   { sym: 'AUDSGD=X', label: 'AUD/SGD' },
-  // NZD Crosses
+  // ── NZD Crosses
   { sym: 'NZDJPY=X', label: 'NZD/JPY' },
   { sym: 'NZDCHF=X', label: 'NZD/CHF' },
   { sym: 'NZDCAD=X', label: 'NZD/CAD' },
   { sym: 'NZDSGD=X', label: 'NZD/SGD' },
-  // CAD Crosses
+  // ── CAD Crosses
   { sym: 'CADJPY=X', label: 'CAD/JPY' },
   { sym: 'CADCHF=X', label: 'CAD/CHF' },
-  // CHF / JPY Crosses
+  // ── CHF / JPY / SGD Crosses
   { sym: 'CHFJPY=X', label: 'CHF/JPY' },
   { sym: 'SGDJPY=X', label: 'SGD/JPY' },
-  // USD vs Asia-Pacific EM
+  // ── USD vs Asia-Pacific EM
   { sym: 'USDCNY=X', label: 'USD/CNY' },
   { sym: 'USDCNH=X', label: 'USD/CNH' },
   { sym: 'USDINR=X', label: 'USD/INR' },
@@ -192,7 +232,7 @@ export const FOREX = [
   { sym: 'USDVND=X', label: 'USD/VND' },
   { sym: 'USDPKR=X', label: 'USD/PKR' },
   { sym: 'USDBDT=X', label: 'USD/BDT' },
-  // USD vs Europe EM
+  // ── USD vs Europe EM
   { sym: 'USDTRY=X', label: 'USD/TRY' },
   { sym: 'USDPLN=X', label: 'USD/PLN' },
   { sym: 'USDHUF=X', label: 'USD/HUF' },
@@ -202,14 +242,14 @@ export const FOREX = [
   { sym: 'USDDKK=X', label: 'USD/DKK' },
   { sym: 'USDRUB=X', label: 'USD/RUB' },
   { sym: 'USDILS=X', label: 'USD/ILS' },
-  // USD vs LatAm
+  // ── USD vs LatAm
   { sym: 'USDBRL=X', label: 'USD/BRL' },
   { sym: 'USDMXN=X', label: 'USD/MXN' },
   { sym: 'USDCLP=X', label: 'USD/CLP' },
   { sym: 'USDCOP=X', label: 'USD/COP' },
   { sym: 'USDPEN=X', label: 'USD/PEN' },
   { sym: 'USDARS=X', label: 'USD/ARS' },
-  // USD vs Africa
+  // ── USD vs Africa
   { sym: 'USDZAR=X', label: 'USD/ZAR' },
   { sym: 'USDNGN=X', label: 'USD/NGN' },
   { sym: 'USDKES=X', label: 'USD/KES' },
@@ -217,7 +257,7 @@ export const FOREX = [
   { sym: 'USDGHS=X', label: 'USD/GHS' },
   { sym: 'USDTZS=X', label: 'USD/TZS' },
   { sym: 'USDMAD=X', label: 'USD/MAD' },
-  // USD vs Middle East
+  // ── USD vs Middle East
   { sym: 'USDAED=X', label: 'USD/AED' },
   { sym: 'USDSAR=X', label: 'USD/SAR' },
   { sym: 'USDQAR=X', label: 'USD/QAR' },
@@ -225,7 +265,7 @@ export const FOREX = [
   { sym: 'USDBHD=X', label: 'USD/BHD' },
   { sym: 'USDOMR=X', label: 'USD/OMR' },
   { sym: 'USDJOD=X', label: 'USD/JOD' },
-  // EUR vs EM
+  // ── EUR vs EM
   { sym: 'EURTRY=X', label: 'EUR/TRY' },
   { sym: 'EURPLN=X', label: 'EUR/PLN' },
   { sym: 'EURHUF=X', label: 'EUR/HUF' },
@@ -234,7 +274,7 @@ export const FOREX = [
   { sym: 'EURNOK=X', label: 'EUR/NOK' },
   { sym: 'EURDKK=X', label: 'EUR/DKK' },
   { sym: 'EURZAR=X', label: 'EUR/ZAR' },
-  // GBP vs EM
+  // ── GBP vs EM
   { sym: 'GBPTRY=X', label: 'GBP/TRY' },
   { sym: 'GBPZAR=X', label: 'GBP/ZAR' },
   { sym: 'GBPPLN=X', label: 'GBP/PLN' },
@@ -254,8 +294,13 @@ export const SECTORS = [
   { sym: 'XLC', label: 'Comm. Svcs' },
 ];
 
+// Note: Yahoo Finance exposes CBOE interest-rate indices for 3-Mo (^IRX), 5-Yr (^FVX),
+// 10-Yr (^TNX), and 30-Yr (^TYX). The 2-Year yield is NOT available as a CBOE index
+// via Yahoo Finance. We use '^TU' as a best-effort attempt; if it resolves it shows the
+// yield. If not, the entry displays '—' gracefully (no crash, no corrupt data).
 export const BONDS = [
   { sym: '^IRX', label: '3-Mo', months: 3 },
+  { sym: '^TU', label: '2-Yr', months: 24 },
   { sym: '^FVX', label: '5-Yr', months: 60 },
   { sym: '^TNX', label: '10-Yr', months: 120 },
   { sym: '^TYX', label: '30-Yr', months: 360 },
@@ -264,64 +309,41 @@ export const BONDS = [
 export const MACRO = [
   { sym: '^VIX', label: 'VIX' },
   { sym: 'DX-Y.NYB', label: 'DXY' },
+  // 2-Year Treasury Note Yield is tracked via the 2-yr note futures (ZT=F).
+  // Yahoo Finance does not publish a direct yield-percentage index for the 2yr
+  // equivalent to ^TNX/^FVX. ZT=F price (~102) is used here as a proxy.
+  { sym: 'ZT=F', label: '2-Yr Note' },
 ];
 
-// Extra symbols available in watchlist but not in other tabs (additional forex crosses, indices, crypto)
+// Extra symbols available in watchlist / sparklines (additional crosses, indices, crypto)
 export const EXTRA_SYMBOLS = [
-  // Precious metals spot forex
-  'XAUUSD=X', 'XAGUSD=X', 'XPTUSD=X', 'XPDUSD=X',
-  // EUR crosses
-  'EURGBP=X', 'EURJPY=X', 'EURCHF=X', 'EURAUD=X', 'EURCAD=X', 'EURNZD=X', 'EURSGD=X', 'EURHKD=X',
-  'EURTRY=X', 'EURPLN=X', 'EURHUF=X', 'EURCZK=X', 'EURSEK=X', 'EURNOK=X', 'EURDKK=X', 'EURZAR=X',
+  // EUR extended crosses
   'EURRON=X', 'EURBGN=X', 'EURINR=X', 'EURKRW=X', 'EURTHB=X', 'EURMXN=X', 'EURBRL=X', 'EURILS=X', 'EURRUB=X',
-  // GBP crosses
-  'GBPJPY=X', 'GBPCHF=X', 'GBPAUD=X', 'GBPCAD=X', 'GBPNZD=X', 'GBPSGD=X', 'GBPTRY=X', 'GBPZAR=X', 'GBPPLN=X',
+  // GBP extended crosses
   'GBPHKD=X', 'GBPINR=X', 'GBPSEK=X', 'GBPNOK=X', 'GBPDKK=X', 'GBPCZK=X', 'GBPHUF=X',
-  // AUD crosses
-  'AUDJPY=X', 'AUDCHF=X', 'AUDCAD=X', 'AUDNZD=X', 'AUDSGD=X',
-  // NZD crosses
-  'NZDJPY=X', 'NZDCHF=X', 'NZDCAD=X', 'NZDSGD=X',
-  // CAD/CHF/SGD crosses
-  'CADJPY=X', 'CADCHF=X', 'CHFJPY=X', 'SGDJPY=X',
   // CHF crosses
   'CHFSGD=X', 'CHFHKD=X', 'CHFTRY=X', 'CHFPLN=X', 'CHFNOK=X', 'CHFSEK=X', 'CHFCZK=X', 'CHFHUF=X', 'CHFZAR=X',
-  // USD vs Asia-Pacific EM
-  'USDCNH=X', 'USDTWD=X', 'USDTHB=X', 'USDMYR=X', 'USDIDR=X', 'USDPHP=X', 'USDVND=X', 'USDPKR=X', 'USDBDT=X',
+  // USD vs more Asia-Pacific
   'USDLKR=X', 'USDNPR=X', 'USDMNT=X', 'USDKHR=X', 'USDLAK=X', 'USDBND=X', 'USDMMK=X',
-  // USD vs Europe EM
-  'USDPLN=X', 'USDHUF=X', 'USDCZK=X', 'USDSEK=X', 'USDNOK=X', 'USDDKK=X', 'USDRUB=X', 'USDILS=X',
+  // USD vs more Europe EM
   'USDRON=X', 'USDBGN=X', 'USDRSD=X', 'USDUAH=X', 'USDBYN=X', 'USDGEL=X', 'USDAZN=X', 'USDAMD=X',
   'USDALL=X', 'USDKZT=X', 'USDUZS=X', 'USDKGS=X', 'USDTJS=X', 'USDMKD=X', 'USDBAM=X',
-  // USD vs LatAm
-  'USDCLP=X', 'USDCOP=X', 'USDPEN=X', 'USDARS=X',
+  // USD vs more LatAm
   'USDUYU=X', 'USDBOB=X', 'USDPYG=X', 'USDDOP=X', 'USDGTQ=X', 'USDHNL=X', 'USDCRC=X',
   'USDJMD=X', 'USDTTD=X', 'USDBBD=X', 'USDNIO=X', 'USDSVC=X',
-  // USD vs Africa
-  'USDKES=X', 'USDEGP=X', 'USDGHS=X', 'USDTZS=X', 'USDMAD=X',
+  // USD vs more Africa
   'USDETB=X', 'USDZMW=X', 'USDMZN=X', 'USDTND=X', 'USDDZD=X', 'USDMUR=X', 'USDAOA=X',
   'USDUGX=X', 'USDRWF=X', 'USDLYD=X', 'USDMWK=X', 'USDBWP=X', 'USDSCR=X', 'USDNAD=X', 'USDSZL=X',
-  // USD vs Middle East
-  'USDAED=X', 'USDSAR=X', 'USDQAR=X', 'USDKWD=X', 'USDBHD=X', 'USDOMR=X', 'USDJOD=X',
+  // USD vs more Middle East
   'USDLBP=X', 'USDIQD=X', 'USDYER=X', 'USDAFN=X',
-  // Additional indices
-  '^AEX', '^SSMI', '^OMXS30', '^STOXX50E', '^N100', '^STI', '^JKSE', '^KLSE', '^SET.BK', '^PSI', '^VN30', '^MERV', '^IPSA', '^BVSP',
-  // Additional crypto (all coins in CRYPTOS that aren't in the base array above)
-  'TON11419-USD', 'SHIB-USD', 'LTC-USD', 'BCH-USD', 'ATOM-USD', 'NEAR-USD',
-  'ICP-USD', 'ETC-USD', 'HBAR-USD', 'VET-USD', 'TRX-USD', 'XLM-USD', 'XMR-USD',
-  'APT21794-USD', 'ARB11841-USD', 'OP-USD', 'SUI20947-USD', 'IMX-USD', 'STX-USD', 'SEI-USD',
-  'UNI7083-USD', 'AAVE-USD', 'MKR-USD', 'LDO-USD', 'INJ-USD', 'GRT-USD', 'CRV-USD',
-  'SNX-USD', 'CAKE-USD', 'DYDX-USD', 'PENDLE-USD',
-  'FIL-USD', 'ALGO-USD', 'QNT-USD', 'EGLD-USD', 'FTM-USD', 'XTZ-USD', 'EOS-USD',
-  'ZEC-USD', 'MINA-USD', 'KAVA-USD', 'KAS-USD', 'CFX-USD', 'ROSE-USD', 'ONE-USD',
-  'RNDR-USD', 'FET-USD', 'TIA-USD', 'OCEAN-USD',
-  'SAND-USD', 'MANA-USD', 'AXS-USD', 'CHZ-USD', 'ENJ-USD', 'BAT-USD', 'ZIL-USD',
-  'PEPE24478-USD', 'WIF-USD', 'BONK-USD', 'FLOKI-USD',
+  // Additional global indices
+  '^AEX', '^SSMI', '^OMXS30', '^N100', '^STI', '^JKSE', '^KLSE', '^SET.BK', '^PSI', '^VN30', '^MERV', '^IPSA',
   // Additional stocks
   'ADBE', 'QCOM', 'AMAT', 'LRCX', 'KLAC', 'ASML', 'TXN', 'MRVL', 'ON', 'STM',
   'DELL', 'HPQ', 'IBM', 'NOW', 'SNOW', 'NET', 'DDOG', 'MDB', 'ZS', 'OKTA',
   'TWLO', 'RBLX', 'LYFT', 'DASH', 'PINS', 'MTCH', 'ROKU', 'TTD', 'AFRM', 'SQ',
-  // Additional commodities
-  'ALI=F', 'ZR=F', 'ZL=F', 'ZM=F',
+  // Additional commodity spreads
+  'ZR=F', 'ZL=F', 'ZM=F',
 ];
 
 export const ALL_SYMBOLS = [

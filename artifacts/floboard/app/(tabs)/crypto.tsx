@@ -20,14 +20,22 @@ import { useSettings } from '@/context/SettingsContext';
 import { CRYPTOS } from '@/constants/marketData';
 
 type SortKey = 'default' | 'change' | 'change_asc' | 'mcap' | 'price';
-type Group = 'All' | 'Top' | 'L1' | 'L2' | 'DeFi' | 'Meme' | 'Web3' | 'AI';
+type Group = 'All' | 'Top' | 'Stable' | 'L1' | 'L2' | 'DeFi' | 'Meme' | 'Web3' | 'AI';
 
 const GROUP_SYMS: Record<Group, string[] | null> = {
   All: null,
   Top: [
+    // Stablecoins by volume always rank in top 5 on every exchange
+    'USDT-USD', 'USDC-USD',
+    // Market-cap leaders
     'BTC-USD', 'ETH-USD', 'BNB-USD', 'SOL-USD', 'XRP-USD', 'TON11419-USD',
     'DOGE-USD', 'ADA-USD', 'AVAX-USD', 'DOT-USD', 'LINK-USD', 'MATIC-USD',
     'LTC-USD', 'SHIB-USD', 'TRX-USD', 'HBAR-USD',
+    // Widely tracked newer coins
+    'WLD-USD', 'JUP29210-USD', 'PYTH-USD',
+  ],
+  Stable: [
+    'USDT-USD', 'USDC-USD', 'DAI-USD', 'WBTC-USD',
   ],
   L1: [
     'BTC-USD', 'ETH-USD', 'SOL-USD', 'ADA-USD', 'AVAX-USD', 'DOT-USD',
@@ -35,6 +43,7 @@ const GROUP_SYMS: Record<Group, string[] | null> = {
     'VET-USD', 'TRX-USD', 'XLM-USD', 'XMR-USD', 'LTC-USD', 'BCH-USD',
     'ALGO-USD', 'FTM-USD', 'EGLD-USD', 'XTZ-USD', 'EOS-USD', 'ZEC-USD',
     'MINA-USD', 'KAVA-USD', 'KAS-USD', 'CFX-USD', 'ROSE-USD', 'ONE-USD',
+    'WLD-USD',
   ],
   L2: [
     'MATIC-USD', 'APT21794-USD', 'ARB11841-USD', 'OP-USD', 'SUI20947-USD',
@@ -43,7 +52,7 @@ const GROUP_SYMS: Record<Group, string[] | null> = {
   DeFi: [
     'LINK-USD', 'UNI7083-USD', 'AAVE-USD', 'MKR-USD', 'LDO-USD', 'INJ-USD',
     'GRT-USD', 'CRV-USD', 'SNX-USD', 'CAKE-USD', 'DYDX-USD', 'PENDLE-USD',
-    'FIL-USD', 'QNT-USD',
+    'FIL-USD', 'QNT-USD', 'JUP29210-USD', 'PYTH-USD',
   ],
   Meme: ['DOGE-USD', 'SHIB-USD', 'PEPE24478-USD', 'WIF-USD', 'BONK-USD', 'FLOKI-USD'],
   Web3: ['SAND-USD', 'MANA-USD', 'AXS-USD', 'CHZ-USD', 'ENJ-USD', 'BAT-USD', 'ZIL-USD'],
@@ -216,7 +225,7 @@ export default function CryptoScreen() {
   const [group, setGroup] = useState<Group>('All');
   const [expandedSym, setExpandedSym] = useState<string | null>(null);
 
-  const GROUPS: Group[] = ['All', 'Top', 'DeFi', 'Meme'];
+  const GROUPS: Group[] = ['All', 'Top', 'Stable', 'L1', 'L2', 'DeFi', 'AI', 'Meme', 'Web3'];
   const SORTS: { key: SortKey; label: string }[] = [
     { key: 'default', label: 'Default' },
     { key: 'change', label: '% ↓' },
