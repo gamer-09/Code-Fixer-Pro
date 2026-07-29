@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import SparklineChart from '@/components/SparklineChart';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Platform,
   Pressable,
@@ -658,22 +659,47 @@ export default function MarketsScreen() {
     return () => clearInterval(id);
   }, []);
 
+  const handleLivePress = () => {
+    if (isOnline) {
+      Alert.alert(
+        '🟢 Live Market Connectivity',
+        'Connected to the Internet. FloBoard is streaming real-time financial quotes and interactive chart data.',
+        [
+          { text: 'Refresh Now', onPress: () => refresh() },
+          { text: 'OK', style: 'default' },
+        ]
+      );
+    } else {
+      Alert.alert(
+        '🔴 Offline Mode Active',
+        'No Internet connection detected. Please connect to Wi-Fi or mobile data to receive live market streaming prices.\n\nFloBoard is currently displaying on-device fallback quotes and synthetic market histories so no screen is ever blank.',
+        [
+          { text: 'Try Reconnecting', onPress: () => refresh() },
+          { text: 'OK', style: 'default' },
+        ]
+      );
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.void }]}>
       <View style={[styles.header, { paddingTop: topPad + 8, backgroundColor: colors.base, borderBottomColor: colors.rim }]}>
         <View style={styles.logoRow}>
           <LivePulse online={isOnline} />
           <Text style={[styles.logoText, { color: colors.t1 }]}>FloBoard</Text>
-          <View style={[
-            styles.liveChip,
-            isOnline
-              ? { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }
-              : { backgroundColor: colors.lossDim, borderColor: 'rgba(255,107,107,0.25)' },
-          ]}>
+          <Pressable
+            onPress={handleLivePress}
+            style={[
+              styles.liveChip,
+              isOnline
+                ? { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }
+                : { backgroundColor: colors.lossDim, borderColor: 'rgba(255,107,107,0.25)' },
+            ]}
+          >
             <Text style={[styles.liveText, { color: isOnline ? colors.gain : colors.loss }]}>
               {isOnline ? 'LIVE' : 'OFFLINE'}
             </Text>
-          </View>
+          </Pressable>
         </View>
         <View style={styles.headerRight}>
           <Text style={[styles.clock, { color: colors.t3 }]}>{clock}</Text>

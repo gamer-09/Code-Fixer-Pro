@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import SparklineChart from '@/components/SparklineChart';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   FlatList,
   Platform,
@@ -653,6 +654,28 @@ export default function CurrencyPairsScreen() {
     ? lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : null;
 
+  const handleLivePress = () => {
+    if (isOnline) {
+      Alert.alert(
+        '🟢 Live Market Connectivity',
+        'Connected to the Internet. FloBoard is streaming real-time foreign exchange and spot metal quotes.',
+        [
+          { text: 'Refresh Now', onPress: () => load(false) },
+          { text: 'OK', style: 'default' },
+        ]
+      );
+    } else {
+      Alert.alert(
+        '🔴 Offline Mode Active',
+        'No Internet connection detected. Please connect to Wi-Fi or mobile data to receive live streaming rates.\n\nFloBoard is currently displaying on-device fallback quotes and synthetic market histories so no screen is ever blank.',
+        [
+          { text: 'Try Reconnecting', onPress: () => load(false) },
+          { text: 'OK', style: 'default' },
+        ]
+      );
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.void }]}>
 
@@ -660,8 +683,21 @@ export default function CurrencyPairsScreen() {
       <View style={[styles.header, { paddingTop: topPad + 10, backgroundColor: colors.base, borderBottomColor: colors.rim }]}>
         <View style={styles.headerLeft}>
           <View style={styles.titleRow}>
-            <LiveDot online={isOnline} />
             <Text style={[styles.pageTitle, { color: colors.t1 }]}>FX & Metals</Text>
+            <Pressable
+              onPress={handleLivePress}
+              style={[
+                styles.liveChip,
+                isOnline
+                  ? { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }
+                  : { backgroundColor: colors.lossDim, borderColor: 'rgba(255,107,107,0.25)' },
+              ]}
+            >
+              <LiveDot online={isOnline} />
+              <Text style={[styles.liveText, { color: isOnline ? colors.gain : colors.loss }]}>
+                {isOnline ? 'LIVE' : 'OFFLINE'}
+              </Text>
+            </Pressable>
             {refreshing && <ActivityIndicator size="small" color={colors.blue} style={{ marginLeft: 6 }} />}
           </View>
           {updatedStr && (
@@ -840,7 +876,12 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  liveDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#00E5A0' },
+  liveChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 20,
+    borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2,
+  },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00E5A0' },
+  liveText: { fontSize: 9, fontFamily: 'Inter_700Bold', letterSpacing: 1 },
   pageTitle: { fontSize: 22, fontFamily: 'Inter_700Bold', letterSpacing: -0.3 },
   updatedText: { fontSize: 10, fontFamily: 'Inter_400Regular', marginTop: 3 },
   refreshBtn: {

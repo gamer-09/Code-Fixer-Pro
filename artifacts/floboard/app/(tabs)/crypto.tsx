@@ -3,6 +3,7 @@ import SparklineChart from '@/components/SparklineChart';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   FlatList,
   Platform,
@@ -254,6 +255,28 @@ export default function CryptoScreen() {
   const btcCap = data['BTC-USD']?.marketCap ?? 0;
   const btcDom = totalCap > 0 ? (btcCap / totalCap) * 100 : 0;
 
+  const handleLivePress = () => {
+    if (isOnline) {
+      Alert.alert(
+        '🟢 Live Market Connectivity',
+        'Connected to the Internet. FloBoard is streaming real-time cryptocurrency prices and interactive chart data.',
+        [
+          { text: 'Refresh Now', onPress: () => refresh() },
+          { text: 'OK', style: 'default' },
+        ]
+      );
+    } else {
+      Alert.alert(
+        '🔴 Offline Mode Active',
+        'No Internet connection detected. Please connect to Wi-Fi or mobile data to receive live crypto prices.\n\nFloBoard is currently displaying on-device fallback quotes and synthetic market histories so no screen is ever blank.',
+        [
+          { text: 'Try Reconnecting', onPress: () => refresh() },
+          { text: 'OK', style: 'default' },
+        ]
+      );
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.void }]}>
       {/* Header */}
@@ -263,17 +286,20 @@ export default function CryptoScreen() {
           <Text style={[styles.subTitle, { color: colors.t4 }]}>{filteredAndSorted.length} assets</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={[
-            styles.liveChip,
-            isOnline
-              ? { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }
-              : { backgroundColor: colors.lossDim, borderColor: 'rgba(255,107,107,0.25)' },
-          ]}>
+          <Pressable
+            onPress={handleLivePress}
+            style={[
+              styles.liveChip,
+              isOnline
+                ? { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }
+                : { backgroundColor: colors.lossDim, borderColor: 'rgba(255,107,107,0.25)' },
+            ]}
+          >
             <AnimatedLiveDot online={isOnline} />
             <Text style={[styles.liveText, { color: isOnline ? colors.gain : colors.loss }]}>
               {isOnline ? 'LIVE' : 'OFFLINE'}
             </Text>
-          </View>
+          </Pressable>
           <Pressable
             onPress={refresh}
             disabled={loading}

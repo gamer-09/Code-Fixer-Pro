@@ -102,7 +102,7 @@ async function fetchViaProxy(symbols: string[]): Promise<QuoteData[] | null> {
   }
 }
 
-async function fetchOneChart(sym: string): Promise<QuoteData> {
+async function fetchOneChart(sym: string): Promise<{ quote: QuoteData; live: boolean }> {
   const targetSym = resolveSymbolAlias(sym);
   try {
     const res = await fetchWithTimeout(
@@ -115,12 +115,12 @@ async function fetchOneChart(sym: string): Promise<QuoteData> {
       },
       10000
     );
-    if (!res.ok) return getFallbackQuote(sym);
+    if (!res.ok) return { quote: getFallbackQuote(sym), live: false };
     const json = await res.json() as {
       chart?: { result?: Array<{ meta?: Record<string, unknown> }> };
     };
     const meta = json?.chart?.result?.[0]?.meta as Record<string, number & string> | undefined;
-    if (!meta?.regularMarketPrice) return getFallbackQuote(sym);
+    if (!meta?.regularMarketPrice) return { quote: getFallbackQuote(sym), live: false };
 
     const price = meta.regularMarketPrice as number;
     const prev = (meta.chartPreviousClose ?? meta.previousClose ?? price) as number;
@@ -129,7 +129,7 @@ async function fetchOneChart(sym: string): Promise<QuoteData> {
     const changePct = (meta.regularMarketChangePercent as number) ?? (prev > 0 ? ((price - prev) / prev) * 100 : 0);
     const change = (meta.regularMarketChange as number) ?? (price - prev);
 
-    return {
+    const quote: QuoteData = {
       symbol: sym,
       shortName: (meta.shortName as unknown as string) ?? undefined,
       quoteType: (meta.instrumentType as unknown as string) ?? undefined,
@@ -150,21 +150,26 @@ async function fetchOneChart(sym: string): Promise<QuoteData> {
       postMarketPrice: (meta.postMarketPrice as number) ?? undefined,
       postMarketChangePercent: (meta.postMarketChangePercent as number) ?? undefined,
     };
+    return { quote, live: true };
   } catch {
-    return getFallbackQuote(sym);
+    return { quote: getFallbackQuote(sym), live: false };
   }
 }
 
-async function fetchChartBatch(symbols: string[], concurrency = 8): Promise<QuoteData[]> {
+async function fetchChartBatch(symbols: string[], concurrency = 8): Promise<{ results: QuoteData[]; hadNetworkSuccess: boolean }> {
   const results: QuoteData[] = [];
+  let hadNetworkSuccess = false;
   for (let i = 0; i < symbols.length; i += concurrency) {
     const slice = symbols.slice(i, i + concurrency);
     const settled = await Promise.allSettled(slice.map(fetchOneChart));
     for (const r of settled) {
-      if (r.status === 'fulfilled' && r.value) results.push(r.value);
+      if (r.status === 'fulfilled' && r.value) {
+        results.push(r.value.quote);
+        if (r.value.live) hadNetworkSuccess = true;
+      }
     }
   }
-  return results;
+  return { results, hadNetworkSuccess };
 }
 
 /**
@@ -176,16 +181,19 @@ class ServerUnreachableError extends Error {
   constructor() { super('API server unreachable'); this.name = 'ServerUnreachableError'; }
 }
 
-async function fetchBatch(symbols: string[]): Promise<QuoteData[]> {
+async function fetchBatch(symbols: string[]): Promise<{ results: QuoteData[]; hadNetworkSuccess: boolean }> {
   // Always try the backend proxy first (fast, works on web, may work on native)
   let results: QuoteData[] | null = await fetchViaProxy(symbols);
+  let hadNetworkSuccess = results !== null && results.length > 0;
 
   if (results === null) {
     // Server unreachable.
     // On native (production APK/AAB): fall back to the direct Yahoo Finance v8 chart API.
     // This guarantees market data loads for Play Store users without a self-hosted backend.
     if (IS_NATIVE) {
-      results = await fetchChartBatch(symbols);
+      const direct = await fetchChartBatch(symbols);
+      results = direct.results;
+      hadNetworkSuccess = direct.hadNetworkSuccess;
     } else {
       // On web (developer environment): surface the error so they know to start the server.
       throw new ServerUnreachableError();
@@ -208,7 +216,7 @@ async function fetchBatch(symbols: string[]): Promise<QuoteData[]> {
     }
   }
 
-  return completeResults;
+  return { results: completeResults, hadNetworkSuccess };
 }
 
 /** Returns true when the device has a usable network connection. */
@@ -264,11 +272,13 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     try {
       const BATCH = 20;
       const allResults: QuoteData[] = [];
+      let onlineCount = 0;
 
       for (let i = 0; i < ALL_SYMBOLS.length; i += BATCH) {
         const batch = ALL_SYMBOLS.slice(i, i + BATCH);
-        const results = await fetchBatch(batch);
+        const { results, hadNetworkSuccess } = await fetchBatch(batch);
         allResults.push(...results);
+        if (hadNetworkSuccess) onlineCount++;
       }
 
       // Build map and ensure every symbol in ALL_SYMBOLS is populated with valid finite data
@@ -287,7 +297,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
 
       setData(map);
       setLastUpdated(new Date());
-      setIsOnline(true);
+      setIsOnline(onlineCount > 0);
       setServerError(null);
       setRefreshKey((k) => k + 1);
       // Clear any pending retry
@@ -315,6 +325,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
         }
         return prev;
       });
+      setIsOnline(false);
       setLastUpdated(new Date());
       scheduleRetry(() => { loadData(); });
     } finally {
