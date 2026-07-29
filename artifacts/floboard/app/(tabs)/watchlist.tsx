@@ -846,24 +846,51 @@ export default function WatchlistScreen() {
     setFetching(false);
   }, []);
 
+  const [remoteResults, setRemoteResults] = useState<CatalogItem[]>([]);
+
+  useEffect(() => {
+    const qTrim = query.trim();
+    if (!qTrim || qTrim.length < 2) {
+      setRemoteResults([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(`${BASE}/api/search?q=${encodeURIComponent(qTrim)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { results?: { sym: string; name: string; type: string }[] } | null) => {
+        if (cancelled || !data?.results) return;
+        const items: CatalogItem[] = data.results.map((item) => ({
+          sym: item.sym,
+          name: item.name || item.sym,
+          cat: item.type === 'CRYPTOCURRENCY' ? 'Crypto' : item.type === 'CURRENCY' ? 'Forex' : 'Stock',
+        }));
+        setRemoteResults(items);
+      })
+      .catch(() => { /* ignore */ });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
+
   useEffect(() => {
     refresh(symbols);
     if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => refresh(symbols), 60000);
+    timerRef.current = setInterval(() => refresh(symbols), settings.refreshInterval * 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [symbols, refresh]);
+  }, [symbols, refresh, settings.refreshInterval]);
 
   const addSymbol = async (sym: string) => {
     if (symbols.includes(sym)) return;
     setAdding(sym);
+    const next = [sym, ...symbols];
+    saveSymbols(next);
     const q = await fetchQuotes([sym]);
     if (q[sym]) {
-      const next = [sym, ...symbols];
-      saveSymbols(next);
       setQuotes((prev) => ({ ...prev, [sym]: q[sym] }));
     } else {
-      const catalogEntry = CATALOG.find((c) => c.sym === sym);
-      if (catalogEntry) saveSymbols([sym, ...symbols]);
+      const fb = getFallbackQuote(sym) as unknown as QuoteRow;
+      setQuotes((prev) => ({ ...prev, [sym]: fb }));
     }
     setAdding(null);
     setQuery('');
@@ -877,8 +904,22 @@ export default function WatchlistScreen() {
   const filtered = useMemo(() => {
     if (!query.trim()) return CATALOG;
     const q = query.toLowerCase();
-    return CATALOG.filter((c) => c.sym.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || c.cat.toLowerCase().includes(q));
-  }, [query]);
+    const local = CATALOG.filter(
+      (c) =>
+        c.sym.toLowerCase().includes(q) ||
+        c.name.toLowerCase().includes(q) ||
+        c.cat.toLowerCase().includes(q)
+    );
+    const localSyms = new Set(local.map((i) => i.sym));
+    const merged = [...local];
+    for (const item of remoteResults) {
+      if (!localSyms.has(item.sym)) {
+        merged.push(item);
+        localSyms.add(item.sym);
+      }
+    }
+    return merged;
+  }, [query, remoteResults]);
 
   const sortedSymbols = useMemo(() => {
     if (settings.watchlistSort === 'alpha') return [...symbols].sort();

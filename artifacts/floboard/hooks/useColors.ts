@@ -1,24 +1,26 @@
 import { useColorScheme } from "react-native";
-
 import colors from "@/constants/colors";
+import { useSettings } from "@/context/SettingsContext";
 
 /**
- * Returns the design tokens for the current color scheme.
- *
- * The returned object contains all color tokens for the active palette
- * plus scheme-independent values like `radius`.
- *
- * Falls back to the light palette when no dark key is defined in
- * constants/colors.ts (the scaffold ships light-only by default).
- * When a sibling web artifact's dark tokens are synced into a `dark`
- * key, this hook will automatically switch palettes based on the
- * device's appearance setting.
+ * Returns the design tokens for the current active theme ('dark' | 'light' | 'oled').
+ * Reads from SettingsContext and dynamically returns the matching color palette.
  */
 export function useColors() {
+  let theme = "dark";
+  try {
+    const { settings } = useSettings();
+    if (settings?.theme) theme = settings.theme;
+  } catch { /* outside provider fallback */ }
+
   const scheme = useColorScheme();
+  if (!theme) theme = scheme === "dark" ? "dark" : "dark";
+
   const palette =
-    scheme === "dark" && "dark" in colors
-      ? (colors as Record<string, typeof colors.light>).dark
-      : colors.light;
+    theme === "light"
+      ? colors.light
+      : theme === "oled"
+      ? colors.oled
+      : colors.dark;
   return { ...palette, radius: colors.radius };
 }

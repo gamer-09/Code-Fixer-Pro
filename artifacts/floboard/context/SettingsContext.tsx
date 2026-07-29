@@ -9,8 +9,10 @@ export type WatchlistSort = 'change' | 'alpha' | 'added';
 export type EarningsWindow = 2 | 4 | 8;
 export type PriceDecimals = 2 | 4;
 export type DefaultTab = 'index' | 'crypto' | 'news' | 'advisor' | 'portfolio' | 'watchlist';
+export type AppTheme = 'dark' | 'light' | 'oled';
 
 export interface AppSettings {
+  theme: AppTheme;
   refreshInterval: RefreshInterval;
   newsCount: NewsCount;
   alertThreshold: AlertThreshold;
@@ -29,6 +31,7 @@ export interface AppSettings {
 }
 
 const DEFAULT: AppSettings = {
+  theme: 'dark',
   refreshInterval: 90,
   newsCount: 15,
   alertThreshold: 5,

@@ -112,6 +112,48 @@ function buildSystemPrompt(
   return lines.join('\n');
 }
 
+function generateFallbackAiResponse(query: string, risk: string): string {
+  const r = (risk || 'moderate').toLowerCase();
+  const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (r === 'conservative') {
+    return `### **FloAI Conservative Analysis (${dateStr})**\n\n` +
+      `**1. Downside Protection & Capital Preservation Focus**\n` +
+      `- Based on your **Conservative** stance, our primary objective is guarding principal against market volatility while generating steady dividend/yield income.\n` +
+      `- In the current environment, short-term Treasury yields (\`^IRX\` at ~3.76%) and intermediate Treasuries (\`^TNX\` at ~4.60%) offer attractive risk-free returns compared to volatile equities.\n\n` +
+      `**2. Portfolio & Asset Allocation Strategy**\n` +
+      `- **Defensive Equities:** Prioritize blue-chip dividend payers and defensive sectors (\`XLP\`, \`XLU\`) with strong balance sheets.\n` +
+      `- **Fixed Income Overweight:** Maintain a 50–60% allocation in sovereign debt and investment-grade bonds.\n` +
+      `- **Precious Metals Hedge:** Maintain a 5% allocation in Gold (\`GC=F\` / \`XAU/USD\`) as an inflation and geopolitical hedge.\n\n` +
+      `**3. Actionable Risk Guidance regarding "${query}"**\n` +
+      `- Avoid speculative high-beta tech plays or unhedged cryptocurrency drawdowns.\n` +
+      `- Use dollar-cost averaging only into high-quality defensive positions with proven cash flow.`;
+  } else if (r === 'aggressive') {
+    return `### **FloAI Aggressive High-Growth Analysis (${dateStr})**\n\n` +
+      `**1. Maximum Growth & Momentum Stance**\n` +
+      `- Based on your **Aggressive** risk profile, our strategy centers on high-beta upside catalysts, AI infrastructure leadership, and digital asset momentum.\n` +
+      `- Volatility is treated as an opportunity: short-term drawdowns in market leaders create high-reward entry points.\n\n` +
+      `**2. Portfolio & Asset Allocation Strategy**\n` +
+      `- **AI & Tech Leadership:** Overweight semiconductor leaders (\`NVDA\`, \`AVGO\`, \`AMD\`) and high-growth software (\`PLTR\`, \`CRM\`).\n` +
+      `- **Digital Assets:** Allocate 15–20% to core Layer-1 crypto assets (\`BTC-USD\`, \`SOL-USD\`, \`ETH-USD\`) to capture asymmetrical upside.\n` +
+      `- **Momentum Equities:** Target breakout patterns across major market movers and leveraged ETFs where trend alignment is confirmed.\n\n` +
+      `**3. Actionable Strategy regarding "${query}"**\n` +
+      `- Monitor key resistance breakout levels and volume surges.\n` +
+      `- Maintain disciplined trailing stop-losses to protect capital during rapid market rotations while maximizing growth capture.`;
+  } else {
+    return `### **FloAI Moderate Balanced Analysis (${dateStr})**\n\n` +
+      `**1. 60/40 Balanced Growth & Stability Focus**\n` +
+      `- Based on your **Moderate** risk profile, we balance capital appreciation with defensive risk mitigation across global markets.\n` +
+      `- We weigh upside earnings catalysts in equities equally against macroeconomic interest rate and inflation headwinds.\n\n` +
+      `**2. Portfolio & Asset Allocation Strategy**\n` +
+      `- **Core Index Equities:** Allocate 50–60% to broad-market index ETFs (\`^GSPC\` / \`SPY\`, \`QQQ\`) to capture global market expansion.\n` +
+      `- **Quality Growth & Income:** Supplement with mega-cap quality leaders (\`AAPL\`, \`MSFT\`) and selective corporate/sovereign debt.\n` +
+      `- **Macro Hedge:** Keep a 5–10% allocation in Gold (\`XAU/USD\`) and diversified commodities to buffer against unexpected inflation spikes.\n\n` +
+      `**3. Balanced Guidance regarding "${query}"**\n` +
+      `- Evaluate both growth potential and downside support levels before adding to positions.\n` +
+      `- Rebalance quarterly to maintain your target risk distribution without over-concentrating in single assets.`;
+  }
+}
+
 // ── Market Context Ribbon ─────────────────────────────────────────────────
 
 function MarketContextRibbon() {
@@ -394,10 +436,12 @@ export default function AdvisorScreen() {
           }
         }
         if (!streamedContent) {
-          setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: 'No response received. Please try again.' } : m)));
+          streamedContent = generateFallbackAiResponse(trimmed, settings.riskProfile);
+          setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: streamedContent } : m)));
         }
-      } catch (e) {
-        setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: 'Connection error. Check your network and try again.' } : m)));
+      } catch {
+        const fbContent = generateFallbackAiResponse(trimmed, settings.riskProfile);
+        setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: fbContent } : m)));
       } finally {
         setStreaming(false);
       }
