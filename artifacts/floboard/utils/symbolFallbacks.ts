@@ -25,6 +25,17 @@ export const SYMBOL_ALIASES: Record<string, string> = {
   'XPD/USD': 'PA=F',
   'XPDUSD': 'PA=F',
   'XPD=X': 'PA=F',
+  // Newer crypto / memes / DeFi aliases
+  'TRUMP-USD': 'OFFICIAL-TRUMP-USD',
+  'TRUMP': 'OFFICIAL-TRUMP-USD',
+  'TAO-USD': 'TAO22974-USD',
+  'TAO': 'TAO22974-USD',
+  'HYPE-USD': 'HYPE32196-USD',
+  'HYPE': 'HYPE32196-USD',
+  'USDE-USD': 'USDE29470-USD',
+  'USDE': 'USDE29470-USD',
+  'COMP-USD': 'COMP5692-USD',
+  'COMP': 'COMP5692-USD',
 };
 
 /**
@@ -66,6 +77,21 @@ const FALLBACK_PRICES: Record<
   '^FVX': { price: 4.24, changePct: 0.01, change: 0.001, name: '5-Year Treasury Yield', currency: "USD" },
   '^TNX': { price: 4.42, changePct: 0.04, change: 0.002, name: '10-Year Treasury Yield', currency: 'USD' },
   '^TYX': { price: 4.68, changePct: 0.05, change: 0.002, name: '30-Year Treasury Yield', currency: 'USD' },
+  'TAO22974-USD': { price: 193.72, changePct: 4.15, change: 7.72, name: 'Bittensor', currency: 'USD' },
+  'TAO-USD': { price: 193.72, changePct: 4.15, change: 7.72, name: 'Bittensor', currency: 'USD' },
+  'HYPE32196-USD': { price: 54.87, changePct: 2.80, change: 1.49, name: 'Hyperliquid', currency: 'USD' },
+  'HYPE-USD': { price: 54.87, changePct: 2.80, change: 1.49, name: 'Hyperliquid', currency: 'USD' },
+  'ONDO-USD': { price: 0.4036, changePct: 1.45, change: 0.0058, name: 'Ondo Finance (RWA)', currency: 'USD' },
+  'PYUSD-USD': { price: 1.0000, changePct: 0.01, change: 0.0001, name: 'PayPal USD', currency: 'USD' },
+  'FDUSD-USD': { price: 0.9970, changePct: 0.02, change: 0.0002, name: 'First Digital USD', currency: 'USD' },
+  'USDE29470-USD': { price: 0.9997, changePct: 0.02, change: 0.0002, name: 'Ethena USDe', currency: 'USD' },
+  'USDE-USD': { price: 0.9997, changePct: 0.02, change: 0.0002, name: 'Ethena USDe', currency: 'USD' },
+  'COMP5692-USD': { price: 16.09, changePct: 1.12, change: 0.18, name: 'Compound', currency: 'USD' },
+  'COMP-USD': { price: 16.09, changePct: 1.12, change: 0.18, name: 'Compound', currency: 'USD' },
+  'CRO-USD': { price: 0.0549, changePct: -0.35, change: -0.0002, name: 'Cronos', currency: 'USD' },
+  'OKB-USD': { price: 84.51, changePct: 0.65, change: 0.55, name: 'OKB (OKX)', currency: 'USD' },
+  'OFFICIAL-TRUMP-USD': { price: 67.81, changePct: 5.40, change: 3.48, name: 'Official Trump', currency: 'USD' },
+  'TRUMP-USD': { price: 67.81, changePct: 5.40, change: 3.48, name: 'Official Trump', currency: 'USD' },
 };
 
 /**

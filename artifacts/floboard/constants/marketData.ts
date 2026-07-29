@@ -60,6 +60,9 @@ export const CRYPTOS = [
   { sym: 'USDC-USD', label: 'USDC', name: 'USD Coin', color: '#2775CA' },
   { sym: 'DAI-USD', label: 'DAI', name: 'Dai', color: '#F5AC37' },
   { sym: 'WBTC-USD', label: 'WBTC', name: 'Wrapped Bitcoin', color: '#F09242' },
+  { sym: 'PYUSD-USD', label: 'PYUSD', name: 'PayPal USD', color: '#0079C1' },
+  { sym: 'FDUSD-USD', label: 'FDUSD', name: 'First Digital USD', color: '#00B894' },
+  { sym: 'USDE29470-USD', label: 'USDE', name: 'Ethena USDe', color: '#121318' },
   // Mega-caps
   { sym: 'BTC-USD', label: 'BTC', name: 'Bitcoin', color: '#F7931A' },
   { sym: 'ETH-USD', label: 'ETH', name: 'Ethereum', color: '#627EEA' },
@@ -90,6 +93,7 @@ export const CRYPTOS = [
   { sym: 'WLD-USD', label: 'WLD', name: 'Worldcoin', color: '#7B3FE4' },
   { sym: 'JUP29210-USD', label: 'JUP', name: 'Jupiter', color: '#C7B86D' },
   { sym: 'PYTH-USD', label: 'PYTH', name: 'Pyth Network', color: '#8B5CF6' },
+  { sym: 'HYPE32196-USD', label: 'HYPE', name: 'Hyperliquid', color: '#00E5A0' },
   // Layer 2 / Scaling
   { sym: 'APT21794-USD', label: 'APT', name: 'Aptos', color: '#00B5D8' },
   { sym: 'ARB11841-USD', label: 'ARB', name: 'Arbitrum', color: '#28A0F0' },
@@ -110,6 +114,8 @@ export const CRYPTOS = [
   { sym: 'CAKE-USD', label: 'CAKE', name: 'PancakeSwap', color: '#1FC7D4' },
   { sym: 'DYDX-USD', label: 'DYDX', name: 'dYdX', color: '#6966FF' },
   { sym: 'PENDLE-USD', label: 'PENDLE', name: 'Pendle', color: '#2CD3B3' },
+  { sym: 'COMP5692-USD', label: 'COMP', name: 'Compound', color: '#00D395' },
+  { sym: 'ONDO-USD', label: 'ONDO', name: 'Ondo Finance (RWA)', color: '#3B82F6' },
   // Infrastructure / L1
   { sym: 'FIL-USD', label: 'FIL', name: 'Filecoin', color: '#0090FF' },
   { sym: 'ALGO-USD', label: 'ALGO', name: 'Algorand', color: '#00B4D0' },
@@ -130,6 +136,7 @@ export const CRYPTOS = [
   { sym: 'FET-USD', label: 'FET', name: 'Fetch.ai', color: '#2B5CE6' },
   { sym: 'TIA-USD', label: 'TIA', name: 'Celestia', color: '#7B2BF9' },
   { sym: 'OCEAN-USD', label: 'OCEAN', name: 'Ocean Protocol', color: '#7B1173' },
+  { sym: 'TAO22974-USD', label: 'TAO', name: 'Bittensor', color: '#252525' },
   // Web3 / Gaming / Metaverse
   { sym: 'SAND-USD', label: 'SAND', name: 'The Sandbox', color: '#04ADEF' },
   { sym: 'MANA-USD', label: 'MANA', name: 'Decentraland', color: '#FC2A65' },
@@ -143,6 +150,10 @@ export const CRYPTOS = [
   { sym: 'WIF-USD', label: 'WIF', name: 'dogwifhat', color: '#CD853F' },
   { sym: 'BONK-USD', label: 'BONK', name: 'Bonk', color: '#FC8B06' },
   { sym: 'FLOKI-USD', label: 'FLOKI', name: 'Floki', color: '#F0A500' },
+  { sym: 'OFFICIAL-TRUMP-USD', label: 'TRUMP', name: 'Official Trump', color: '#E11D48' },
+  // Exchange tokens
+  { sym: 'CRO-USD', label: 'CRO', name: 'Cronos', color: '#002D74' },
+  { sym: 'OKB-USD', label: 'OKB', name: 'OKB (OKX)', color: '#3861FB' },
 ];
 
 export const COMMODITIES = [
