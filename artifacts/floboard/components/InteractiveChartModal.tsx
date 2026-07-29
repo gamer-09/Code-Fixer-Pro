@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Svg, { Defs, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
+import { useResponsive } from '@/hooks/useResponsive';
 import { getApiBase } from '@/utils/apiBase';
 import { getFallbackQuote } from '@/utils/symbolFallbacks';
 import { fmt, fmtChg } from '@/context/MarketContext';
@@ -175,10 +176,8 @@ export default function InteractiveChartModal({
     return +(100 - 100 / (1 + rs)).toFixed(1);
   });
 
-  // SVG dimensions
-  const { width: winW } = useWindowDimensions();
-  const chartW = Math.max(260, Math.min(winW - 32, 380));
-  const chartH = 200;
+  // Dynamic responsive SVG dimensions for ANY phone screen
+  const { modalChartW: chartW, modalChartH: chartH } = useResponsive();
   const pad = 12;
   const minP = Math.min(...points.map((p) => p.l ?? p.c));
   const maxP = Math.max(...points.map((p) => p.h ?? p.c));
@@ -480,7 +479,7 @@ const styles = StyleSheet.create({
   },
   toggleText: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
   chartBox: {
-    height: 220,
+    minHeight: 200,
     borderRadius: 16,
     borderWidth: 1,
     alignItems: 'center',

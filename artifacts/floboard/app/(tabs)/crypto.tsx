@@ -17,6 +17,7 @@ import { useColors } from '@/hooks/useColors';
 import { IconRefreshCw } from '@/components/Icons';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
 import { useSettings } from '@/context/SettingsContext';
+import { useResponsive } from '@/hooks/useResponsive';
 import { CRYPTOS } from '@/constants/marketData';
 
 type SortKey = 'default' | 'change' | 'change_asc' | 'mcap' | 'price';
@@ -113,6 +114,7 @@ function CryptoRow({
   const colors = useColors();
   const { data } = useMarket();
   const { settings } = useSettings();
+  const { width } = useResponsive();
   const d = data[sym];
   const chg = d?.regularMarketChangePercent ?? 0;
   const dir = chgDir(chg);
@@ -160,7 +162,7 @@ function CryptoRow({
             {/* Expanded detail */}
             {expanded && d && (
               <View style={[styles.expandPanel, { borderTopColor: colors.rim + '66' }]}>
-                <SparklineChart symbol={sym} range="7d" width={300} height={60} color={color} showLabels />
+                <SparklineChart symbol={sym} range="7d" width={Math.min(width - 64, 300)} height={60} color={color} showLabels />
                 <View style={styles.expandGrid}>
                   <View style={styles.expandItem}>
                     <Text style={[styles.expandLabel, { color: colors.t4 }]}>OPEN</Text>

@@ -17,6 +17,7 @@ import { IconRefreshCw } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
 import { useSettings } from '@/context/SettingsContext';
+import { useResponsive } from '@/hooks/useResponsive';
 import { BONDS, COMMODITIES, CRYPTOS, EXTRA_SYMBOLS, FOREX, INDICES, SECTORS, STOCKS } from '@/constants/marketData';
 
 function LivePulse({ online = true }: { online?: boolean }) {

@@ -22,6 +22,7 @@ import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext
 import { resolveSymbolAlias, getFallbackQuote } from '@/utils/symbolFallbacks';
 import InteractiveChartModal from '@/components/InteractiveChartModal';
 import { useSettings } from '@/context/SettingsContext';
+import { useResponsive } from '@/hooks/useResponsive';
 import { getApiBase } from '@/utils/apiBase';
 
 const STORAGE_KEY = '@floboard:watchlist';
@@ -697,6 +698,7 @@ function WatchRow({
 }) {
   const colors = useColors();
   const { settings } = useSettings();
+  const { sparkW, sparkH } = useResponsive();
   const chg = q?.regularMarketChangePercent ?? 0;
   const dir = chgDir(chg);
   const chgColor = dir === 'up' ? colors.gain : dir === 'dn' ? colors.loss : colors.t3;
@@ -770,7 +772,7 @@ function WatchRow({
           </View>
         )}
         <View style={styles.watchChart}>
-          <SparklineChart symbol={sym} range="7d" width={68} height={34} />
+          <SparklineChart symbol={sym} range="7d" width={sparkW} height={sparkH} />
         </View>
       </View>
 
