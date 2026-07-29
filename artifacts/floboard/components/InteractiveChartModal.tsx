@@ -41,6 +41,28 @@ const RANGES: { id: RangeOption; label: string; yfRange: string }[] = [
   { id: 'all', label: 'ALL', yfRange: '5y' },
 ];
 
+function getCandles(points: PricePoint[], maxCandles = 32): PricePoint[] {
+  if (points.length <= maxCandles) return points;
+  const chunkSize = Math.ceil(points.length / maxCandles);
+  const candles: PricePoint[] = [];
+  for (let i = 0; i < points.length; i += chunkSize) {
+    const chunk = points.slice(i, i + chunkSize);
+    if (chunk.length === 0) continue;
+    const o = chunk[0].o ?? chunk[0].c;
+    const c = chunk[chunk.length - 1].c;
+    const h = Math.max(...chunk.map((p) => p.h ?? p.c));
+    const l = Math.min(...chunk.map((p) => p.l ?? p.c));
+    candles.push({
+      t: chunk[0].t,
+      c,
+      o,
+      h,
+      l,
+    });
+  }
+  return candles;
+}
+
 export default function InteractiveChartModal({
   visible,
   symbol,
@@ -87,13 +109,18 @@ export default function InteractiveChartModal({
             };
           });
         } else {
-          // Augment line points with OHLC estimates if missing
-          pts = pts.map((p) => ({
-            ...p,
-            o: p.o ?? +(p.c * 0.999).toFixed(4),
-            h: p.h ?? +(p.c * 1.004).toFixed(4),
-            l: p.l ?? +(p.c * 0.996).toFixed(4),
-          }));
+          // Augment line points with OHLC estimates if missing, ensuring realistic green/red candle alternation
+          pts = pts.map((p, idx, arr) => {
+            const o = p.o ?? (idx > 0 ? arr[idx - 1].c : +(p.c * 0.999).toFixed(4));
+            const h = p.h ?? +(Math.max(o, p.c) * 1.0015).toFixed(4);
+            const l = p.l ?? +(Math.min(o, p.c) * 0.9985).toFixed(4);
+            return {
+              ...p,
+              o,
+              h,
+              l,
+            };
+          });
         }
         setPoints(pts);
         setLoading(false);
@@ -318,23 +345,33 @@ export default function InteractiveChartModal({
                     <Path d={linePath} stroke={lineColor} strokeWidth={2.5} fill="none" />
                   </>
                 ) : (
-                  points.map((p, i) => {
-                    const x = toX(i);
-                    const isGreen = p.c >= (p.o ?? p.c);
-                    const cColor = isGreen ? colors.gain : colors.loss;
-                    const yHigh = toY(p.h ?? p.c);
-                    const yLow = toY(p.l ?? p.c);
-                    const yOpen = toY(p.o ?? p.c);
-                    const yClose = toY(p.c);
-                    const bodyTop = Math.min(yOpen, yClose);
-                    const bodyH = Math.max(2, Math.abs(yClose - yOpen));
-                    return (
-                      <React.Fragment key={i}>
-                        <Line x1={x} y1={yHigh} x2={x} y2={yLow} stroke={cColor} strokeWidth={1.2} />
-                        <Rect x={x - 3} y={bodyTop} width={6} height={bodyH} fill={cColor} />
-                      </React.Fragment>
+                  (() => {
+                    const candles = getCandles(points, 32);
+                    const candleW = Math.max(
+                      3,
+                      Math.min(10, Math.floor((chartW - pad * 2) / Math.max(1, candles.length)) - 2)
                     );
-                  })
+                    const toCandleX = (idx: number) =>
+                      pad + (idx / Math.max(1, candles.length - 1)) * (chartW - pad * 2);
+
+                    return candles.map((p, i) => {
+                      const x = toCandleX(i);
+                      const isGreen = p.c >= (p.o ?? p.c);
+                      const cColor = isGreen ? colors.gain : colors.loss;
+                      const yHigh = toY(p.h ?? p.c);
+                      const yLow = toY(p.l ?? p.c);
+                      const yOpen = toY(p.o ?? p.c);
+                      const yClose = toY(p.c);
+                      const bodyTop = Math.min(yOpen, yClose);
+                      const bodyH = Math.max(2, Math.abs(yClose - yOpen));
+                      return (
+                        <React.Fragment key={i}>
+                          <Line x1={x} y1={yHigh} x2={x} y2={yLow} stroke={cColor} strokeWidth={1.5} />
+                          <Rect x={x - candleW / 2} y={bodyTop} width={candleW} height={bodyH} rx={1} fill={cColor} />
+                        </React.Fragment>
+                      );
+                    });
+                  })()
                 )}
 
                 {/* SMA line */}
