@@ -29,6 +29,16 @@ function IconMarkets({ color }: { color: string }) {
   );
 }
 
+function IconChart({ color }: { color: string }) {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <Rect x="3" y="10" width="4" height="11" rx="1" />
+      <Rect x="10" y="4" width="4" height="17" rx="1" />
+      <Rect x="17" y="7" width="4" height="14" rx="1" />
+    </Svg>
+  );
+}
+
 function IconAdvisor({ color }: { color: string }) {
   return (
     <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -174,17 +184,18 @@ function OnboardingContent({ onDone }: OnboardingModalProps) {
   const WelcomePage = (
     <View key="welcome" style={styles.page}>
       <View style={[styles.logoBadge, { backgroundColor: colors.gainDim, borderColor: 'rgba(0,229,160,0.2)' }]}>
-        <Text style={[styles.logoText, { color: colors.gain }]}>FloBoard</Text>
+        <Text style={[styles.logoText, { color: colors.gain }]}>FloBoard v1.2</Text>
       </View>
       <Text style={[styles.welcomeTitle, { color: colors.t1 }]}>Your live market dashboard</Text>
       <Text style={[styles.welcomeSubtitle, { color: colors.t3 }]}>
-        Real-time stocks, crypto, forex, and an AI financial advisor — all in one place.
+        Real-time stocks, crypto, forex, interactive charts, and an AI financial advisor — all in one place.
       </Text>
       <View style={styles.features}>
-        <Feature icon={<IconMarkets color={colors.gain} />} label="Live Market Data" desc="Stocks, crypto, FX pairs, indices & commodities" accentColor={colors.gain} />
-        <Feature icon={<IconAdvisor color={colors.blue} />} label="FloAI Advisor" desc="Ask an AI about any market topic with live context" accentColor={colors.blue} />
-        <Feature icon={<IconStar color={colors.amber} />} label="Watchlist" desc="Track any symbol with live prices and % change" accentColor={colors.amber} />
-        <Feature icon={<IconBriefcase color={colors.gain} />} label="Portfolio Tracker" desc="Monitor your holdings with real-time P&L" accentColor={colors.gain} />
+        <Feature icon={<IconMarkets color={colors.gain} />} label="Live Global Markets" desc="Stocks, 88+ cryptos, FX pairs, indices, commodities & Treasury yields" accentColor={colors.gain} />
+        <Feature icon={<IconChart color={colors.blue} />} label="Interactive Candlesticks" desc="OHLC candlestick charts, 1D–ALL ranges, SMA 20, EMA 50 & RSI 14 overlays" accentColor={colors.blue} />
+        <Feature icon={<IconAdvisor color={colors.blue} />} label="Risk-Tailored FloAI" desc="AI advisor adapts to Conservative, Moderate & Aggressive risk modes" accentColor={colors.blue} />
+        <Feature icon={<IconStar color={colors.amber} />} label="Multi-List Watchlists" desc="Track custom symbols across Favorites, Tech & AI, Crypto, and FX & Metals" accentColor={colors.amber} />
+        <Feature icon={<IconBriefcase color={colors.gain} />} label="100% Simulated Portfolio" desc="Track P&L, asset allocation & dividend yields — no deposits or bank info needed" accentColor={colors.gain} />
       </View>
     </View>
   );
@@ -216,6 +227,7 @@ function OnboardingContent({ onDone }: OnboardingModalProps) {
       <LegalSection title="Privacy Policy">
         <LegalBody>FloBoard does not collect or store any personal data on its servers. All your data (watchlist, portfolio, settings) stays on your device only.</LegalBody>
         <LegalBullet text="No account required — ever" />
+        <LegalBullet text="100% simulated portfolio — no deposits, money, or bank info needed" />
         <LegalBullet text="No analytics, no tracking, no ad networks" />
         <LegalBullet text="Gemini API key stored on-device only; transmitted to Google when you chat" />
         <LegalBullet text="Market data fetched from Yahoo Finance on your behalf" />
