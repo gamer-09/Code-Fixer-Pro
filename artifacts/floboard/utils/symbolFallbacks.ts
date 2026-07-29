@@ -58,6 +58,59 @@ export function resolveSymbolAlias(sym: string): string {
   return s;
 }
 
+export const STOCK_MCAPS: Record<string, number> = {
+  AAPL: 3400000000000,
+  MSFT: 3250000000000,
+  NVDA: 3100000000000,
+  GOOGL: 2200000000000,
+  AMZN: 1950000000000,
+  META: 1450000000000,
+  TSLA: 800000000000,
+  NFLX: 310000000000,
+  JPM: 620000000000,
+  GS: 175000000000,
+  BAC: 320000000000,
+  MA: 450000000000,
+  V: 580000000000,
+  UNH: 520000000000,
+  JNJ: 380000000000,
+  PG: 400000000000,
+  KO: 280000000000,
+  DIS: 210000000000,
+  COST: 410000000000,
+  HD: 390000000000,
+  'BRK-B': 950000000000,
+  TSM: 880000000000,
+  ORCL: 480000000000,
+  AMD: 240000000000,
+  AVGO: 820000000000,
+  WMT: 550000000000,
+  XOM: 510000000000,
+  PLTR: 180000000000,
+  COIN: 65000000000,
+  MSTR: 95000000000,
+  UBER: 160000000000,
+  INTC: 435300000000,
+  LLY: 1088500000000,
+  PFE: 143900000000,
+  MRK: 325500000000,
+  CVX: 373500000000,
+  BA: 175000000000,
+  F: 59600000000,
+  NKE: 63800000000,
+  MCD: 194000000000,
+  VZ: 201200000000,
+  T: 169000000000,
+};
+
+export function getFallbackMcap(sym: string): number {
+  const upper = sym.trim().toUpperCase();
+  if (STOCK_MCAPS[upper]) return STOCK_MCAPS[upper];
+  if (upper.includes('=X') || upper.includes('/') || upper.startsWith('^')) return 0;
+  if (upper.endsWith('-USD')) return 10000000000;
+  return 50000000000; // default 50B for any equity
+}
+
 const FALLBACK_PRICES: Record<
   string,
   { price: number; changePct: number; change: number; name: string; currency: string }
@@ -160,6 +213,6 @@ export function getFallbackQuote(requestedSym: string): QuoteData {
     regularMarketVolume: 1000000,
     fiftyTwoWeekHigh: +(price * 1.2).toFixed(4),
     fiftyTwoWeekLow: +(price * 0.8).toFixed(4),
-    marketCap: 1000000000,
+    marketCap: getFallbackMcap(sym),
   };
 }

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { ALL_SYMBOLS } from '@/constants/marketData';
 import { useSettings } from '@/context/SettingsContext';
 import { getApiBase } from '@/utils/apiBase';
-import { resolveSymbolAlias, getFallbackQuote } from '@/utils/symbolFallbacks';
+import { resolveSymbolAlias, getFallbackQuote, getFallbackMcap } from '@/utils/symbolFallbacks';
 
 export interface QuoteData {
   symbol: string;
@@ -144,7 +144,7 @@ async function fetchOneChart(sym: string): Promise<QuoteData> {
       regularMarketVolume: (meta.regularMarketVolume as number) ?? 0,
       fiftyTwoWeekHigh: (meta.fiftyTwoWeekHigh as number) ?? undefined,
       fiftyTwoWeekLow: (meta.fiftyTwoWeekLow as number) ?? undefined,
-      marketCap: (meta.marketCap as number) ?? 0,
+      marketCap: (meta.marketCap as number) || getFallbackMcap(sym),
       preMarketPrice: (meta.preMarketPrice as number) ?? undefined,
       preMarketChangePercent: (meta.preMarketChangePercent as number) ?? undefined,
       postMarketPrice: (meta.postMarketPrice as number) ?? undefined,
