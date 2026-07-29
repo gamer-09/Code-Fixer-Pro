@@ -191,14 +191,13 @@ export default function PrivacyPolicyScreen() {
         <Section title="9. Contact">
           <Body>
             If you have questions about this Privacy Policy or the app's data practices, you may
-            reach the developer through the FloBoard GitHub repository or the app store listing
-            for your platform.
+            reach the developer directly through the contact details on our Google Play Store listing.
           </Body>
         </Section>
 
         <View style={[styles.footer, { backgroundColor: colors.card, borderColor: colors.rim }]}>
           <Text style={[styles.footerText, { color: colors.t4 }]}>
-            FloBoard v1.1 · All data stays on your device · No accounts · No tracking
+            FloBoard v1.2 · All data stays on your device · No accounts · No tracking
           </Text>
         </View>
       </ScrollView>

@@ -197,8 +197,8 @@ export default function TermsOfUseScreen() {
         <Section title="9. Intellectual Property">
           <Body>
             FloBoard and its original content, features, and functionality are owned by the
-            developer and protected by applicable intellectual property laws. The app's source
-            code is available on GitHub under its respective license.
+            developer and protected by applicable intellectual property laws. The app is
+            distributed exclusively through the Google Play Store.
           </Body>
         </Section>
 
@@ -226,17 +226,17 @@ export default function TermsOfUseScreen() {
 
         <Section title="12. Contact">
           <Body>
-            For questions about these Terms of Use, contact the developer through the FloBoard
-            GitHub repository or your platform's app store listing.
+            For questions about these Terms of Use, contact the developer through the contact
+            details on our Google Play Store listing.
           </Body>
         </Section>
 
         <Pressable
-          onPress={() => Linking.openURL('https://github.com/gamer-09/Code-Fixer-Pro')}
-          style={[styles.githubBtn, { backgroundColor: colors.card, borderColor: colors.rim }]}
+          onPress={() => Linking.openURL('https://play.google.com/store/apps/details?id=com.floboard.app')}
+          style={[styles.storeBtn, { backgroundColor: colors.card, borderColor: colors.rim }]}
         >
-          <Text style={[styles.githubBtnText, { color: colors.blue }]}>
-            View source on GitHub →
+          <Text style={[styles.storeBtnText, { color: colors.blue }]}>
+            Rate & Contact on Google Play Store →
           </Text>
         </Pressable>
 
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   dot: { width: 4, height: 4, borderRadius: 2, marginTop: 8, flexShrink: 0 },
   bulletText: { fontSize: 13, lineHeight: 20, fontFamily: 'Inter_400Regular', flex: 1 },
   divider: { height: 1 },
-  githubBtn: { borderRadius: 10, borderWidth: 1, padding: 14, marginTop: 16, alignItems: 'center' },
-  githubBtnText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
+  storeBtn: { borderRadius: 10, borderWidth: 1, padding: 14, marginTop: 16, alignItems: 'center' },
+  storeBtnText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
   copyright: { fontSize: 11, fontFamily: 'Inter_400Regular', textAlign: 'center', marginTop: 12 },
 });

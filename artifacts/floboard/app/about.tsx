@@ -47,10 +47,13 @@ function FileIcon({ color }: { color: string }) {
   );
 }
 
-function GithubIcon({ color }: { color: string }) {
+function PlayStoreIcon({ color }: { color: string }) {
   return (
     <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+      <Path d="M3 20.5v-17c0-.59.34-1.11.84-1.35l9.85 9.85-9.85 9.85c-.5-.25-.84-.76-.84-1.35z" />
+      <Path d="M16.81 15.12L6.05 21.34l8.49-8.49 2.27 2.27z" />
+      <Path d="M20.16 10.81c.34.27.59.69.59 1.19s-.22.9-.57 1.18l-2.29 1.32-2.5-2.5 2.5-2.5 2.27 1.31z" />
+      <Path d="M6.05 2.66l10.76 6.22-2.27 2.27-8.49-8.49z" />
     </Svg>
   );
 }
@@ -173,9 +176,9 @@ export default function AboutScreen() {
           onPress={() => router.push('/terms-of-use')}
         />
         <LinkRow
-          icon={<GithubIcon color={colors.t3} />}
-          label="View Source on GitHub"
-          onPress={() => Linking.openURL('https://github.com/gamer-09/Code-Fixer-Pro')}
+          icon={<PlayStoreIcon color={colors.t3} />}
+          label="Rate & Contact on Google Play Store"
+          onPress={() => Linking.openURL('https://play.google.com/store/apps/details?id=com.floboard.app')}
         />
 
         {/* Financial disclaimer */}

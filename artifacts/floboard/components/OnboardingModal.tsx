@@ -220,8 +220,8 @@ function OnboardingContent({ onDone }: OnboardingModalProps) {
         <LegalBullet text="Gemini API key stored on-device only; transmitted to Google when you chat" />
         <LegalBullet text="Market data fetched from Yahoo Finance on your behalf" />
         <LegalBullet text="Uninstalling the app permanently deletes all your data" />
-        <Pressable onPress={() => Linking.openURL('https://github.com/gamer-09/Code-Fixer-Pro')} style={styles.legalLink}>
-          <Text style={[styles.legalLinkText, { color: colors.blue }]}>Read full Privacy Policy in Settings →</Text>
+        <Pressable onPress={() => Linking.openURL('https://play.google.com/store/apps/details?id=com.floboard.app')} style={styles.legalLink}>
+          <Text style={[styles.legalLinkText, { color: colors.blue }]}>View Privacy Policy on Google Play →</Text>
         </Pressable>
       </LegalSection>
 
@@ -234,19 +234,19 @@ function OnboardingContent({ onDone }: OnboardingModalProps) {
         <LegalBullet text="The developers are not liable for any financial losses from using this app" />
         <LegalBullet text="You use FloBoard at your own risk" />
         <LegalBullet text="You must not use the app for any unlawful purpose" />
-        <Pressable onPress={() => Linking.openURL('https://github.com/gamer-09/Code-Fixer-Pro')} style={styles.legalLink}>
-          <Text style={[styles.legalLinkText, { color: colors.blue }]}>Read full Terms of Use in Settings →</Text>
+        <Pressable onPress={() => Linking.openURL('https://play.google.com/store/apps/details?id=com.floboard.app')} style={styles.legalLink}>
+          <Text style={[styles.legalLinkText, { color: colors.blue }]}>View Terms of Use on Google Play →</Text>
         </Pressable>
       </LegalSection>
 
       {/* About FloBoard — expandable */}
       <LegalSection title="About FloBoard">
-        <LegalBody>FloBoard v1.1 — A personal financial intelligence app built with React Native / Expo.</LegalBody>
+        <LegalBody>FloBoard v1.2 — A personal financial intelligence app built with React Native / Expo.</LegalBody>
         <LegalBullet text="Market data: Yahoo Finance (live, may be delayed 15–20 min)" />
         <LegalBullet text="AI advisor: Google Gemini 2.5 Flash (your key, your data)" />
         <LegalBullet text="Storage: on-device only via AsyncStorage" />
         <LegalBullet text="No accounts · No tracking · No ads" />
-        <LegalBullet text="Open source — github.com/gamer-09/Code-Fixer-Pro" />
+        <LegalBullet text="Available exclusively on Google Play Store for Android" />
       </LegalSection>
 
       {/* Accept checkbox */}
