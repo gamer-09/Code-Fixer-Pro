@@ -16,6 +16,11 @@ export function getApiBase(): string {
   const fullUrl = process.env.EXPO_PUBLIC_API_URL;
   if (fullUrl) return fullUrl;
 
+  // In production Android APK / AAB builds, never use localhost
+  if (!__DEV__) {
+    return 'https://api.floboard.app';
+  }
+
   // Legacy domain-only variable
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   if (domain) {

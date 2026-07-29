@@ -415,7 +415,7 @@ export default function NewsScreen() {
           <View style={[styles.errorWrap, { backgroundColor: colors.card, borderColor: colors.rim }]}>
             <Text style={[styles.errorText, { color: colors.loss }]}>News unavailable</Text>
             <Text style={[styles.errorSub, { color: colors.t4 }]}>
-              News requires the FloBoard API server.{'\n'}See LOCAL_DEV.md to set it up.
+              News temporarily offline — tap retry to refresh.
             </Text>
             <Pressable onPress={() => refetch()} style={[styles.retryBtn, { backgroundColor: colors.card, borderColor: colors.rim }]}>
               <Text style={{ color: colors.blue, fontSize: 12, fontFamily: 'Inter_500Medium' }}>Retry</Text>

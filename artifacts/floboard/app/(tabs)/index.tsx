@@ -690,7 +690,7 @@ export default function MarketsScreen() {
       </View>
 
       {/* Server error banner */}
-      {serverError != null && (
+      {__DEV__ && serverError != null && (
         <View style={[styles.serverErrorBanner, { backgroundColor: '#FF6B6B22', borderBottomColor: '#FF6B6B55' }]}>
           <Text style={[styles.serverErrorText, { color: '#FF6B6B' }]}>
             ⚠️  API server not running — all values show —

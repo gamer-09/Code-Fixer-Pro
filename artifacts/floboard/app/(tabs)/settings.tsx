@@ -714,7 +714,7 @@ export default function SettingsScreen() {
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.rim }]}>
             <View style={styles.cardTop}>
               <Text style={[styles.rowDesc, { color: colors.t3, flex: 1 }]}>
-                Push notifications require a standalone build (App Store / Play Store). Not available in Expo Go.
+                Push notifications work in standalone Android builds installed from Google Play.
               </Text>
             </View>
           </View>

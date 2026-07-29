@@ -294,13 +294,14 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
       if (retryRef.current) { clearTimeout(retryRef.current); retryRef.current = null; }
     } catch (err: unknown) {
       if (err instanceof ServerUnreachableError) {
-        // API server is not running — show a clear, actionable message
-        setServerError(
-          `Cannot reach the API server at ${API_BASE}.\n\n` +
-          `Make sure it is running:\n` +
-          `  pnpm --filter @workspace/api-server run dev\n\n` +
-          `See LOCAL_DEV.md for full setup instructions.`
-        );
+        if (__DEV__) {
+          setServerError(
+            `Cannot reach the API server at ${API_BASE}.\n\n` +
+            `Make sure it is running:\n` +
+            `  pnpm --filter @workspace/api-server run dev\n\n` +
+            `See LOCAL_DEV.md for full setup instructions.`
+          );
+        }
         setIsOnline(getNetworkOnline());
       }
       // If data is currently empty on startup, populate it with fallback quotes so no screen is blank or '-'

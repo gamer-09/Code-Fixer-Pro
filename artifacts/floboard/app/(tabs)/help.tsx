@@ -435,7 +435,7 @@ const HELP_SECTIONS: HelpSection[] = [
       },
       {
         q: 'Notifications',
-        a: 'Master switch plus three sub-toggles: Portfolio moves (alerts when a holding crosses your threshold), Major market moves (S&P 500, Nasdaq, or Bitcoin moves ≥ 1.5% intraday), and Breaking news. Notifications require device permission. Note: push notifications are not available in the Expo Go preview app.',
+        a: 'Master switch plus three sub-toggles: Portfolio moves (alerts when a holding crosses your threshold), Major market moves (S&P 500, Nasdaq, or Bitcoin moves ≥ 1.5% intraday), and Breaking news. Notifications require device permission. Push notifications are supported in standalone Android builds installed from Google Play.',
       },
       {
         q: 'Data & Privacy',

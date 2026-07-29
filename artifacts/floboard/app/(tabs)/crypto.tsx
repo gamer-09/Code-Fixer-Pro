@@ -287,7 +287,7 @@ export default function CryptoScreen() {
       </View>
 
       {/* Server error banner */}
-      {serverError != null && (
+      {__DEV__ && serverError != null && (
         <View style={{ backgroundColor: '#FF6B6B22', borderBottomWidth: 1, borderBottomColor: '#FF6B6B55', paddingHorizontal: 14, paddingVertical: 10 }}>
           <Text style={{ fontSize: 12, fontFamily: 'Inter_600SemiBold', color: '#FF6B6B', marginBottom: 4 }}>
             ⚠️  API server not running — all values show —
