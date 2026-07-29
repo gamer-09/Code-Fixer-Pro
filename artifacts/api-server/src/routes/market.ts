@@ -67,6 +67,13 @@ const FALLBACK_PRICES: Record<
   "OKB-USD": { price: 84.51, changePct: 0.65, change: 0.55, name: "OKB (OKX)", currency: "USD" },
   "OFFICIAL-TRUMP-USD": { price: 67.81, changePct: 5.40, change: 3.48, name: "Official Trump", currency: "USD" },
   "TRUMP-USD": { price: 67.81, changePct: 5.40, change: 3.48, name: "Official Trump", currency: "USD" },
+  "ZS=F": { price: 1211.25, changePct: 0.35, change: 4.25, name: "Soybean Futures", currency: "USD" },
+  "ZO=F": { price: 331.75, changePct: 0.75, change: 2.50, name: "Oat Futures", currency: "USD" },
+  "LBS=F": { price: 380.60, changePct: -1.10, change: -4.20, name: "Lumber Futures", currency: "USD" },
+  "^NDX": { price: 27763.13, changePct: 0.45, change: 124.50, name: "Nasdaq 100", currency: "USD" },
+  "000001.SS": { price: 3828.47, changePct: 0.40, change: 15.20, name: "Shanghai Comp", currency: "CNY" },
+  "^MOVE": { price: 76.09, changePct: -1.45, change: -1.10, name: "MOVE Index", currency: "USD" },
+  "^VVIX": { price: 98.51, changePct: -2.38, change: -2.40, name: "VVIX Volatility", currency: "USD" },
 };
 
 function resolveSymbolAlias(sym: string): string {

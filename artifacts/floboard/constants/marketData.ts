@@ -2,6 +2,7 @@ export const INDICES = [
   { sym: '^GSPC', name: 'S&P 500', region: 'USA' },
   { sym: '^DJI', name: 'Dow Jones', region: 'USA' },
   { sym: '^IXIC', name: 'Nasdaq', region: 'USA' },
+  { sym: '^NDX', name: 'Nasdaq 100', region: 'USA' },
   { sym: '^RUT', name: 'Russell 2K', region: 'USA' },
   { sym: '^GSPTSE', name: 'S&P/TSX', region: 'CA' },
   { sym: '^FTSE', name: 'FTSE 100', region: 'UK' },
@@ -10,6 +11,7 @@ export const INDICES = [
   { sym: '^STOXX50E', name: 'Euro Stoxx 50', region: 'EU' },
   { sym: '^N225', name: 'Nikkei 225', region: 'JP' },
   { sym: '^HSI', name: 'Hang Seng', region: 'HK' },
+  { sym: '000001.SS', name: 'Shanghai Comp', region: 'CN' },
   { sym: '^AXJO', name: 'ASX 200', region: 'AU' },
   { sym: '^BSESN', name: 'Sensex', region: 'IN' },
   { sym: '^NSEI', name: 'Nifty 50', region: 'IN' },
@@ -48,10 +50,21 @@ export const STOCKS = [
   { sym: 'AVGO', name: 'Broadcom' },
   { sym: 'WMT', name: 'Walmart' },
   { sym: 'XOM', name: 'Exxon Mobil' },
+  { sym: 'CVX', name: 'Chevron' },
   { sym: 'PLTR', name: 'Palantir' },
   { sym: 'COIN', name: 'Coinbase' },
   { sym: 'MSTR', name: 'MicroStrategy' },
   { sym: 'UBER', name: 'Uber' },
+  { sym: 'INTC', name: 'Intel' },
+  { sym: 'LLY', name: 'Eli Lilly' },
+  { sym: 'PFE', name: 'Pfizer' },
+  { sym: 'MRK', name: 'Merck & Co.' },
+  { sym: 'BA', name: 'Boeing' },
+  { sym: 'F', name: 'Ford' },
+  { sym: 'NKE', name: 'Nike' },
+  { sym: 'MCD', name: "McDonald's" },
+  { sym: 'VZ', name: 'Verizon' },
+  { sym: 'T', name: 'AT&T' },
 ];
 
 export const CRYPTOS = [
@@ -169,11 +182,14 @@ export const COMMODITIES = [
   // Agricultural — grains
   { sym: 'ZW=F', label: 'Wheat', unit: 'USD/bu' },
   { sym: 'ZC=F', label: 'Corn', unit: 'USD/bu' },
-  // Agricultural — softs
+  { sym: 'ZS=F', label: 'Soybeans', unit: 'USD/bu' },
+  { sym: 'ZO=F', label: 'Oats', unit: 'USD/bu' },
+  // Agricultural — softs & timber
   { sym: 'KC=F', label: 'Coffee', unit: 'USD/lb' },
   { sym: 'SB=F', label: 'Sugar', unit: 'USD/lb' },
   { sym: 'CC=F', label: 'Cocoa', unit: 'USD/MT' },
   { sym: 'CT=F', label: 'Cotton', unit: 'USD/lb' },
+  { sym: 'LBS=F', label: 'Lumber', unit: 'USD/1000 bd ft' },
   // Industrial metals
   { sym: 'HG=F', label: 'Copper', unit: 'USD/lb' },
   { sym: 'ALI=F', label: 'Aluminum', unit: 'USD/MT' },
@@ -319,10 +335,9 @@ export const BONDS = [
 
 export const MACRO = [
   { sym: '^VIX', label: 'VIX' },
+  { sym: '^MOVE', label: 'MOVE' },
+  { sym: '^VVIX', label: 'VVIX' },
   { sym: 'DX-Y.NYB', label: 'DXY' },
-  // 2-Year Treasury Note Yield is tracked via the 2-yr note futures (ZT=F).
-  // Yahoo Finance does not publish a direct yield-percentage index for the 2yr
-  // equivalent to ^TNX/^FVX. ZT=F price (~102) is used here as a proxy.
   { sym: 'ZT=F', label: '2-Yr Note' },
 ];
 
