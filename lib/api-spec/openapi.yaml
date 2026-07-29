@@ -10,6 +10,14 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: market
+    description: Market quote and chart operations
+  - name: news
+    description: Financial news operations
+  - name: earnings
+    description: Earnings calendar operations
+  - name: chat
+    description: FloAI AI chat operations
 paths:
   /healthz:
     get:
@@ -24,6 +32,111 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /market:
+    get:
+      operationId: getMarketQuotes
+      tags: [market]
+      summary: Get market quotes
+      description: Returns quotes for requested symbols
+      parameters:
+        - name: symbols
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Quotes list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuotesPayload"
+  /market/history:
+    get:
+      operationId: getMarketHistory
+      tags: [market]
+      summary: Get historical chart data
+      description: Returns price points for a symbol
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: range
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Chart points
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChartHistoryPayload"
+  /search:
+    get:
+      operationId: searchSymbols
+      tags: [market]
+      summary: Search global market symbols
+      description: Returns matching tickers
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SymbolSearchPayload"
+  /news:
+    get:
+      operationId: getNews
+      tags: [news]
+      summary: Get financial news stories
+      description: Returns news list
+      parameters:
+        - name: count
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: News stories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsPayload"
+  /earnings:
+    get:
+      operationId: getEarnings
+      tags: [earnings]
+      summary: Get earnings calendar
+      description: Returns earnings announcements
+      parameters:
+        - name: weeks
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: symbols
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Earnings items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EarningsPayload"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +146,60 @@ components:
           type: string
       required:
         - status
+    QuotesPayload:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required:
+        - results
+    ChartHistoryPayload:
+      type: object
+      properties:
+        symbol:
+          type: string
+        range:
+          type: string
+        prices:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required:
+        - symbol
+        - range
+        - prices
+    SymbolSearchPayload:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required:
+        - results
+    NewsPayload:
+      type: object
+      properties:
+        news:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required:
+        - news
+    EarningsPayload:
+      type: object
+      properties:
+        earnings:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required:
+        - earnings
 

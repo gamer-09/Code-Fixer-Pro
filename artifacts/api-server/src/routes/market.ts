@@ -37,6 +37,11 @@ const FALLBACK_PRICES: Record<
   "XPD/USD": { price: 1265.00, changePct: 0.60, change: 7.50, name: "Palladium Spot / USD", currency: "USD" },
   "NI=F": { price: 16450.00, changePct: 0.85, change: 138.00, name: "Nickel", currency: "USD" },
   "ZI=F": { price: 2875.50, changePct: 1.12, change: 31.80, name: "Zinc", currency: "USD" },
+  "^IRX": { price: 4.52, changePct: 0.03, change: 0.001, name: "13-Week Treasury Yield", currency: "USD" },
+  "^TU": { price: 4.18, changePct: -0.02, change: -0.001, name: "2-Year Treasury Yield", currency: "USD" },
+  "^FVX": { price: 4.24, changePct: 0.01, change: 0.001, name: "5-Year Treasury Yield", currency: "USD" },
+  "^TNX": { price: 4.42, changePct: 0.04, change: 0.002, name: "10-Year Treasury Yield", currency: "USD" },
+  "^TYX": { price: 4.68, changePct: 0.05, change: 0.002, name: "30-Year Treasury Yield", currency: "USD" },
 };
 
 function resolveSymbolAlias(sym: string): string {
@@ -317,6 +322,71 @@ router.get("/market/history", async (req, res) => {
     });
     res.json({ symbol: sym, range, prices });
   }
+});
+
+// ── Symbol Search (Global Ticker Lookup) ──────────────────────────────────
+
+interface SearchResult {
+  sym: string;
+  name: string;
+  type: string;
+  exch: string;
+}
+
+const FALLBACK_SEARCH_CATALOG: SearchResult[] = [
+  { sym: "AAPL", name: "Apple Inc.", type: "Stock", exch: "NASDAQ" },
+  { sym: "MSFT", name: "Microsoft Corporation", type: "Stock", exch: "NASDAQ" },
+  { sym: "NVDA", name: "NVIDIA Corporation", type: "Stock", exch: "NASDAQ" },
+  { sym: "AMZN", name: "Amazon.com Inc.", type: "Stock", exch: "NASDAQ" },
+  { sym: "GOOGL", name: "Alphabet Inc.", type: "Stock", exch: "NASDAQ" },
+  { sym: "META", name: "Meta Platforms Inc.", type: "Stock", exch: "NASDAQ" },
+  { sym: "TSLA", name: "Tesla Inc.", type: "Stock", exch: "NASDAQ" },
+  { sym: "BTC-USD", name: "Bitcoin USD", type: "Crypto", exch: "CCC" },
+  { sym: "ETH-USD", name: "Ethereum USD", type: "Crypto", exch: "CCC" },
+  { sym: "EURUSD=X", name: "EUR/USD", type: "Forex", exch: "CCY" },
+  { sym: "GBPUSD=X", name: "GBP/USD", type: "Forex", exch: "CCY" },
+  { sym: "USDJPY=X", name: "USD/JPY", type: "Forex", exch: "CCY" },
+  { sym: "GC=F", name: "Gold Futures", type: "Commodity", exch: "COMEX" },
+  { sym: "SI=F", name: "Silver Futures", type: "Commodity", exch: "COMEX" },
+  { sym: "PL=F", name: "Platinum Futures", type: "Commodity", exch: "NYMEX" },
+  { sym: "PA=F", name: "Palladium Futures", type: "Commodity", exch: "NYMEX" },
+  { sym: "^TNX", name: "10-Year Treasury Yield", type: "Bond", exch: "CBOE" },
+  { sym: "^IRX", name: "13-Week Treasury Yield", type: "Bond", exch: "CBOE" },
+];
+
+router.get("/search", async (req, res) => {
+  const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  if (!query) {
+    res.json({ results: [] });
+    return;
+  }
+
+  try {
+    const yfRes = await yf.search(query, { quotesCount: 15 });
+    const results: SearchResult[] = (yfRes.quotes ?? [])
+      .filter((q) => Boolean(q.symbol))
+      .map((q) => ({
+        sym: String(q.symbol || ""),
+        name: String(q.shortname || q.longname || q.symbol || ""),
+        type: String(q.quoteType || "EQUITY"),
+        exch: String(q.exchange || "GLOBAL"),
+      }));
+    if (results.length > 0) {
+      res.json({ results });
+      return;
+    }
+  } catch (err) {
+    req.log?.debug({ err, query }, "Yahoo Finance search failed, using fallback catalog");
+  }
+
+  const qLower = query.toLowerCase();
+  const fallbackResults = FALLBACK_SEARCH_CATALOG.filter(
+    (item) =>
+      item.sym.toLowerCase().includes(qLower) ||
+      item.name.toLowerCase().includes(qLower) ||
+      item.type.toLowerCase().includes(qLower)
+  );
+  res.json({ results: fallbackResults });
 });
 
 export default router;

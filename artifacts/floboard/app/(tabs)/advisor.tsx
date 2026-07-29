@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -32,6 +33,8 @@ interface ChatMessage {
 const BASE_URL = getApiBase();
 
 const QUICK_QUESTIONS = [
+  'Review my portfolio risk & diversification',
+  'Analyze my watchlist outlook & correlations',
   'What are the top market movers today?',
   'Is now a good time to buy Bitcoin?',
   'Explain impact of rising interest rates',
@@ -77,6 +80,8 @@ const RISK_GUIDANCE = {
 function buildSystemPrompt(
   data: Record<string, { regularMarketPrice: number; regularMarketChangePercent: number }>,
   riskProfile: 'conservative' | 'moderate' | 'aggressive',
+  holdingsText?: string,
+  watchlistText?: string,
 ) {
   const lines = [
     `You are FloAI, an expert financial advisor. Today is ${new Date().toDateString()}.`,
@@ -84,16 +89,22 @@ function buildSystemPrompt(
     'You have access to live market data. Here is a snapshot:',
     '',
   ];
-  const entries = Object.entries(data).slice(0, 20);
+  const entries = Object.entries(data).slice(0, 25);
   for (const [sym, d] of entries) {
     lines.push(`${sym}: $${fmt(d.regularMarketPrice)} (${fmtChg(d.regularMarketChangePercent)})`);
+  }
+  if (holdingsText) {
+    lines.push('', 'User Simulated Portfolio Holdings (Tracking Only / No Bank Info):', holdingsText);
+  }
+  if (watchlistText) {
+    lines.push('', 'User Tracked Watchlist Symbols:', watchlistText);
   }
   lines.push(
     '',
     'Guidelines:',
     '- Provide educational, balanced financial context',
-    '- Reference the live data when relevant',
-    '- Always note that this is informational, not personal financial advice',
+    '- Reference the live data and the user portfolio/watchlist when relevant',
+    '- Always note that this is informational, not personal financial advice; do not ask for any deposits or personal banking information',
     '- Be concise but thorough; use bullet points where helpful',
     '- Stay factual; highlight uncertainty when present',
     ...RISK_GUIDANCE[riskProfile],
@@ -308,6 +319,23 @@ export default function AdvisorScreen() {
       const historyForApi = prev.map((m) => ({ role: m.role, content: m.content }));
       historyForApi.push({ role: 'user', content: trimmed });
 
+      let holdingsText = '';
+      let watchlistText = '';
+      try {
+        const rawHoldings = await AsyncStorage.getItem('@floboard:holdings');
+        if (rawHoldings) {
+          const hList = JSON.parse(rawHoldings) as { sym: string; qty: number; cost: number }[];
+          holdingsText = hList.map((h) => `${h.sym}: ${h.qty} shares @ $${h.cost}`).join(', ');
+        }
+        const rawWatchlist = await AsyncStorage.getItem('@floboard:watchlist');
+        if (rawWatchlist) {
+          const wList = JSON.parse(rawWatchlist) as string[];
+          watchlistText = wList.join(', ');
+        }
+      } catch { /* ignore */ }
+
+      const systemPrompt = buildSystemPrompt(data, settings.riskProfile, holdingsText, watchlistText);
+
       let streamedContent = '';
       const isNative = Platform.OS !== 'web';
 
@@ -318,7 +346,7 @@ export default function AdvisorScreen() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               messages: historyForApi,
-              systemPrompt: buildSystemPrompt(data, settings.riskProfile),
+              systemPrompt,
               geminiApiKey: settings.geminiApiKey,
             }),
           });
@@ -333,7 +361,7 @@ export default function AdvisorScreen() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               messages: historyForApi,
-              systemPrompt: buildSystemPrompt(data, settings.riskProfile),
+              systemPrompt,
               geminiApiKey: settings.geminiApiKey,
             }),
           });

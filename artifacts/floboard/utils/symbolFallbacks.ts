@@ -61,6 +61,11 @@ const FALLBACK_PRICES: Record<
   'XPD/USD': { price: 1265.00, changePct: 0.60, change: 7.50, name: 'Palladium Spot / USD', currency: 'USD' },
   'NI=F': { price: 16450.00, changePct: 0.85, change: 138.00, name: 'Nickel', currency: 'USD' },
   'ZI=F': { price: 2875.50, changePct: 1.12, change: 31.80, name: 'Zinc', currency: 'USD' },
+  '^IRX': { price: 4.52, changePct: 0.03, change: 0.001, name: '13-Week Treasury Yield', currency: 'USD' },
+  '^TU': { price: 4.18, changePct: -0.02, change: -0.001, name: '2-Year Treasury Yield', currency: 'USD' },
+  '^FVX': { price: 4.24, changePct: 0.01, change: 0.001, name: '5-Year Treasury Yield', currency: "USD" },
+  '^TNX': { price: 4.42, changePct: 0.04, change: 0.002, name: '10-Year Treasury Yield', currency: 'USD' },
+  '^TYX': { price: 4.68, changePct: 0.05, change: 0.002, name: '30-Year Treasury Yield', currency: 'USD' },
 };
 
 /**

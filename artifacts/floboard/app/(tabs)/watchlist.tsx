@@ -6,6 +6,7 @@ import {
   FlatList,
   Platform,
   Pressable,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -19,6 +20,7 @@ import { IconRefreshCw } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
 import { resolveSymbolAlias, getFallbackQuote } from '@/utils/symbolFallbacks';
+import InteractiveChartModal from '@/components/InteractiveChartModal';
 import { useSettings } from '@/context/SettingsContext';
 import { getApiBase } from '@/utils/apiBase';
 
@@ -672,7 +674,17 @@ function CatalogRow({ item, inWatchlist, onAdd, onRemove }: {
   );
 }
 
-function WatchRow({ sym, q, onRemove }: { sym: string; q: QuoteRow | undefined; onRemove: () => void; }) {
+function WatchRow({
+  sym,
+  q,
+  onRemove,
+  onOpenChart,
+}: {
+  sym: string;
+  q: QuoteRow | undefined;
+  onRemove: () => void;
+  onOpenChart: (sym: string, name?: string) => void;
+}) {
   const colors = useColors();
   const { settings } = useSettings();
   const chg = q?.regularMarketChangePercent ?? 0;
@@ -754,6 +766,12 @@ function WatchRow({ sym, q, onRemove }: { sym: string; q: QuoteRow | undefined; 
 
       <View style={styles.watchActions}>
         <Pressable
+          onPress={() => onOpenChart(sym, entry?.name)}
+          style={[styles.aiBtn, { backgroundColor: 'rgba(0,229,160,0.15)', borderColor: 'rgba(0,229,160,0.3)' }]}
+        >
+          <Text style={[styles.aiBtnText, { color: colors.gain }]}>📊</Text>
+        </Pressable>
+        <Pressable
           onPress={handleAsk}
           style={[styles.aiBtn, { backgroundColor: colors.blueDim, borderColor: 'rgba(77,166,255,0.2)' }]}
         >
@@ -770,6 +788,19 @@ function WatchRow({ sym, q, onRemove }: { sym: string; q: QuoteRow | undefined; 
   );
 }
 
+interface WatchlistTab {
+  id: string;
+  label: string;
+  defaultSyms: string[];
+}
+
+const WATCHLIST_TABS: WatchlistTab[] = [
+  { id: 'Favorites', label: '⭐ Favorites', defaultSyms: [] },
+  { id: 'Tech', label: '🚀 Tech & AI', defaultSyms: ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA', 'PLTR'] },
+  { id: 'Crypto', label: '₿ Crypto', defaultSyms: ['BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'DOGE-USD'] },
+  { id: 'Macro', label: '🌍 FX & Metals', defaultSyms: ['EURUSD=X', 'USDJPY=X', 'XAUUSD=X', 'XAG/USD', 'GC=F', 'SI=F', '^TNX'] },
+];
+
 export default function WatchlistScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -777,6 +808,9 @@ export default function WatchlistScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const { settings } = useSettings();
 
+  const [activeTab, setActiveTab] = useState<string>('Favorites');
+  const [chartModalSym, setChartModalSym] = useState<string | null>(null);
+  const [chartModalName, setChartModalName] = useState<string | undefined>(undefined);
   const [symbols, setSymbols] = useState<string[]>([]);
   const [quotes, setQuotes] = useState<Record<string, QuoteRow>>({});
   const [query, setQuery] = useState('');
@@ -784,15 +818,24 @@ export default function WatchlistScreen() {
   const [adding, setAdding] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const storageKeyForTab = (tabId: string) =>
+    tabId === 'Favorites' ? STORAGE_KEY : `${STORAGE_KEY}:${tabId}`;
+
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-      if (raw) setSymbols(JSON.parse(raw) as string[]);
+    const tabObj = WATCHLIST_TABS.find((t) => t.id === activeTab) || WATCHLIST_TABS[0];
+    const key = storageKeyForTab(activeTab);
+    AsyncStorage.getItem(key).then((raw) => {
+      if (raw) {
+        setSymbols(JSON.parse(raw) as string[]);
+      } else {
+        setSymbols(tabObj.defaultSyms);
+      }
     });
-  }, []);
+  }, [activeTab]);
 
   const saveSymbols = (syms: string[]) => {
     setSymbols(syms);
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(syms));
+    AsyncStorage.setItem(storageKeyForTab(activeTab), JSON.stringify(syms));
   };
 
   const refresh = useCallback(async (syms: string[]) => {
@@ -876,6 +919,32 @@ export default function WatchlistScreen() {
         </View>
       </View>
 
+      {/* Multi-List Watchlist Tabs */}
+      <View style={[styles.listTabsBar, { backgroundColor: colors.base, borderBottomColor: colors.rim }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.listTabsScroll}>
+          {WATCHLIST_TABS.map((t) => {
+            const active = activeTab === t.id;
+            return (
+              <Pressable
+                key={t.id}
+                onPress={() => setActiveTab(t.id)}
+                style={[
+                  styles.listTabBtn,
+                  {
+                    backgroundColor: active ? colors.blue : colors.card,
+                    borderColor: active ? colors.blue : colors.rim,
+                  },
+                ]}
+              >
+                <Text style={[styles.listTabBtnText, { color: active ? '#fff' : colors.t3 }]}>
+                  {t.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       {/* Search bar */}
       <View style={[styles.searchBar, { backgroundColor: colors.base, borderBottomColor: colors.rim }]}>
         <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: query ? colors.blue + '88' : colors.rim }]}>
@@ -939,10 +1008,22 @@ export default function WatchlistScreen() {
             </View>
           }
           renderItem={({ item: sym }) => (
-            <WatchRow sym={sym} q={quotes[sym]} onRemove={() => removeSymbol(sym)} />
+            <WatchRow
+              sym={sym}
+              q={quotes[sym]}
+              onRemove={() => removeSymbol(sym)}
+              onOpenChart={(s, n) => { setChartModalSym(s); setChartModalName(n); }}
+            />
           )}
         />
       )}
+
+      <InteractiveChartModal
+        visible={chartModalSym !== null}
+        symbol={chartModalSym}
+        name={chartModalName}
+        onClose={() => setChartModalSym(null)}
+      />
     </View>
   );
 }
@@ -959,6 +1040,24 @@ const styles = StyleSheet.create({
   },
   pageTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   subTitle: { fontSize: 10, marginTop: 1 },
+  listTabsBar: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+  },
+  listTabsScroll: {
+    paddingHorizontal: 14,
+    gap: 8,
+  },
+  listTabBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  listTabBtnText: {
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+  },
   searchBar: {
     paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1,
   },
