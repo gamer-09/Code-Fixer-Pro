@@ -311,6 +311,63 @@ router.get("/market", async (req, res) => {
   }
 });
 
+function intHash(seed: number): number {
+  let t = (seed += 0x6d2b79f5);
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
+function generateRealisticHistory(
+  sym: string,
+  range: string,
+  basePrice: number,
+  nowSec: number,
+  stepSec: number,
+  count: number
+): Array<{ t: number; c: number }> {
+  let seed = 0;
+  const seedStr = `${sym}_${range}`;
+  for (let i = 0; i < seedStr.length; i++) {
+    seed = (seed * 31 + seedStr.charCodeAt(i)) >>> 0;
+  }
+  const drift = (intHash(seed) - 0.45) * 0.018;
+  const dailyVol =
+    sym.includes("=X") || sym.includes("/") || sym.startsWith("^")
+      ? 0.003
+      : sym.endsWith("-USD")
+      ? 0.018
+      : 0.012;
+
+  const returns: number[] = [];
+  for (let i = 0; i < count; i++) {
+    const r1 = intHash(seed + i * 7 + 1);
+    const r2 = intHash(seed + i * 7 + 2);
+    const shock = (r1 + r2 - 1.0) * dailyVol;
+    returns.push(drift / count + shock);
+  }
+
+  const startPrice = +(basePrice * (1 - drift)).toFixed(4);
+  let currentPrice = startPrice > 0 ? startPrice : basePrice * 0.95;
+  const prices: Array<{ t: number; c: number }> = [];
+
+  for (let idx = 0; idx < count; idx++) {
+    const r3 = intHash(seed + idx * 13 + 3);
+    const prevClose = idx > 0 ? prices[idx - 1].c : currentPrice;
+    const openGap = (r3 - 0.5) * 0.002 * prevClose;
+    const o = +(prevClose + openGap).toFixed(4);
+
+    currentPrice = +(o * (1 + returns[idx])).toFixed(4);
+    if (idx === count - 1) currentPrice = +(basePrice).toFixed(4);
+
+    prices.push({
+      t: nowSec - (count - 1 - idx) * stepSec,
+      c: currentPrice,
+    });
+  }
+  return prices;
+}
+
 // ── Historical chart data ─────────────────────────────────────────────────
 
 router.get("/market/history", async (req, res) => {
@@ -377,20 +434,10 @@ router.get("/market/history", async (req, res) => {
     if (prices.length === 0) {
       const fallbackQuote = getFallbackQuote(sym);
       const basePrice = (fallbackQuote.regularMarketPrice as number) || 100;
-      let currentPrice = +(basePrice * 0.955).toFixed(4);
       const count = range === "1d" ? 24 : range === "7d" ? 28 : 30;
       const nowSec = Math.floor(Date.now() / 1000);
       const stepSec = Math.max(60, Math.floor(((Date.now() - period1.getTime()) / 1000) / count));
-      prices = Array.from({ length: count }, (_, idx) => {
-        const pseudoRand = ((idx * 9301 + 49297) % 233280) / 233280 - 0.45;
-        const changePct = pseudoRand * 0.012;
-        currentPrice = +(currentPrice * (1 + changePct)).toFixed(4);
-        if (idx === count - 1) currentPrice = basePrice;
-        return {
-          t: nowSec - (count - 1 - idx) * stepSec,
-          c: currentPrice,
-        };
-      });
+      prices = generateRealisticHistory(sym, range, basePrice, nowSec, stepSec, count);
     }
 
     const payload = { symbol: sym, range, prices };
@@ -400,20 +447,10 @@ router.get("/market/history", async (req, res) => {
     req.log?.debug({ symbol: sym }, "Using fallback chart history");
     const fallbackQuote = getFallbackQuote(sym);
     const basePrice = (fallbackQuote.regularMarketPrice as number) || 100;
-    let currentPrice = +(basePrice * 0.955).toFixed(4);
     const count = range === "1d" ? 24 : range === "7d" ? 28 : 30;
     const nowSec = Math.floor(Date.now() / 1000);
     const stepSec = Math.max(60, Math.floor(((Date.now() - period1.getTime()) / 1000) / count));
-    const prices = Array.from({ length: count }, (_, idx) => {
-      const pseudoRand = ((idx * 9301 + 49297) % 233280) / 233280 - 0.45;
-      const changePct = pseudoRand * 0.012;
-      currentPrice = +(currentPrice * (1 + changePct)).toFixed(4);
-      if (idx === count - 1) currentPrice = basePrice;
-      return {
-        t: nowSec - (count - 1 - idx) * stepSec,
-        c: currentPrice,
-      };
-    });
+    const prices = generateRealisticHistory(sym, range, basePrice, nowSec, stepSec, count);
     res.json({ symbol: sym, range, prices });
   }
 });

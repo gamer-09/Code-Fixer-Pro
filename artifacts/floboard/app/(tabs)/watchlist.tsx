@@ -778,7 +778,7 @@ function WatchRow({
 
       <View style={styles.watchActions}>
         <Pressable
-          onPress={() => onOpenChart(sym, entry?.name)}
+          onPress={() => onOpenChart(sym, entry?.name || q?.shortName)}
           style={[styles.aiBtn, { backgroundColor: 'rgba(0,229,160,0.15)', borderColor: 'rgba(0,229,160,0.3)' }]}
         >
           <Text style={[styles.aiBtnText, { color: colors.gain }]}>📊</Text>

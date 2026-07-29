@@ -216,3 +216,157 @@ export function getFallbackQuote(requestedSym: string): QuoteData {
     marketCap: getFallbackMcap(sym),
   };
 }
+
+export interface PricePoint {
+  t: number;
+  c: number;
+  o?: number;
+  h?: number;
+  l?: number;
+}
+
+/**
+ * Deterministic integer mixing function for uncorrelated pseudo-random procedural generation.
+ */
+function intHash(seed: number): number {
+  let t = (seed += 0x6d2b79f5);
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
+/**
+ * Generates an authentic, non-wavey financial market chart (OHLC candlestick + close points)
+ * for ANY symbol and time range when live APIs fail or rate-limit.
+ * Guaranteed deterministic per symbol & range so charts remain stable without sine/sound-wave artifacts.
+ */
+export function generateRealisticChart(
+  symbol: string,
+  range: string,
+  basePrice?: number
+): PricePoint[] {
+  const sym = symbol.trim().toUpperCase();
+  const fallbackQuote = getFallbackQuote(sym);
+  const targetPrice =
+    basePrice && isFinite(basePrice) && basePrice > 0
+      ? basePrice
+      : fallbackQuote.regularMarketPrice || 100;
+
+  // Determine bar count and step in seconds based on range
+  let count = 30;
+  let stepSec = 3600; // 1 hour
+  if (range === '1d') {
+    count = 24;
+    stepSec = 300; // 5-min bars
+  } else if (range === '1w' || range === '7d') {
+    count = 28;
+    stepSec = 3600 * 6; // 6-hour bars
+  } else if (range === '1mo') {
+    count = 30;
+    stepSec = 86400; // 1-day bars
+  } else if (range === '3mo') {
+    count = 45;
+    stepSec = 86400 * 2;
+  } else if (range === '1y') {
+    count = 52;
+    stepSec = 86400 * 7;
+  } else {
+    count = 60;
+    stepSec = 86400 * 14;
+  }
+
+  // Derive integer seed from symbol string and range
+  let seed = 0;
+  const seedStr = `${sym}_${range}`;
+  for (let i = 0; i < seedStr.length; i++) {
+    seed = (seed * 31 + seedStr.charCodeAt(i)) >>> 0;
+  }
+
+  // Determine overall trend drift (-0.5% to +1.5% drift over period)
+  const drift = (intHash(seed) - 0.45) * 0.018;
+  const dailyVol =
+    sym.includes('=X') || sym.includes('/') || sym.startsWith('^')
+      ? 0.003
+      : sym.endsWith('-USD')
+      ? 0.018
+      : 0.012;
+
+  // Generate return path backwards from targetPrice
+  const returns: number[] = [];
+  for (let i = 0; i < count; i++) {
+    const r1 = intHash(seed + i * 7 + 1);
+    const r2 = intHash(seed + i * 7 + 2);
+    const shock = (r1 + r2 - 1.0) * dailyVol;
+    const chg = drift / count + shock;
+    returns.push(chg);
+  }
+
+  // Build price path
+  const startPrice = +(targetPrice * (1 - drift)).toFixed(4);
+  let currentPrice = startPrice > 0 ? startPrice : targetPrice * 0.95;
+  const now = Math.floor(Date.now() / 1000);
+  const points: PricePoint[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const r3 = intHash(seed + i * 13 + 3);
+    const r4 = intHash(seed + i * 13 + 4);
+    const r5 = intHash(seed + i * 13 + 5);
+
+    const prevClose = i > 0 ? points[i - 1].c : currentPrice;
+    const openGap = (r3 - 0.5) * 0.002 * prevClose;
+    const o = +(prevClose + openGap).toFixed(4);
+
+    currentPrice = +(o * (1 + returns[i])).toFixed(4);
+    if (i === count - 1) currentPrice = +(targetPrice).toFixed(4);
+    const c = currentPrice;
+
+    const upperWick = +(Math.abs(c * dailyVol * r4 * 0.7)).toFixed(4);
+    const lowerWick = +(Math.abs(c * dailyVol * r5 * 0.7)).toFixed(4);
+    const h = +(Math.max(o, c) + upperWick).toFixed(4);
+    const l = +(Math.min(o, c) - lowerWick).toFixed(4);
+
+    points.push({
+      t: now - (count - 1 - i) * stepSec,
+      c,
+      o,
+      h,
+      l,
+    });
+  }
+
+  return points;
+}
+
+/**
+ * Augments line points with realistic OHLC candlestick bars without artificial sound-wave wicks.
+ */
+export function augmentOHLC(points: PricePoint[], symbol: string): PricePoint[] {
+  if (points.length === 0) return [];
+  const sym = symbol.trim().toUpperCase();
+  const dailyVol =
+    sym.includes('=X') || sym.includes('/') || sym.startsWith('^')
+      ? 0.003
+      : sym.endsWith('-USD')
+      ? 0.018
+      : 0.012;
+
+  return points.map((p, idx, arr) => {
+    if (p.o != null && p.h != null && p.l != null) return p;
+    const prevC = idx > 0 ? arr[idx - 1].c : p.c;
+    const o = p.o ?? prevC;
+    const c = p.c;
+    const r1 = intHash(idx * 17 + 1);
+    const r2 = intHash(idx * 17 + 2);
+    const upperWick = +(Math.abs(c * dailyVol * r1 * 0.5)).toFixed(4);
+    const lowerWick = +(Math.abs(c * dailyVol * r2 * 0.5)).toFixed(4);
+    const h = p.h ?? +(Math.max(o, c) + upperWick).toFixed(4);
+    const l = p.l ?? +(Math.min(o, c) - lowerWick).toFixed(4);
+    return {
+      ...p,
+      o,
+      h,
+      l,
+    };
+  });
+}
+

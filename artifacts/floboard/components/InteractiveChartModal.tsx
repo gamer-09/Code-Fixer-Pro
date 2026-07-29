@@ -13,18 +13,16 @@ import Svg, { Defs, Line, LinearGradient, Path, Rect, Stop } from 'react-native-
 import { useColors } from '@/hooks/useColors';
 import { useResponsive } from '@/hooks/useResponsive';
 import { getApiBase } from '@/utils/apiBase';
-import { getFallbackQuote } from '@/utils/symbolFallbacks';
+import {
+  getFallbackQuote,
+  resolveSymbolAlias,
+  generateRealisticChart,
+  augmentOHLC,
+  type PricePoint,
+} from '@/utils/symbolFallbacks';
 import { fmt, fmtChg } from '@/context/MarketContext';
 
 const BASE = getApiBase();
-
-interface PricePoint {
-  t: number;
-  c: number;
-  o?: number;
-  h?: number;
-  l?: number;
-}
 
 interface InteractiveChartModalProps {
   visible: boolean;
@@ -86,60 +84,103 @@ export default function InteractiveChartModal({
     setLoading(true);
 
     const rangeObj = RANGES.find((r) => r.id === range) || RANGES[2];
-    fetch(
-      `${BASE}/api/market/history?symbol=${encodeURIComponent(symbol)}&range=${rangeObj.yfRange}`
-    )
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json: { prices?: PricePoint[] } | null) => {
-        if (cancelled) return;
-        let pts = json?.prices ?? [];
-        if (pts.length < 2) {
-          // Generate realistic market chart trend (no sine waves or sound waves)
-          const basePrice = getFallbackQuote(symbol).regularMarketPrice || 100;
-          let currentPrice = +(basePrice * 0.955).toFixed(4);
-          const count = range === '1d' ? 24 : range === '1w' ? 28 : 40;
-          const now = Math.floor(Date.now() / 1000);
-          const step = Math.floor((range === '1d' ? 86400 : 604800) / count);
-          pts = Array.from({ length: count }, (_, i) => {
-            const pseudoRand = ((i * 9301 + 49297) % 233280) / 233280 - 0.45;
-            const changePct = pseudoRand * 0.012;
-            currentPrice = +(currentPrice * (1 + changePct)).toFixed(4);
-            if (i === count - 1) currentPrice = basePrice;
-            const c = currentPrice;
-            const o = +(c * (1 - pseudoRand * 0.005)).toFixed(4);
-            const spread = Math.abs(c - o) * 0.4 + c * 0.0008;
-            const h = +(Math.max(o, c) + spread).toFixed(4);
-            const l = +(Math.min(o, c) - spread).toFixed(4);
-            return {
-              t: now - (count - 1 - i) * step,
-              c,
-              o,
-              h,
-              l,
-            };
-          });
-        } else {
-          // Augment line points with subtle, realistic OHLC candle bodies (no artificial sound wave wicks)
-          pts = pts.map((p, idx, arr) => {
-            const prevC = idx > 0 ? arr[idx - 1].c : p.c;
-            const o = p.o ?? prevC;
-            const spread = Math.abs(p.c - o) * 0.35 + p.c * 0.0008;
-            const h = p.h ?? +(Math.max(o, p.c) + spread).toFixed(4);
-            const l = p.l ?? +(Math.min(o, p.c) - spread).toFixed(4);
-            return {
-              ...p,
-              o,
-              h,
-              l,
-            };
-          });
+    const targetSym = resolveSymbolAlias(symbol);
+    const baseQuote = getFallbackQuote(symbol);
+    const defaultPrice = baseQuote.regularMarketPrice || 100;
+
+    async function loadChartData() {
+      let pts: PricePoint[] = [];
+
+      // 1. Try backend proxy
+      try {
+        const res = await fetch(
+          `${BASE}/api/market/history?symbol=${encodeURIComponent(symbol!)}&range=${rangeObj.yfRange}`
+        );
+        if (res.ok) {
+          const json = (await res.json()) as { prices?: PricePoint[] };
+          if (json?.prices && json.prices.length >= 2) {
+            pts = json.prices;
+          }
         }
+      } catch {
+        /* fall through to direct Yahoo Finance API or procedural generator */
+      }
+
+      // 2. Try direct Yahoo Finance chart API if backend failed (e.g. native mobile APK/AAB)
+      if (pts.length < 2) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          const interval = range === '1d' ? '5m' : range === '1w' ? '1h' : '1d';
+          const yfRes = await fetch(
+            `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(targetSym)}?interval=${interval}&range=${rangeObj.yfRange}`,
+            {
+              headers: {
+                'User-Agent':
+                  'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+                Accept: 'application/json',
+              },
+              signal: controller.signal,
+            }
+          ).finally(() => clearTimeout(timeoutId));
+
+          if (yfRes.ok) {
+            const yfJson = (await yfRes.json()) as {
+              chart?: {
+                result?: Array<{
+                  timestamp?: number[];
+                  indicators?: {
+                    quote?: Array<{
+                      close?: (number | null)[];
+                      open?: (number | null)[];
+                      high?: (number | null)[];
+                      low?: (number | null)[];
+                    }>;
+                  };
+                }>;
+              };
+            };
+            const resObj = yfJson?.chart?.result?.[0];
+            const ts = resObj?.timestamp;
+            const q = resObj?.indicators?.quote?.[0];
+            if (ts && q && ts.length >= 2) {
+              const directPts: PricePoint[] = [];
+              for (let i = 0; i < ts.length; i++) {
+                const c = q.close?.[i];
+                if (c != null && isFinite(c)) {
+                  directPts.push({
+                    t: ts[i],
+                    c,
+                    o: q.open?.[i] ?? undefined,
+                    h: q.high?.[i] ?? undefined,
+                    l: q.low?.[i] ?? undefined,
+                  });
+                }
+              }
+              if (directPts.length >= 2) {
+                pts = directPts;
+              }
+            }
+          }
+        } catch {
+          /* fall through to procedural generator */
+        }
+      }
+
+      // 3. Guarantee complete, realistic chart data if both APIs failed or returned < 2 points
+      if (pts.length < 2) {
+        pts = generateRealisticChart(symbol!, range, defaultPrice);
+      } else {
+        pts = augmentOHLC(pts, symbol!);
+      }
+
+      if (!cancelled) {
         setPoints(pts);
         setLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
+      }
+    }
+
+    loadChartData();
 
     return () => {
       cancelled = true;
@@ -157,21 +198,21 @@ export default function InteractiveChartModal({
   const lineColor = isUp ? colors.gain : colors.loss;
 
   // SMA 20
-  const sma20 = points.map((_, i, arr) => {
+  const sma20 = points.length > 0 ? points.map((_, i, arr) => {
     const window = arr.slice(Math.max(0, i - 19), i + 1);
     const sum = window.reduce((acc, p) => acc + p.c, 0);
     return +(sum / window.length).toFixed(4);
-  });
+  }) : [];
 
   // EMA 50
-  const ema50 = points.map((p, i, arr) => {
+  const ema50 = points.length > 0 ? points.map((p, i, arr) => {
     if (i === 0) return p.c;
     const k = 2 / (Math.min(i + 1, 50) + 1);
     return +(p.c * k + arr[i - 1].c * (1 - k)).toFixed(4);
-  });
+  }) : [];
 
   // RSI 14
-  const rsi14 = points.map((_, i, arr) => {
+  const rsi14 = points.length > 0 ? points.map((_, i, arr) => {
     if (i < 14) return 50;
     const window = arr.slice(i - 14, i + 1);
     let gains = 0;
@@ -184,13 +225,13 @@ export default function InteractiveChartModal({
     if (losses === 0) return 100;
     const rs = gains / losses;
     return +(100 - 100 / (1 + rs)).toFixed(1);
-  });
+  }) : [];
 
   // Dynamic responsive SVG dimensions for ANY phone screen
   const { modalChartW: chartW, modalChartH: chartH } = useResponsive();
   const pad = 12;
-  const minP = Math.min(...points.map((p) => p.l ?? p.c));
-  const maxP = Math.max(...points.map((p) => p.h ?? p.c));
+  const minP = points.length > 0 ? Math.min(...points.map((p) => p.l ?? p.c)) : 0;
+  const maxP = points.length > 0 ? Math.max(...points.map((p) => p.h ?? p.c)) : 100;
   const rng = maxP - minP || 1;
 
   const toX = (idx: number) => pad + (idx / Math.max(1, points.length - 1)) * (chartW - pad * 2);
@@ -205,6 +246,8 @@ export default function InteractiveChartModal({
     'M' + sma20.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join('L');
   const emaPath =
     'M' + ema50.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join('L');
+
+  const isForexOrRate = symbol.includes('=X') || symbol.includes('/') || symbol.startsWith('^');
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
@@ -227,7 +270,7 @@ export default function InteractiveChartModal({
           {/* Price Strip */}
           <View style={[styles.priceStrip, { backgroundColor: colors.surface, borderColor: colors.rim }]}>
             <Text style={[styles.priceVal, { color: colors.t1 }]}>
-              ${fmt(last, symbol.includes('=X') || symbol.includes('/') ? 4 : 2)}
+              {isForexOrRate ? '' : '$'}{fmt(last, isForexOrRate ? 4 : 2)}
             </Text>
             <View style={[styles.chgBadge, { backgroundColor: isUp ? colors.gainDim : colors.lossDim }]}>
               <Text style={[styles.chgText, { color: lineColor }]}>
@@ -399,7 +442,7 @@ export default function InteractiveChartModal({
           </View>
 
           {/* RSI Sub-Chart if active */}
-          {showRSI && points.length > 0 && (
+          {showRSI && points.length > 0 && rsi14.length > 0 && (
             <View style={[styles.rsiBox, { backgroundColor: colors.card, borderColor: colors.rim }]}>
               <View style={styles.rsiHeader}>
                 <Text style={[styles.rsiTitle, { color: colors.t3 }]}>RELATIVE STRENGTH INDEX (RSI 14)</Text>
