@@ -177,6 +177,14 @@ const HELP_SECTIONS: HelpSection[] = [
         q: 'What are the 7-day sparkline charts?',
         a: 'Each row in Markets, Crypto, and Watchlist shows a small 7-day price chart so you can see trend direction at a glance, not just today\'s number.',
       },
+      {
+        q: 'How do I open an interactive candlestick chart?',
+        a: 'Tap the 📊 chart icon on any symbol row in Watchlist, Crypto, FX Pairs, or Markets. It opens an interactive full-screen modal with Candlestick (OHLC) vs. Line toggles, 1D–ALL time ranges, and SMA 20, EMA 50, and RSI 14 technical indicator overlays.',
+      },
+      {
+        q: 'How do I change the color theme?',
+        a: 'Go to Settings → DISPLAY → App theme. You can switch between Dark (Slate), Light, and OLED (Pure Black for AMOLED screens).',
+      },
     ],
   },
   {
@@ -216,6 +224,10 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         q: 'How do I read the change percentage?',
         a: 'The % shown is the change from the previous trading session\'s close. Forex runs 24/5 (Monday–Friday), so "previous close" refers to Friday\'s close on weekends.',
+      },
+      {
+        q: 'What are Commodity Pairs and Exotic Pairs?',
+        a: 'You can filter by Commodity Pairs (AUD/USD, USD/CAD, NZD/USD, and commodity crosses) or Exotic Pairs (USD/TRY, USD/MXN, USD/ZAR, etc.). When you select a tab, a Category Description Card appears explaining the group and its included pairs.',
       },
     ],
   },
@@ -269,6 +281,14 @@ const HELP_SECTIONS: HelpSection[] = [
         q: 'What if FloAI says my quota is reached?',
         a: 'The free Gemini tier resets every 24 hours. If you hit the limit, wait until the next day or upgrade your Gemini API plan at aistudio.google.com.',
       },
+      {
+        q: 'How does the Risk Profile affect FloAI?',
+        a: 'Whether you use a Gemini API key or FloAI\'s fallback analysis, switching between Conservative, Moderate, and Aggressive in Settings immediately transforms FloAI\'s advice. Conservative focuses on capital preservation and treasury yields, Moderate provides a 60/40 balanced audit, and Aggressive focuses on high-beta growth and momentum.',
+      },
+      {
+        q: 'Can FloAI analyze my portfolio or watchlist?',
+        a: 'Yes! Tap "Review my portfolio risk & diversification" or "Analyze my watchlist outlook & correlations" in the Quick Questions ribbon. FloAI automatically reads your simulated holdings and watchlist to give an instant audit.',
+      },
     ],
   },
   {
@@ -293,6 +313,14 @@ const HELP_SECTIONS: HelpSection[] = [
         q: 'Why does my watchlist show stale data?',
         a: 'Watchlist prices come from the same data feed as the rest of the app. If data looks stale, tap the refresh button (↻) at the top of the screen to force an immediate update.',
       },
+      {
+        q: 'What are the Watchlist category tabs?',
+        a: 'You can switch between four independent lists: ⭐ Favorites, 🚀 Tech & AI, ₿ Crypto, and 🌍 FX & Metals. Each list saves your custom symbols separately.',
+      },
+      {
+        q: 'How do I search for global symbols?',
+        a: 'Type any company name, ticker, or currency pair in the Watchlist search bar. It searches our local catalog and simultaneously searches global stocks, ETFs, crypto, and forex pairs.',
+      },
     ],
   },
   {
@@ -304,6 +332,14 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         q: 'What is the Portfolio tab for?',
         a: 'Track your personal holdings with live P&L (profit & loss). Add any stock, ETF, or crypto with the quantity and price you paid, and FloBoard shows your current value, total gain/loss, and daily change.',
+      },
+      {
+        q: 'Does the portfolio tracker require depositing money or bank login?',
+        a: 'No! FloBoard is 100% simulated and tracking-only. It never asks for any money, deposits, or personal banking information. You simply record your shares and cost basis manually.',
+      },
+      {
+        q: 'What does the Asset Allocation and Est. Div show?',
+        a: 'It automatically classifies your holdings into Stocks, Crypto, and Other, showing a percentage allocation bar and an estimated annual dividend yield-on-cost without any bank connection.',
       },
       {
         q: 'How do I add a holding?',
