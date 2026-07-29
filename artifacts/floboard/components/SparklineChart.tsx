@@ -22,16 +22,20 @@ async function fetchHistory(symbol: string, range: string): Promise<PricePoint[]
     }
   } catch { /* use fallback */ }
 
-  // Generate synthetic chart points so sparklines NEVER show "No chart data" or blank
+  // Generate realistic market price trend (no sine waves / sound waves)
   const basePrice = getFallbackQuote(symbol).regularMarketPrice || 100;
+  let currentPrice = +(basePrice * 0.955).toFixed(4);
   const count = range === '1d' ? 24 : 28;
   const now = Math.floor(Date.now() / 1000);
   const step = Math.floor((range === '1d' ? 86400 : 604800) / count);
   return Array.from({ length: count }, (_, i) => {
-    const factor = 1.0 + Math.sin(i * 0.4) * 0.008;
+    const pseudoRand = ((i * 9301 + 49297) % 233280) / 233280 - 0.45;
+    const changePct = pseudoRand * 0.012;
+    currentPrice = +(currentPrice * (1 + changePct)).toFixed(4);
+    if (i === count - 1) currentPrice = basePrice;
     return {
       t: now - (count - 1 - i) * step,
-      c: +(basePrice * factor).toFixed(4),
+      c: currentPrice,
     };
   });
 }

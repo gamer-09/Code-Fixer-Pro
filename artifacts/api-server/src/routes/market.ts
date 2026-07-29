@@ -377,14 +377,18 @@ router.get("/market/history", async (req, res) => {
     if (prices.length === 0) {
       const fallbackQuote = getFallbackQuote(sym);
       const basePrice = (fallbackQuote.regularMarketPrice as number) || 100;
+      let currentPrice = +(basePrice * 0.955).toFixed(4);
       const count = range === "1d" ? 24 : range === "7d" ? 28 : 30;
       const nowSec = Math.floor(Date.now() / 1000);
       const stepSec = Math.max(60, Math.floor(((Date.now() - period1.getTime()) / 1000) / count));
       prices = Array.from({ length: count }, (_, idx) => {
-        const factor = 1.0 + Math.sin(idx * 0.5) * 0.005;
+        const pseudoRand = ((idx * 9301 + 49297) % 233280) / 233280 - 0.45;
+        const changePct = pseudoRand * 0.012;
+        currentPrice = +(currentPrice * (1 + changePct)).toFixed(4);
+        if (idx === count - 1) currentPrice = basePrice;
         return {
           t: nowSec - (count - 1 - idx) * stepSec,
-          c: +(basePrice * factor).toFixed(4),
+          c: currentPrice,
         };
       });
     }
@@ -396,14 +400,18 @@ router.get("/market/history", async (req, res) => {
     req.log?.debug({ symbol: sym }, "Using fallback chart history");
     const fallbackQuote = getFallbackQuote(sym);
     const basePrice = (fallbackQuote.regularMarketPrice as number) || 100;
+    let currentPrice = +(basePrice * 0.955).toFixed(4);
     const count = range === "1d" ? 24 : range === "7d" ? 28 : 30;
     const nowSec = Math.floor(Date.now() / 1000);
     const stepSec = Math.max(60, Math.floor(((Date.now() - period1.getTime()) / 1000) / count));
     const prices = Array.from({ length: count }, (_, idx) => {
-      const factor = 1.0 + Math.sin(idx * 0.5) * 0.005;
+      const pseudoRand = ((idx * 9301 + 49297) % 233280) / 233280 - 0.45;
+      const changePct = pseudoRand * 0.012;
+      currentPrice = +(currentPrice * (1 + changePct)).toFixed(4);
+      if (idx === count - 1) currentPrice = basePrice;
       return {
         t: nowSec - (count - 1 - idx) * stepSec,
-        c: +(basePrice * factor).toFixed(4),
+        c: currentPrice,
       };
     });
     res.json({ symbol: sym, range, prices });

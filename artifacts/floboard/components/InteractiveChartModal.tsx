@@ -94,28 +94,38 @@ export default function InteractiveChartModal({
         if (cancelled) return;
         let pts = json?.prices ?? [];
         if (pts.length < 2) {
-          // Generate synthetic OHLC history around fallback price
+          // Generate realistic market chart trend (no sine waves or sound waves)
           const basePrice = getFallbackQuote(symbol).regularMarketPrice || 100;
+          let currentPrice = +(basePrice * 0.955).toFixed(4);
           const count = range === '1d' ? 24 : range === '1w' ? 28 : 40;
           const now = Math.floor(Date.now() / 1000);
           const step = Math.floor((range === '1d' ? 86400 : 604800) / count);
           pts = Array.from({ length: count }, (_, i) => {
-            const factor = 1.0 + Math.sin(i * 0.4) * 0.008;
-            const c = +(basePrice * factor).toFixed(4);
+            const pseudoRand = ((i * 9301 + 49297) % 233280) / 233280 - 0.45;
+            const changePct = pseudoRand * 0.012;
+            currentPrice = +(currentPrice * (1 + changePct)).toFixed(4);
+            if (i === count - 1) currentPrice = basePrice;
+            const c = currentPrice;
+            const o = +(c * (1 - pseudoRand * 0.005)).toFixed(4);
+            const spread = Math.abs(c - o) * 0.4 + c * 0.0008;
+            const h = +(Math.max(o, c) + spread).toFixed(4);
+            const l = +(Math.min(o, c) - spread).toFixed(4);
             return {
               t: now - (count - 1 - i) * step,
               c,
-              o: +(c * 0.998).toFixed(4),
-              h: +(c * 1.006).toFixed(4),
-              l: +(c * 0.994).toFixed(4),
+              o,
+              h,
+              l,
             };
           });
         } else {
-          // Augment line points with OHLC estimates if missing, ensuring realistic green/red candle alternation
+          // Augment line points with subtle, realistic OHLC candle bodies (no artificial sound wave wicks)
           pts = pts.map((p, idx, arr) => {
-            const o = p.o ?? (idx > 0 ? arr[idx - 1].c : +(p.c * 0.999).toFixed(4));
-            const h = p.h ?? +(Math.max(o, p.c) * 1.0015).toFixed(4);
-            const l = p.l ?? +(Math.min(o, p.c) * 0.9985).toFixed(4);
+            const prevC = idx > 0 ? arr[idx - 1].c : p.c;
+            const o = p.o ?? prevC;
+            const spread = Math.abs(p.c - o) * 0.35 + p.c * 0.0008;
+            const h = p.h ?? +(Math.max(o, p.c) + spread).toFixed(4);
+            const l = p.l ?? +(Math.min(o, p.c) - spread).toFixed(4);
             return {
               ...p,
               o,

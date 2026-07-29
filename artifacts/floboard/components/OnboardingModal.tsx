@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import Svg, { Circle, Line, Path, Polyline, Rect } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSettings } from '@/context/SettingsContext';
 
 const ONBOARDING_KEY = '@floboard:onboarded_v1';
@@ -161,6 +162,7 @@ interface OnboardingModalProps {
 
 function OnboardingContent({ onDone }: OnboardingModalProps) {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const { settings, updateSetting } = useSettings();
   const [page, setPage] = useState(0);
   const [keyDraft, setKeyDraft] = useState('');
@@ -359,7 +361,7 @@ function OnboardingContent({ onDone }: OnboardingModalProps) {
       </ScrollView>
 
       {/* Navigation */}
-      <View style={[styles.nav, { borderTopColor: colors.rim }]}>
+      <View style={[styles.nav, { borderTopColor: colors.rim, paddingBottom: Math.max(16, insets.bottom + 16) }]}>
         {/* Page dots */}
         <View style={styles.dots}>
           {PAGES.map((_, i) => (
