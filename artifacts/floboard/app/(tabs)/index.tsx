@@ -1,5 +1,5 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import SparklineChart from '@/components/SparklineChart';
 import {
   ActivityIndicator,
@@ -17,7 +17,7 @@ import { IconRefreshCw } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
 import { useSettings } from '@/context/SettingsContext';
-import { BONDS, COMMODITIES, FOREX, INDICES, SECTORS, STOCKS } from '@/constants/marketData';
+import { BONDS, COMMODITIES, CRYPTOS, EXTRA_SYMBOLS, FOREX, INDICES, SECTORS, STOCKS } from '@/constants/marketData';
 
 function LivePulse({ online = true }: { online?: boolean }) {
   const anim = useRef(new Animated.Value(1)).current;
@@ -441,8 +441,27 @@ function BondsSection() {
 function MoversSection() {
   const colors = useColors();
   const { data } = useMarket();
+  const [moverTab, setMoverTab] = useState<'All' | 'Stocks' | 'Crypto' | 'Forex'>('All');
 
-  const loaded = STOCKS.filter((s) => data[s.sym] != null);
+  const universe = useMemo(() => {
+    if (moverTab === 'Stocks') {
+      return STOCKS.map((s) => ({ sym: s.sym, name: s.name }));
+    }
+    if (moverTab === 'Crypto') {
+      return CRYPTOS.map((c) => ({ sym: c.sym, name: c.name }));
+    }
+    if (moverTab === 'Forex') {
+      return FOREX.map((f) => ({ sym: f.sym, name: f.label }));
+    }
+    return [
+      ...STOCKS.map((s) => ({ sym: s.sym, name: s.name })),
+      ...CRYPTOS.map((c) => ({ sym: c.sym, name: c.name })),
+      ...FOREX.map((f) => ({ sym: f.sym, name: f.label })),
+      ...COMMODITIES.map((c) => ({ sym: c.sym, name: c.label })),
+    ];
+  }, [moverTab]);
+
+  const loaded = universe.filter((s) => data[s.sym] != null);
   if (loaded.length < 4) return null;
 
   const sorted = [...loaded].sort(
@@ -454,7 +473,6 @@ function MoversSection() {
   const MoverRow = ({ sym, name, col }: { sym: string; name: string; col: string }) => {
     const d = data[sym];
     const chg = d?.regularMarketChangePercent ?? 0;
-    const chgAbs = d?.regularMarketChange ?? 0;
     return (
       <View style={[styles.moverRow, { borderBottomColor: colors.rim }]}>
         <View style={{ flex: 1 }}>
@@ -463,7 +481,9 @@ function MoversSection() {
         </View>
         <View style={{ alignItems: 'flex-end' }}>
           <Text style={[styles.moverChg, { color: col }]}>{fmtChg(chg)}</Text>
-          <Text style={[styles.moverPrice, { color: colors.t3 }]}>${fmt(d?.regularMarketPrice)}</Text>
+          <Text style={[styles.moverPrice, { color: colors.t3 }]}>
+            ${fmt(d?.regularMarketPrice, sym.includes('=X') || sym.includes('/') ? 4 : 2)}
+          </Text>
         </View>
       </View>
     );
@@ -471,7 +491,31 @@ function MoversSection() {
 
   return (
     <View style={styles.section}>
-      <SectionHeader label="Today's Top Movers" />
+      <View style={styles.secHdRow}>
+        <SectionHeader label="Today's Top Movers" />
+        <View style={styles.moverTabs}>
+          {(['All', 'Stocks', 'Crypto', 'Forex'] as const).map((t) => {
+            const active = moverTab === t;
+            return (
+              <Pressable
+                key={t}
+                onPress={() => setMoverTab(t)}
+                style={[
+                  styles.moverTabBtn,
+                  {
+                    backgroundColor: active ? colors.blue : colors.card,
+                    borderColor: active ? colors.blue : colors.rim,
+                  },
+                ]}
+              >
+                <Text style={[styles.moverTabBtnText, { color: active ? '#fff' : colors.t3 }]}>
+                  {t}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
       <View style={styles.moversGrid}>
         <View style={[styles.moversCol, { backgroundColor: colors.card, borderColor: 'rgba(0,229,160,0.2)' }]}>
           <View style={[styles.moversColHd, { borderBottomColor: colors.rim }]}>
@@ -800,6 +844,26 @@ const styles = StyleSheet.create({
   macroDivider: { width: 1, marginVertical: 4 },
 
   // Movers
+  secHdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  moverTabs: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  moverTabBtn: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  moverTabBtnText: {
+    fontSize: 10,
+    fontFamily: 'Inter_600SemiBold',
+  },
   moversGrid: { flexDirection: 'row', gap: 8 },
   moversCol: { flex: 1, borderRadius: 8, borderWidth: 1, overflow: 'hidden' },
   moversColHd: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, paddingBottom: 8, borderBottomWidth: 1 },

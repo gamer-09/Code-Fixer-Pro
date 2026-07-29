@@ -171,7 +171,7 @@ const HELP_SECTIONS: HelpSection[] = [
       },
       {
         q: 'What are the Top Movers?',
-        a: 'The Movers section on the Markets tab ranks the biggest gainers and losers of the day from the tracked stocks list, updated each refresh.',
+        a: 'The Movers section on the Markets tab ranks the biggest gainers and losers of the day. You can use the filter tabs (All, Stocks, Crypto, Forex) to scan across the entire global universe or toggle asset classes separately.',
       },
       {
         q: 'What are the 7-day sparkline charts?',
