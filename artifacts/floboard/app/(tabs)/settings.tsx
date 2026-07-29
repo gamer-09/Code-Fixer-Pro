@@ -21,6 +21,7 @@ import Svg, { Circle, Line, Path, Polyline, Rect } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
 import {
   AlertThreshold,
+  AppTheme,
   EarningsWindow,
   NewsCount,
   PriceDecimals,
@@ -607,6 +608,16 @@ export default function SettingsScreen() {
           label="DISPLAY"
           icon={<Icon.Eye c={colors.blue} s={14} />}
           color={colors.blue}
+        />
+        <SegmentRow<AppTheme>
+          label="App theme"
+          icon={<Icon.Eye c={colors.blue} s={15} />}
+          desc="Color theme across all screens and charts."
+          options={['dark', 'light', 'oled']}
+          value={settings.theme || 'dark'}
+          onSelect={(v) => updateSetting('theme', v)}
+          format={(v) => (v === 'dark' ? 'Dark' : v === 'light' ? 'Light' : 'OLED')}
+          activeColor={colors.blue}
         />
         <SegmentRow<PriceDecimals>
           label="Price decimal places"

@@ -36,7 +36,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Body({ children }: { children: string }) {
+function Body({ children }: { children: React.ReactNode }) {
   const colors = useColors();
   return <Text style={[styles.body, { color: colors.t3 }]}>{children}</Text>;
 }

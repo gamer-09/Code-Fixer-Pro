@@ -176,7 +176,7 @@ export const FOREX = [
   { sym: 'XAGUSD=X', label: 'XAG/USD' },
   { sym: 'XPTUSD=X', label: 'XPT/USD' },
   { sym: 'XPDUSD=X', label: 'XPD/USD' },
-  // ── Majors
+  // ── Majors (7 most liquid USD pairs)
   { sym: 'EURUSD=X', label: 'EUR/USD' },
   { sym: 'GBPUSD=X', label: 'GBP/USD' },
   { sym: 'USDJPY=X', label: 'USD/JPY' },
@@ -184,8 +184,6 @@ export const FOREX = [
   { sym: 'AUDUSD=X', label: 'AUD/USD' },
   { sym: 'NZDUSD=X', label: 'NZD/USD' },
   { sym: 'USDCAD=X', label: 'USD/CAD' },
-  { sym: 'USDSGD=X', label: 'USD/SGD' },
-  { sym: 'USDHKD=X', label: 'USD/HKD' },
   // ── EUR Crosses
   { sym: 'EURGBP=X', label: 'EUR/GBP' },
   { sym: 'EURJPY=X', label: 'EUR/JPY' },
@@ -219,7 +217,9 @@ export const FOREX = [
   // ── CHF / JPY / SGD Crosses
   { sym: 'CHFJPY=X', label: 'CHF/JPY' },
   { sym: 'SGDJPY=X', label: 'SGD/JPY' },
-  // ── USD vs Asia-Pacific EM
+  // ── USD vs Asia-Pacific EM / Exotics
+  { sym: 'USDSGD=X', label: 'USD/SGD' },
+  { sym: 'USDHKD=X', label: 'USD/HKD' },
   { sym: 'USDCNY=X', label: 'USD/CNY' },
   { sym: 'USDCNH=X', label: 'USD/CNH' },
   { sym: 'USDINR=X', label: 'USD/INR' },

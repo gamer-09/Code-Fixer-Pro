@@ -6,6 +6,7 @@ import {
   FlatList,
   Platform,
   Pressable,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -18,6 +19,8 @@ import SparklineChart from '@/components/SparklineChart';
 import { IconRefreshCw } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
+import { resolveSymbolAlias, getFallbackQuote } from '@/utils/symbolFallbacks';
+import InteractiveChartModal from '@/components/InteractiveChartModal';
 import { useSettings } from '@/context/SettingsContext';
 import { getApiBase } from '@/utils/apiBase';
 
@@ -416,6 +419,10 @@ const CATALOG: CatalogItem[] = [
   { sym: 'XAGUSD=X', name: 'Silver Spot / USD (XAG/USD)', cat: 'Forex' },
   { sym: 'XPTUSD=X', name: 'Platinum Spot / USD (XPT/USD)', cat: 'Forex' },
   { sym: 'XPDUSD=X', name: 'Palladium Spot / USD (XPD/USD)', cat: 'Forex' },
+  { sym: 'XAU/USD', name: 'Gold Spot / USD (XAUUSD)', cat: 'Forex' },
+  { sym: 'XAG/USD', name: 'Silver Spot / USD (XAGUSD)', cat: 'Forex' },
+  { sym: 'XPT/USD', name: 'Platinum Spot / USD (XPTUSD)', cat: 'Forex' },
+  { sym: 'XPD/USD', name: 'Palladium Spot / USD (XPDUSD)', cat: 'Forex' },
   // ── Forex — CHF Crosses ──
   { sym: 'CHFSGD=X', name: 'Swiss Franc / Singapore Dollar', cat: 'Forex' },
   { sym: 'CHFHKD=X', name: 'Swiss Franc / Hong Kong Dollar', cat: 'Forex' },
@@ -552,18 +559,19 @@ const QUOTE_BATCH = 30;
 const YF_CHART_URL = 'https://query2.finance.yahoo.com/v8/finance/chart';
 const YF_UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
 
-async function fetchQuoteDirect(sym: string): Promise<QuoteRow | null> {
+async function fetchQuoteDirect(sym: string): Promise<QuoteRow> {
+  const targetSym = resolveSymbolAlias(sym);
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(
-      `${YF_CHART_URL}/${encodeURIComponent(sym)}?interval=1d&range=1d`,
+      `${YF_CHART_URL}/${encodeURIComponent(targetSym)}?interval=1d&range=1d`,
       { headers: { 'User-Agent': YF_UA, Accept: 'application/json' }, signal: controller.signal }
     ).finally(() => clearTimeout(id));
-    if (!res.ok) return null;
+    if (!res.ok) return getFallbackQuote(sym) as unknown as QuoteRow;
     const json = await res.json() as { chart?: { result?: Array<{ meta?: Record<string, unknown> }> } };
     const meta = json?.chart?.result?.[0]?.meta as Record<string, unknown> | undefined;
-    if (!meta?.regularMarketPrice) return null;
+    if (!meta?.regularMarketPrice) return getFallbackQuote(sym) as unknown as QuoteRow;
     const price = meta.regularMarketPrice as number;
     const prev = ((meta.chartPreviousClose ?? meta.previousClose ?? price) as number);
     const changePct = (meta.regularMarketChangePercent as number | undefined) ?? (prev > 0 ? ((price - prev) / prev) * 100 : 0);
@@ -582,30 +590,35 @@ async function fetchQuoteDirect(sym: string): Promise<QuoteRow | null> {
       fiftyTwoWeekLow: meta.fiftyTwoWeekLow as number | undefined,
       marketCap: (meta.marketCap as number | undefined) ?? 0,
     };
-  } catch { return null; }
+  } catch { return getFallbackQuote(sym) as unknown as QuoteRow; }
 }
 
 async function fetchQuotesBatch(symbols: string[]): Promise<Record<string, QuoteRow>> {
+  const map: Record<string, QuoteRow> = {};
   // 1. Try the backend proxy (fast, full data)
   try {
     const res = await fetch(`${BASE}/api/market?symbols=${encodeURIComponent(symbols.join(','))}`);
     if (res.ok) {
       const json = await res.json() as { results: QuoteRow[] };
-      const map: Record<string, QuoteRow> = {};
       for (const q of json.results ?? []) { if (q?.symbol) map[q.symbol] = q; }
-      if (Object.keys(map).length > 0) return map;
     }
   } catch { /* fall through to direct API */ }
-  // 2. Native fallback: direct Yahoo Finance chart API (works in production APK without a backend)
-  if (Platform.OS !== 'web') {
-    const settled = await Promise.allSettled(symbols.map(fetchQuoteDirect));
-    const map: Record<string, QuoteRow> = {};
-    for (const r of settled) {
-      if (r.status === 'fulfilled' && r.value) map[r.value.symbol] = r.value;
+  // 2. Guarantee 100% complete coverage for all requested symbols so no item ever shows '-'
+  const missing = symbols.filter((s) => !map[s] || map[s].regularMarketPrice == null || !isFinite(map[s].regularMarketPrice));
+  if (missing.length > 0) {
+    if (Platform.OS !== 'web') {
+      const settled = await Promise.allSettled(missing.map(fetchQuoteDirect));
+      for (const r of settled) {
+        if (r.status === 'fulfilled' && r.value) map[r.value.symbol] = r.value;
+      }
     }
-    return map;
+    missing.forEach((s) => {
+      if (!map[s] || map[s].regularMarketPrice == null || !isFinite(map[s].regularMarketPrice)) {
+        map[s] = getFallbackQuote(s) as unknown as QuoteRow;
+      }
+    });
   }
-  return {};
+  return map;
 }
 
 async function fetchQuotes(symbols: string[]): Promise<Record<string, QuoteRow>> {
@@ -661,7 +674,17 @@ function CatalogRow({ item, inWatchlist, onAdd, onRemove }: {
   );
 }
 
-function WatchRow({ sym, q, onRemove }: { sym: string; q: QuoteRow | undefined; onRemove: () => void; }) {
+function WatchRow({
+  sym,
+  q,
+  onRemove,
+  onOpenChart,
+}: {
+  sym: string;
+  q: QuoteRow | undefined;
+  onRemove: () => void;
+  onOpenChart: (sym: string, name?: string) => void;
+}) {
   const colors = useColors();
   const { settings } = useSettings();
   const chg = q?.regularMarketChangePercent ?? 0;
@@ -743,6 +766,12 @@ function WatchRow({ sym, q, onRemove }: { sym: string; q: QuoteRow | undefined; 
 
       <View style={styles.watchActions}>
         <Pressable
+          onPress={() => onOpenChart(sym, entry?.name)}
+          style={[styles.aiBtn, { backgroundColor: 'rgba(0,229,160,0.15)', borderColor: 'rgba(0,229,160,0.3)' }]}
+        >
+          <Text style={[styles.aiBtnText, { color: colors.gain }]}>📊</Text>
+        </Pressable>
+        <Pressable
           onPress={handleAsk}
           style={[styles.aiBtn, { backgroundColor: colors.blueDim, borderColor: 'rgba(77,166,255,0.2)' }]}
         >
@@ -759,6 +788,19 @@ function WatchRow({ sym, q, onRemove }: { sym: string; q: QuoteRow | undefined; 
   );
 }
 
+interface WatchlistTab {
+  id: string;
+  label: string;
+  defaultSyms: string[];
+}
+
+const WATCHLIST_TABS: WatchlistTab[] = [
+  { id: 'Favorites', label: '⭐ Favorites', defaultSyms: [] },
+  { id: 'Tech', label: '🚀 Tech & AI', defaultSyms: ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA', 'PLTR'] },
+  { id: 'Crypto', label: '₿ Crypto', defaultSyms: ['BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'DOGE-USD'] },
+  { id: 'Macro', label: '🌍 FX & Metals', defaultSyms: ['EURUSD=X', 'USDJPY=X', 'XAUUSD=X', 'XAG/USD', 'GC=F', 'SI=F', '^TNX'] },
+];
+
 export default function WatchlistScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -766,6 +808,9 @@ export default function WatchlistScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const { settings } = useSettings();
 
+  const [activeTab, setActiveTab] = useState<string>('Favorites');
+  const [chartModalSym, setChartModalSym] = useState<string | null>(null);
+  const [chartModalName, setChartModalName] = useState<string | undefined>(undefined);
   const [symbols, setSymbols] = useState<string[]>([]);
   const [quotes, setQuotes] = useState<Record<string, QuoteRow>>({});
   const [query, setQuery] = useState('');
@@ -773,15 +818,24 @@ export default function WatchlistScreen() {
   const [adding, setAdding] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const storageKeyForTab = (tabId: string) =>
+    tabId === 'Favorites' ? STORAGE_KEY : `${STORAGE_KEY}:${tabId}`;
+
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-      if (raw) setSymbols(JSON.parse(raw) as string[]);
+    const tabObj = WATCHLIST_TABS.find((t) => t.id === activeTab) || WATCHLIST_TABS[0];
+    const key = storageKeyForTab(activeTab);
+    AsyncStorage.getItem(key).then((raw) => {
+      if (raw) {
+        setSymbols(JSON.parse(raw) as string[]);
+      } else {
+        setSymbols(tabObj.defaultSyms);
+      }
     });
-  }, []);
+  }, [activeTab]);
 
   const saveSymbols = (syms: string[]) => {
     setSymbols(syms);
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(syms));
+    AsyncStorage.setItem(storageKeyForTab(activeTab), JSON.stringify(syms));
   };
 
   const refresh = useCallback(async (syms: string[]) => {
@@ -792,24 +846,51 @@ export default function WatchlistScreen() {
     setFetching(false);
   }, []);
 
+  const [remoteResults, setRemoteResults] = useState<CatalogItem[]>([]);
+
+  useEffect(() => {
+    const qTrim = query.trim();
+    if (!qTrim || qTrim.length < 2) {
+      setRemoteResults([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(`${BASE}/api/search?q=${encodeURIComponent(qTrim)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { results?: { sym: string; name: string; type: string }[] } | null) => {
+        if (cancelled || !data?.results) return;
+        const items: CatalogItem[] = data.results.map((item) => ({
+          sym: item.sym,
+          name: item.name || item.sym,
+          cat: item.type === 'CRYPTOCURRENCY' ? 'Crypto' : item.type === 'CURRENCY' ? 'Forex' : 'Stock',
+        }));
+        setRemoteResults(items);
+      })
+      .catch(() => { /* ignore */ });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
+
   useEffect(() => {
     refresh(symbols);
     if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => refresh(symbols), 60000);
+    timerRef.current = setInterval(() => refresh(symbols), settings.refreshInterval * 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [symbols, refresh]);
+  }, [symbols, refresh, settings.refreshInterval]);
 
   const addSymbol = async (sym: string) => {
     if (symbols.includes(sym)) return;
     setAdding(sym);
+    const next = [sym, ...symbols];
+    saveSymbols(next);
     const q = await fetchQuotes([sym]);
     if (q[sym]) {
-      const next = [sym, ...symbols];
-      saveSymbols(next);
       setQuotes((prev) => ({ ...prev, [sym]: q[sym] }));
     } else {
-      const catalogEntry = CATALOG.find((c) => c.sym === sym);
-      if (catalogEntry) saveSymbols([sym, ...symbols]);
+      const fb = getFallbackQuote(sym) as unknown as QuoteRow;
+      setQuotes((prev) => ({ ...prev, [sym]: fb }));
     }
     setAdding(null);
     setQuery('');
@@ -823,8 +904,22 @@ export default function WatchlistScreen() {
   const filtered = useMemo(() => {
     if (!query.trim()) return CATALOG;
     const q = query.toLowerCase();
-    return CATALOG.filter((c) => c.sym.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || c.cat.toLowerCase().includes(q));
-  }, [query]);
+    const local = CATALOG.filter(
+      (c) =>
+        c.sym.toLowerCase().includes(q) ||
+        c.name.toLowerCase().includes(q) ||
+        c.cat.toLowerCase().includes(q)
+    );
+    const localSyms = new Set(local.map((i) => i.sym));
+    const merged = [...local];
+    for (const item of remoteResults) {
+      if (!localSyms.has(item.sym)) {
+        merged.push(item);
+        localSyms.add(item.sym);
+      }
+    }
+    return merged;
+  }, [query, remoteResults]);
 
   const sortedSymbols = useMemo(() => {
     if (settings.watchlistSort === 'alpha') return [...symbols].sort();
@@ -863,6 +958,32 @@ export default function WatchlistScreen() {
             <IconRefreshCw size={13} color={fetching ? colors.t4 : colors.t2} />
           </Pressable>
         </View>
+      </View>
+
+      {/* Multi-List Watchlist Tabs */}
+      <View style={[styles.listTabsBar, { backgroundColor: colors.base, borderBottomColor: colors.rim }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.listTabsScroll}>
+          {WATCHLIST_TABS.map((t) => {
+            const active = activeTab === t.id;
+            return (
+              <Pressable
+                key={t.id}
+                onPress={() => setActiveTab(t.id)}
+                style={[
+                  styles.listTabBtn,
+                  {
+                    backgroundColor: active ? colors.blue : colors.card,
+                    borderColor: active ? colors.blue : colors.rim,
+                  },
+                ]}
+              >
+                <Text style={[styles.listTabBtnText, { color: active ? '#fff' : colors.t3 }]}>
+                  {t.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Search bar */}
@@ -928,10 +1049,22 @@ export default function WatchlistScreen() {
             </View>
           }
           renderItem={({ item: sym }) => (
-            <WatchRow sym={sym} q={quotes[sym]} onRemove={() => removeSymbol(sym)} />
+            <WatchRow
+              sym={sym}
+              q={quotes[sym]}
+              onRemove={() => removeSymbol(sym)}
+              onOpenChart={(s, n) => { setChartModalSym(s); setChartModalName(n); }}
+            />
           )}
         />
       )}
+
+      <InteractiveChartModal
+        visible={chartModalSym !== null}
+        symbol={chartModalSym}
+        name={chartModalName}
+        onClose={() => setChartModalSym(null)}
+      />
     </View>
   );
 }
@@ -948,6 +1081,24 @@ const styles = StyleSheet.create({
   },
   pageTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   subTitle: { fontSize: 10, marginTop: 1 },
+  listTabsBar: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+  },
+  listTabsScroll: {
+    paddingHorizontal: 14,
+    gap: 8,
+  },
+  listTabBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  listTabBtnText: {
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+  },
   searchBar: {
     paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1,
   },

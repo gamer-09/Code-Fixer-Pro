@@ -215,6 +215,18 @@ export default function PortfolioScreen() {
   const totalPnlPct = totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0;
   const pnlColor = totalPnl >= 0 ? colors.gain : colors.loss;
 
+  const stockVal = holdings.filter((h) => STOCKS.some((s) => s.sym === h.sym)).reduce((acc, h) => acc + (data[h.sym]?.regularMarketPrice ?? 0) * h.qty, 0);
+  const cryptoVal = holdings.filter((h) => CRYPTOS.some((c) => c.sym === h.sym)).reduce((acc, h) => acc + (data[h.sym]?.regularMarketPrice ?? 0) * h.qty, 0);
+  const otherVal = Math.max(0, totalValue - stockVal - cryptoVal);
+  const stockPct = totalValue > 0 ? (stockVal / totalValue) * 100 : 0;
+  const cryptoPct = totalValue > 0 ? (cryptoVal / totalValue) * 100 : 0;
+  const otherPct = totalValue > 0 ? (otherVal / totalValue) * 100 : 0;
+  const estDiv = holdings.reduce((acc, h) => {
+    const isStk = STOCKS.some((s) => s.sym === h.sym);
+    const val = (data[h.sym]?.regularMarketPrice ?? 0) * h.qty;
+    return acc + (isStk ? val * 0.018 : 0);
+  }, 0);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.void }]}>
       {/* Header */}
@@ -272,6 +284,41 @@ export default function PortfolioScreen() {
               {totalPnl >= 0 ? '▲' : '▼'} {totalPnl >= 0 ? '+' : ''}${fmt(Math.abs(totalPnl))} unrealised
             </Text>
             <Text style={[styles.holdingCount, { color: pnlColor }]}>{holdings.length} position{holdings.length !== 1 ? 's' : ''}</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Asset Allocation & Advanced Analytics Card */}
+      {holdings.length > 0 && (
+        <View style={[styles.analyticsBox, { backgroundColor: colors.surface, borderBottomColor: colors.rim }]}>
+          <View style={styles.allocHeader}>
+            <Text style={[styles.allocTitle, { color: colors.t3 }]}>ASSET ALLOCATION (SIMULATED / NO DEPOSITS NEEDED)</Text>
+            <Text style={[styles.allocDivVal, { color: colors.gain }]}>Est. Div: ${fmt(estDiv, 2)}/yr</Text>
+          </View>
+          <View style={styles.allocTrack}>
+            {stockPct > 0 && (
+              <View style={[styles.allocSegment, { width: `${stockPct}%`, backgroundColor: colors.blue }]} />
+            )}
+            {cryptoPct > 0 && (
+              <View style={[styles.allocSegment, { width: `${cryptoPct}%`, backgroundColor: '#FF9900' }]} />
+            )}
+            {otherPct > 0 && (
+              <View style={[styles.allocSegment, { width: `${otherPct}%`, backgroundColor: colors.gain }]} />
+            )}
+          </View>
+          <View style={styles.allocLegend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: colors.blue }]} />
+              <Text style={[styles.legendText, { color: colors.t3 }]}>Stocks ({stockPct.toFixed(0)}%)</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#FF9900' }]} />
+              <Text style={[styles.legendText, { color: colors.t3 }]}>Crypto ({cryptoPct.toFixed(0)}%)</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: colors.gain }]} />
+              <Text style={[styles.legendText, { color: colors.t3 }]}>Other ({otherPct.toFixed(0)}%)</Text>
+            </View>
           </View>
         </View>
       )}
@@ -351,6 +398,55 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1,
   },
   pageTitle: { fontSize: 20, fontFamily: 'Inter_700Bold' },
+  analyticsBox: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    gap: 8,
+  },
+  allocHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  allocTitle: {
+    fontSize: 10,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 0.8,
+  },
+  allocDivVal: {
+    fontSize: 11,
+    fontFamily: 'Inter_700Bold',
+  },
+  allocTrack: {
+    height: 8,
+    borderRadius: 4,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    backgroundColor: '#2A3344',
+  },
+  allocSegment: {
+    height: '100%',
+  },
+  allocLegend: {
+    flexDirection: 'row',
+    gap: 14,
+    flexWrap: 'wrap',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  legendDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  legendText: {
+    fontSize: 10,
+    fontFamily: 'Inter_500Medium',
+  },
   refreshBtn: {
     width: 30, height: 30, borderRadius: 8, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
