@@ -770,7 +770,7 @@ function WatchRow({
           </View>
         )}
         <View style={styles.watchChart}>
-          <SparklineChart symbol={sym} range="7d" width={84} height={34} />
+          <SparklineChart symbol={sym} range="7d" width={68} height={34} />
         </View>
       </View>
 
@@ -1145,13 +1145,13 @@ const styles = StyleSheet.create({
     borderRadius: 10, borderWidth: 1, overflow: 'hidden',
   },
   watchRowAccent: { width: 3, alignSelf: 'stretch' },
-  watchLeft: { flex: 1.8, padding: 11, gap: 2 },
+  watchLeft: { flex: 1, paddingLeft: 10, paddingVertical: 10, gap: 2, flexShrink: 1 },
   watchSymRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   watchSym: { fontSize: 13, fontFamily: 'Inter_700Bold' },
   watchName: { fontSize: 9 },
   ohlcRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   ohlcText: { fontSize: 9, fontFamily: 'Inter_500Medium' },
-  watchMid: { flex: 1.4, alignItems: 'flex-end', paddingRight: 8, paddingVertical: 8 },
+  watchMid: { flexShrink: 1, alignItems: 'flex-end', paddingRight: 6, paddingVertical: 8 },
   watchChart: { marginTop: 6, alignItems: 'flex-end' },
   watchPrice: { fontSize: 14, fontFamily: 'Inter_700Bold' },
   watchChg: { fontSize: 11, fontFamily: 'Inter_600SemiBold', marginTop: 2 },
@@ -1159,7 +1159,7 @@ const styles = StyleSheet.create({
   extLabel: { borderRadius: 3, paddingHorizontal: 4, paddingVertical: 1 },
   extLabelText: { fontSize: 7, fontFamily: 'Inter_700Bold', letterSpacing: 0.5 },
   extPrice: { fontSize: 9, fontFamily: 'Inter_500Medium' },
-  watchActions: { flexDirection: 'column', gap: 5, paddingRight: 10, paddingVertical: 10 },
+  watchActions: { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, paddingRight: 10, paddingLeft: 4, paddingVertical: 8, flexShrink: 0 },
   aiBtn: { borderRadius: 6, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 5, alignItems: 'center' },
   aiBtnText: { fontSize: 10, fontFamily: 'Inter_700Bold' },
   removeBtn: { borderRadius: 6, borderWidth: 1, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },

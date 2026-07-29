@@ -849,10 +849,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 10,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   moverTabs: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 5,
+    flexWrap: 'wrap',
   },
   moverTabBtn: {
     paddingHorizontal: 9,

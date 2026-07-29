@@ -850,7 +850,7 @@ const styles = StyleSheet.create({
 
   // Filter tabs
   filterBar: { borderBottomWidth: 1 },
-  filterScroll: { paddingHorizontal: 12, paddingVertical: 9, gap: 6, flexDirection: 'row' },
+  filterScroll: { paddingLeft: 12, paddingRight: 24, paddingVertical: 9, gap: 6, flexDirection: 'row' },
   filterTab: {
     borderRadius: 6, borderWidth: 1,
     paddingHorizontal: 13, paddingVertical: 6,

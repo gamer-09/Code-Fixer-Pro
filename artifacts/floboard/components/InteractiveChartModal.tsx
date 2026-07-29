@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import Svg, { Defs, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
@@ -175,7 +176,8 @@ export default function InteractiveChartModal({
   });
 
   // SVG dimensions
-  const chartW = 340;
+  const { width: winW } = useWindowDimensions();
+  const chartW = Math.max(260, Math.min(winW - 32, 380));
   const chartH = 200;
   const pad = 12;
   const minP = Math.min(...points.map((p) => p.l ?? p.c));
@@ -454,11 +456,13 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 14,
     borderWidth: 1,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   priceVal: { fontSize: 24, fontFamily: 'Inter_700Bold' },
   chgBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
   chgText: { fontSize: 14, fontFamily: 'Inter_700Bold' },
-  rangeRow: { flexDirection: 'row', gap: 6, justifyContent: 'space-between' },
+  rangeRow: { flexDirection: 'row', gap: 6, justifyContent: 'space-between', flexWrap: 'wrap' },
   rangeBtn: {
     flex: 1,
     paddingVertical: 8,
