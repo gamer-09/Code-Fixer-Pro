@@ -20,7 +20,6 @@ import { IconRefreshCw } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
 import { resolveSymbolAlias, getFallbackQuote } from '@/utils/symbolFallbacks';
-import InteractiveChartModal from '@/components/InteractiveChartModal';
 import { useSettings } from '@/context/SettingsContext';
 import { useResponsive } from '@/hooks/useResponsive';
 import { getApiBase } from '@/utils/apiBase';
@@ -689,12 +688,14 @@ function WatchRow({
   sym,
   q,
   onRemove,
-  onOpenChart,
+  expanded,
+  onToggle,
 }: {
   sym: string;
   q: QuoteRow | undefined;
   onRemove: () => void;
-  onOpenChart: (sym: string, name?: string) => void;
+  expanded: boolean;
+  onToggle: () => void;
 }) {
   const colors = useColors();
   const { settings } = useSettings();
@@ -722,81 +723,139 @@ function WatchRow({
   const showExt = settings.showExtendedHours;
 
   return (
-    <View style={[styles.watchRow, { backgroundColor: colors.card, borderColor: colors.rim }]}>
-      <View style={[styles.watchRowAccent, { backgroundColor: accentColor }]} />
-      <View style={styles.watchLeft}>
-        <View style={styles.watchSymRow}>
-          <Text style={[styles.watchSym, { color: colors.t1 }]}>{sym}</Text>
-          {entry && <CatBadge cat={entry.cat} />}
-        </View>
-        {entry && <Text style={[styles.watchName, { color: colors.t4 }]} numberOfLines={1}>{entry.name}</Text>}
-        {q && (
-          <View style={styles.ohlcRow}>
-            {q.regularMarketOpen != null && (
-              <Text style={[styles.ohlcText, { color: colors.t4 }]}>O {prefix}{fmt(q.regularMarketOpen, decimals)}</Text>
-            )}
-            {q.regularMarketDayHigh != null && (
-              <Text style={[styles.ohlcText, { color: colors.gain }]}>H {prefix}{fmt(q.regularMarketDayHigh, decimals)}</Text>
-            )}
-            {q.regularMarketDayLow != null && (
-              <Text style={[styles.ohlcText, { color: colors.loss }]}>L {prefix}{fmt(q.regularMarketDayLow, decimals)}</Text>
-            )}
-          </View>
-        )}
-        {q && (
-          <View style={styles.ohlcRow}>
-            <Text style={[styles.ohlcText, { color: colors.t4 }]}>Prev {prefix}{fmt(q.regularMarketPreviousClose, decimals)}</Text>
-            {!isForex && !isBond && <Text style={[styles.ohlcText, { color: colors.t4 }]}>{fmtMcap(q.marketCap, settings.compactNumbers)}</Text>}
-          </View>
-        )}
-        {q && q.fiftyTwoWeekHigh != null && q.fiftyTwoWeekLow != null && (
-          <Text style={[styles.ohlcText, { color: colors.t4, marginTop: 1 }]}>
-            52W {prefix}{fmt(q.fiftyTwoWeekLow, decimals)}–{prefix}{fmt(q.fiftyTwoWeekHigh, decimals)}
-          </Text>
-        )}
-      </View>
-
-      <View style={styles.watchMid}>
-        <Text style={[styles.watchPrice, { color: colors.t1 }]}>
-          {q ? `${prefix}${fmt(q.regularMarketPrice, decimals)}` : '—'}
-        </Text>
-        <Text style={[styles.watchChg, { color: chgColor }]}>{q ? fmtChg(chg) : '—'}</Text>
-        {showExt && extPrice != null && extLabel && (
-          <View style={styles.extRow}>
-            <View style={[styles.extLabel, { backgroundColor: colors.amberDim }]}>
-              <Text style={[styles.extLabelText, { color: colors.amber }]}>{extLabel}</Text>
+    <Pressable onPress={onToggle}>
+      {({ pressed }) => (
+        <View style={[styles.watchRow, { backgroundColor: pressed ? colors.surface : colors.card, borderColor: expanded ? accentColor + '66' : colors.rim }]}>
+          <View style={[styles.watchRowAccent, { backgroundColor: expanded ? accentColor : 'transparent' }]} />
+          <View style={styles.watchRowMain}>
+            <View style={styles.watchLeft}>
+              <View style={styles.watchSymRow}>
+                <Text style={[styles.watchSym, { color: colors.t1 }]}>{sym}</Text>
+                {entry && <CatBadge cat={entry.cat} />}
+              </View>
+              {entry && <Text style={[styles.watchName, { color: colors.t4 }]} numberOfLines={1}>{entry.name}</Text>}
+              {q && (
+                <View style={styles.ohlcRow}>
+                  {q.regularMarketOpen != null && (
+                    <Text style={[styles.ohlcText, { color: colors.t4 }]}>O {prefix}{fmt(q.regularMarketOpen, decimals)}</Text>
+                  )}
+                  {q.regularMarketDayHigh != null && (
+                    <Text style={[styles.ohlcText, { color: colors.gain }]}>H {prefix}{fmt(q.regularMarketDayHigh, decimals)}</Text>
+                  )}
+                  {q.regularMarketDayLow != null && (
+                    <Text style={[styles.ohlcText, { color: colors.loss }]}>L {prefix}{fmt(q.regularMarketDayLow, decimals)}</Text>
+                  )}
+                </View>
+              )}
+              {q && (
+                <View style={styles.ohlcRow}>
+                  <Text style={[styles.ohlcText, { color: colors.t4 }]}>Prev {prefix}{fmt(q.regularMarketPreviousClose, decimals)}</Text>
+                  {!isForex && !isBond && <Text style={[styles.ohlcText, { color: colors.t4 }]}>{fmtMcap(q.marketCap, settings.compactNumbers)}</Text>}
+                </View>
+              )}
+              {q && q.fiftyTwoWeekHigh != null && q.fiftyTwoWeekLow != null && (
+                <Text style={[styles.ohlcText, { color: colors.t4, marginTop: 1 }]}>
+                  52W {prefix}{fmt(q.fiftyTwoWeekLow, decimals)}–{prefix}{fmt(q.fiftyTwoWeekHigh, decimals)}
+                </Text>
+              )}
             </View>
-            <Text style={[styles.extPrice, { color: extChgPct != null && extChgPct >= 0 ? colors.gain : colors.loss }]}>
-              {prefix}{fmt(extPrice, decimals)}
-            </Text>
-          </View>
-        )}
-        <View style={styles.watchChart}>
-          <SparklineChart symbol={sym} range="7d" width={sparkW} height={sparkH} />
-        </View>
-      </View>
 
-      <View style={styles.watchActions}>
-        <Pressable
-          onPress={() => onOpenChart(sym, entry?.name || q?.shortName)}
-          style={[styles.aiBtn, { backgroundColor: 'rgba(0,229,160,0.15)', borderColor: 'rgba(0,229,160,0.3)' }]}
-        >
-          <Text style={[styles.aiBtnText, { color: colors.gain }]}>📊</Text>
-        </Pressable>
-        <Pressable
-          onPress={handleAsk}
-          style={[styles.aiBtn, { backgroundColor: colors.blueDim, borderColor: 'rgba(77,166,255,0.2)' }]}
-        >
-          <Text style={[styles.aiBtnText, { color: colors.blue }]}>AI</Text>
-        </Pressable>
-        <Pressable
-          onPress={onRemove}
-          style={[styles.removeBtn, { backgroundColor: colors.lossDim, borderColor: 'rgba(255,77,106,0.2)' }]}
-        >
-          <Text style={[styles.removeBtnText, { color: colors.loss }]}>✕</Text>
-        </Pressable>
-      </View>
-    </View>
+            <View style={styles.watchMid}>
+              <Text style={[styles.watchPrice, { color: colors.t1 }]}>
+                {q ? `${prefix}${fmt(q.regularMarketPrice, decimals)}` : '—'}
+              </Text>
+              <Text style={[styles.watchChg, { color: chgColor }]}>{q ? fmtChg(chg) : '—'}</Text>
+              {showExt && extPrice != null && extLabel && (
+                <View style={styles.extRow}>
+                  <View style={[styles.extLabel, { backgroundColor: colors.amberDim }]}>
+                    <Text style={[styles.extLabelText, { color: colors.amber }]}>{extLabel}</Text>
+                  </View>
+                  <Text style={[styles.extPrice, { color: extChgPct != null && extChgPct >= 0 ? colors.gain : colors.loss }]}>
+                    {prefix}{fmt(extPrice, decimals)}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.watchChart}>
+                <SparklineChart symbol={sym} range="7d" width={sparkW} height={sparkH} />
+              </View>
+            </View>
+
+            <View style={styles.watchActions}>
+              <Pressable
+                onPress={handleAsk}
+                style={[styles.aiBtn, { backgroundColor: colors.blueDim, borderColor: 'rgba(77,166,255,0.2)' }]}
+              >
+                <Text style={[styles.aiBtnText, { color: colors.blue }]}>AI</Text>
+              </Pressable>
+              <Pressable
+                onPress={onRemove}
+                style={[styles.removeBtn, { backgroundColor: colors.lossDim, borderColor: 'rgba(255,77,106,0.2)' }]}
+              >
+                <Text style={[styles.removeBtnText, { color: colors.loss }]}>✕</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {expanded && q && (
+            <View style={[styles.expandPanel, { borderTopColor: colors.rim }]}>
+              <SparklineChart symbol={sym} range="7d" width={300} height={60} color={chgColor} showLabels />
+              <View style={styles.expandGrid}>
+                {q.regularMarketOpen != null && (
+                  <View style={styles.expandCell}>
+                    <Text style={[styles.expandLabel, { color: colors.t4 }]}>OPEN</Text>
+                    <Text style={[styles.expandVal, { color: colors.t2 }]}>{prefix}{fmt(q.regularMarketOpen, decimals)}</Text>
+                  </View>
+                )}
+                {q.regularMarketDayHigh != null && (
+                  <View style={styles.expandCell}>
+                    <Text style={[styles.expandLabel, { color: colors.t4 }]}>DAY HIGH</Text>
+                    <Text style={[styles.expandVal, { color: colors.gain }]}>{prefix}{fmt(q.regularMarketDayHigh, decimals)}</Text>
+                  </View>
+                )}
+                {q.regularMarketDayLow != null && (
+                  <View style={styles.expandCell}>
+                    <Text style={[styles.expandLabel, { color: colors.t4 }]}>DAY LOW</Text>
+                    <Text style={[styles.expandVal, { color: colors.loss }]}>{prefix}{fmt(q.regularMarketDayLow, decimals)}</Text>
+                  </View>
+                )}
+                {q.regularMarketPreviousClose != null && (
+                  <View style={styles.expandCell}>
+                    <Text style={[styles.expandLabel, { color: colors.t4 }]}>PREV CLOSE</Text>
+                    <Text style={[styles.expandVal, { color: colors.t2 }]}>{prefix}{fmt(q.regularMarketPreviousClose, decimals)}</Text>
+                  </View>
+                )}
+                {!isForex && !isBond && (
+                  <View style={styles.expandCell}>
+                    <Text style={[styles.expandLabel, { color: colors.t4 }]}>MKT CAP</Text>
+                    <Text style={[styles.expandVal, { color: colors.amber }]}>{fmtMcap(q.marketCap, settings.compactNumbers)}</Text>
+                  </View>
+                )}
+                <View style={styles.expandCell}>
+                  <Text style={[styles.expandLabel, { color: colors.t4 }]}>VOLUME</Text>
+                  <Text style={[styles.expandVal, { color: colors.t2 }]}>{fmtMcap(q.regularMarketVolume, true).replace('$', '')}</Text>
+                </View>
+                {q.fiftyTwoWeekHigh != null && (
+                  <View style={styles.expandCell}>
+                    <Text style={[styles.expandLabel, { color: colors.t4 }]}>52W HIGH</Text>
+                    <Text style={[styles.expandVal, { color: colors.t2 }]}>{prefix}{fmt(q.fiftyTwoWeekHigh, decimals)}</Text>
+                  </View>
+                )}
+                {q.fiftyTwoWeekLow != null && (
+                  <View style={styles.expandCell}>
+                    <Text style={[styles.expandLabel, { color: colors.t4 }]}>52W LOW</Text>
+                    <Text style={[styles.expandVal, { color: colors.t2 }]}>{prefix}{fmt(q.fiftyTwoWeekLow, decimals)}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          <View style={styles.expandHint}>
+            <Text style={[styles.expandHintText, { color: colors.t4 }]}>{expanded ? '▲ Close Details' : '▼ Tap for 7D Chart & Stats'}</Text>
+          </View>
+        </View>
+      )}
+    </Pressable>
   );
 }
 
@@ -821,8 +880,7 @@ export default function WatchlistScreen() {
   const { settings } = useSettings();
 
   const [activeTab, setActiveTab] = useState<string>('Favorites');
-  const [chartModalSym, setChartModalSym] = useState<string | null>(null);
-  const [chartModalName, setChartModalName] = useState<string | undefined>(undefined);
+  const [expandedSym, setExpandedSym] = useState<string | null>(null);
   const [symbols, setSymbols] = useState<string[]>([]);
   const [quotes, setQuotes] = useState<Record<string, QuoteRow>>({});
   const [query, setQuery] = useState('');
@@ -1065,18 +1123,12 @@ export default function WatchlistScreen() {
               sym={sym}
               q={quotes[sym]}
               onRemove={() => removeSymbol(sym)}
-              onOpenChart={(s, n) => { setChartModalSym(s); setChartModalName(n); }}
+              expanded={expandedSym === sym}
+              onToggle={() => setExpandedSym(expandedSym === sym ? null : sym)}
             />
           )}
         />
       )}
-
-      <InteractiveChartModal
-        visible={chartModalSym !== null}
-        symbol={chartModalSym}
-        name={chartModalName}
-        onClose={() => setChartModalSym(null)}
-      />
     </View>
   );
 }
@@ -1166,6 +1218,16 @@ const styles = StyleSheet.create({
   aiBtnText: { fontSize: 10, fontFamily: 'Inter_700Bold' },
   removeBtn: { borderRadius: 6, borderWidth: 1, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   removeBtnText: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+
+  // Expandable dropdown panel
+  watchRowMain: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  expandPanel: { marginTop: 8, paddingTop: 10, borderTopWidth: 1, paddingHorizontal: 12 },
+  expandGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 },
+  expandCell: { width: '30%', minWidth: 80, marginBottom: 4 },
+  expandLabel: { fontSize: 7, fontFamily: 'Inter_700Bold', letterSpacing: 0.8, marginBottom: 3, textTransform: 'uppercase' },
+  expandVal: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
+  expandHint: { alignItems: 'center', paddingVertical: 6 },
+  expandHintText: { fontSize: 8, fontFamily: 'Inter_500Medium' },
 
   // Empty state
   emptyWrap: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 24, gap: 12 },

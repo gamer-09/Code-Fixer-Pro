@@ -28,7 +28,7 @@ export function useResponsive() {
     // Dynamic sparkline dimensions for list rows across Markets, Crypto, and Watchlist
     sparkW: Math.max(50, Math.min(84, Math.floor(width * 0.18))),
     sparkH: Math.max(26, Math.min(36, Math.floor(width * 0.088))),
-    // Dynamic chart dimensions for full-screen InteractiveChartModal
+    // Dynamic chart dimensions for full-screen or expanded charts
     modalChartW: Math.max(260, Math.min(width - 32, 420)),
     modalChartH: Math.max(180, Math.min(height * 0.32, 280)),
   };

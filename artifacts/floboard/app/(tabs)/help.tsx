@@ -178,8 +178,8 @@ const HELP_SECTIONS: HelpSection[] = [
         a: 'Each row in Markets, Crypto, and Watchlist shows a small 7-day price chart so you can see trend direction at a glance, not just today\'s number.',
       },
       {
-        q: 'How do I open an interactive candlestick chart?',
-        a: 'Tap the 📊 chart icon on any symbol row in Watchlist, Crypto, FX Pairs, or Markets. It opens an interactive full-screen modal with Candlestick (OHLC) vs. Line toggles, 1D–ALL time ranges, and SMA 20, EMA 50, and RSI 14 technical indicator overlays.',
+        q: 'How do I view detailed charts and statistics for an asset?',
+        a: 'Tap any symbol row in Watchlist, Crypto, or FX Pairs to expand an inline dropdown card showing a 7-day Sparkline trend chart and comprehensive market statistics including Open, Day High/Low, Volume, and 52-Week Range.',
       },
       {
         q: 'How do I change the color theme?',
