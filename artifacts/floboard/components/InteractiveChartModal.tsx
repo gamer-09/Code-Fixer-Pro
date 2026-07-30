@@ -63,6 +63,43 @@ function getCandles(points: PricePoint[], maxCandles = 32): PricePoint[] {
   return candles;
 }
 
+class ChartErrorBoundary extends React.Component<
+  { children: React.ReactNode; colors: any },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ minHeight: 200, alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <Text style={{ color: this.props.colors.t3, fontSize: 13, marginBottom: 10 }}>
+            Chart display error
+          </Text>
+          <Pressable
+            onPress={() => this.setState({ hasError: false })}
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 8,
+              backgroundColor: this.props.colors.card,
+              borderWidth: 1,
+              borderColor: this.props.colors.rim,
+            }}
+          >
+            <Text style={{ color: this.props.colors.blue, fontSize: 12, fontFamily: 'Inter_600SemiBold' }}>
+              Reload Chart
+            </Text>
+          </Pressable>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function InteractiveChartModal({
   visible,
   symbol,
@@ -238,14 +275,14 @@ export default function InteractiveChartModal({
   const toY = (val: number) => pad + chartH - ((val - minP) / rng) * (chartH - pad * 2);
 
   const coords = points.map((p, i) => `${toX(i).toFixed(1)},${toY(p.c).toFixed(1)}`);
-  const linePath = 'M' + coords.join('L');
+  const linePath = coords.length > 0 ? 'M' + coords.join('L') : '';
   const areaPath =
-    `M${pad},${chartH} L${coords.join('L')} L${chartW - pad},${chartH} Z`;
+    coords.length > 0 ? `M${pad},${chartH} L${coords.join('L')} L${chartW - pad},${chartH} Z` : '';
 
   const smaPath =
-    'M' + sma20.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join('L');
+    sma20.length > 0 ? 'M' + sma20.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join('L') : '';
   const emaPath =
-    'M' + ema50.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join('L');
+    ema50.length > 0 ? 'M' + ema50.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join('L') : '';
 
   const isForexOrRate = symbol.includes('=X') || symbol.includes('/') || symbol.startsWith('^');
 
@@ -371,73 +408,78 @@ export default function InteractiveChartModal({
                 <Text style={[styles.loadingLabel, { color: colors.t4 }]}>Loading interactive chart…</Text>
               </View>
             ) : (
-              <Svg width={chartW} height={chartH}>
-                <Defs>
-                  <LinearGradient id="modalGrad" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0%" stopColor={lineColor} stopOpacity={0.25} />
-                    <Stop offset="100%" stopColor={lineColor} stopOpacity={0} />
-                  </LinearGradient>
-                </Defs>
+              <ChartErrorBoundary colors={colors}>
+                <Svg width={chartW} height={chartH}>
+                  <Defs>
+                    <LinearGradient id="modalGrad" x1="0" y1="0" x2="0" y2="1">
+                      <Stop offset="0%" stopColor={lineColor} stopOpacity={0.25} />
+                      <Stop offset="100%" stopColor={lineColor} stopOpacity={0} />
+                    </LinearGradient>
+                  </Defs>
 
-                {/* Grid lines */}
-                {[0.25, 0.5, 0.75].map((g, i) => (
-                  <Line
-                    key={i}
-                    x1={pad}
-                    y1={chartH * g}
-                    x2={chartW - pad}
-                    y2={chartH * g}
-                    stroke={colors.rim}
-                    strokeDasharray="3, 3"
-                  />
-                ))}
+                  {/* Grid lines */}
+                  {[0.25, 0.5, 0.75].map((g, i) => (
+                    <Line
+                      key={i}
+                      x1={pad}
+                      y1={chartH * g}
+                      x2={chartW - pad}
+                      y2={chartH * g}
+                      stroke={colors.rim}
+                      strokeDasharray="3, 3"
+                    />
+                  ))}
 
-                {/* Main line or candles */}
-                {chartType === 'line' ? (
-                  <>
-                    <Path d={areaPath} fill="url(#modalGrad)" />
-                    <Path d={linePath} stroke={lineColor} strokeWidth={2.5} fill="none" />
-                  </>
-                ) : (
-                  (() => {
-                    const candles = getCandles(points, 32);
-                    const candleW = Math.max(
-                      3,
-                      Math.min(10, Math.floor((chartW - pad * 2) / Math.max(1, candles.length)) - 2)
-                    );
-                    const toCandleX = (idx: number) =>
-                      pad + (idx / Math.max(1, candles.length - 1)) * (chartW - pad * 2);
-
-                    return candles.map((p, i) => {
-                      const x = toCandleX(i);
-                      const isGreen = p.c >= (p.o ?? p.c);
-                      const cColor = isGreen ? colors.gain : colors.loss;
-                      const yHigh = toY(p.h ?? p.c);
-                      const yLow = toY(p.l ?? p.c);
-                      const yOpen = toY(p.o ?? p.c);
-                      const yClose = toY(p.c);
-                      const bodyTop = Math.min(yOpen, yClose);
-                      const bodyH = Math.max(2, Math.abs(yClose - yOpen));
-                      return (
-                        <React.Fragment key={i}>
-                          <Line x1={x} y1={yHigh} x2={x} y2={yLow} stroke={cColor} strokeWidth={1.5} />
-                          <Rect x={x - candleW / 2} y={bodyTop} width={candleW} height={bodyH} rx={1} fill={cColor} />
-                        </React.Fragment>
+                  {/* Main line or candles */}
+                  {chartType === 'line' ? (
+                    <>
+                      {areaPath ? <Path d={areaPath} fill="url(#modalGrad)" /> : null}
+                      {linePath ? <Path d={linePath} stroke={lineColor} strokeWidth={2.5} fill="none" /> : null}
+                    </>
+                  ) : (
+                    (() => {
+                      const candles = getCandles(points, 32);
+                      const candleW = Math.max(
+                        3,
+                        Math.min(10, Math.floor((chartW - pad * 2) / Math.max(1, candles.length)) - 2)
                       );
-                    });
-                  })()
-                )}
+                      const toCandleX = (idx: number) =>
+                        pad + (idx / Math.max(1, candles.length - 1)) * (chartW - pad * 2);
 
-                {/* SMA line */}
-                {showSMA && (
-                  <Path d={smaPath} stroke="#FF9900" strokeWidth={1.8} strokeDasharray="4, 2" fill="none" />
-                )}
+                      return candles.map((p, i) => {
+                        const x = toCandleX(i);
+                        const isGreen = p.c >= (p.o ?? p.c);
+                        const cColor = isGreen ? colors.gain : colors.loss;
+                        const yHigh = toY(p.h ?? p.c);
+                        const yLow = toY(p.l ?? p.c);
+                        const yOpen = toY(p.o ?? p.c);
+                        const yClose = toY(p.c);
+                        if (!isFinite(x) || !isFinite(yHigh) || !isFinite(yLow) || !isFinite(yOpen) || !isFinite(yClose)) {
+                          return null;
+                        }
+                        const bodyTop = Math.min(yOpen, yClose);
+                        const bodyH = Math.max(2, Math.abs(yClose - yOpen));
+                        return (
+                          <React.Fragment key={i}>
+                            <Line x1={x} y1={yHigh} x2={x} y2={yLow} stroke={cColor} strokeWidth={1.5} />
+                            <Rect x={x - candleW / 2} y={bodyTop} width={candleW} height={bodyH} rx={1} fill={cColor} />
+                          </React.Fragment>
+                        );
+                      });
+                    })()
+                  )}
 
-                {/* EMA line */}
-                {showEMA && (
-                  <Path d={emaPath} stroke="#9933FF" strokeWidth={1.8} fill="none" />
-                )}
-              </Svg>
+                  {/* SMA line */}
+                  {showSMA && smaPath ? (
+                    <Path d={smaPath} stroke="#FF9900" strokeWidth={1.8} strokeDasharray="4, 2" fill="none" />
+                  ) : null}
+
+                  {/* EMA line */}
+                  {showEMA && emaPath ? (
+                    <Path d={emaPath} stroke="#9933FF" strokeWidth={1.8} fill="none" />
+                  ) : null}
+                </Svg>
+              </ChartErrorBoundary>
             )}
           </View>
 
@@ -450,25 +492,23 @@ export default function InteractiveChartModal({
                   {rsi14[rsi14.length - 1]}
                 </Text>
               </View>
-              <Svg width={chartW} height={70}>
-                {/* 30 and 70 lines */}
-                <Line x1={pad} y1={70 - 70 * 0.7} x2={chartW - pad} y2={70 - 70 * 0.7} stroke={colors.loss + '66'} strokeDasharray="2, 2" />
-                <Line x1={pad} y1={70 - 70 * 0.3} x2={chartW - pad} y2={70 - 70 * 0.3} stroke={colors.gain + '66'} strokeDasharray="2, 2" />
-                <Path
-                  d={
-                    'M' +
-                    rsi14
-                      .map(
-                        (v, i) =>
-                          `${toX(i).toFixed(1)},${(70 - (v / 100) * 55 - 8).toFixed(1)}`
-                      )
-                      .join('L')
-                  }
-                  stroke={colors.blue}
-                  strokeWidth={2}
-                  fill="none"
-                />
-              </Svg>
+              <ChartErrorBoundary colors={colors}>
+                <Svg width={chartW} height={70}>
+                  {/* 30 and 70 lines */}
+                  <Line x1={pad} y1={70 - 70 * 0.7} x2={chartW - pad} y2={70 - 70 * 0.7} stroke={colors.loss + '66'} strokeDasharray="2, 2" />
+                  <Line x1={pad} y1={70 - 70 * 0.3} x2={chartW - pad} y2={70 - 70 * 0.3} stroke={colors.gain + '66'} strokeDasharray="2, 2" />
+                  {(() => {
+                    const rsiPath =
+                      rsi14.length > 0
+                        ? 'M' +
+                          rsi14
+                            .map((v, i) => `${toX(i).toFixed(1)},${(70 - (v / 100) * 55 - 8).toFixed(1)}`)
+                            .join('L')
+                        : '';
+                    return rsiPath ? <Path d={rsiPath} stroke={colors.blue} strokeWidth={2} fill="none" /> : null;
+                  })()}
+                </Svg>
+              </ChartErrorBoundary>
             </View>
           )}
         </ScrollView>
