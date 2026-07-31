@@ -61,19 +61,16 @@ const INITIAL_MSG: ChatMessage = {
 
 const RISK_GUIDANCE = {
   conservative: [
-    '- [CONSERVATIVE MODE ACTIVE]: You MUST analyze ANY user request or asset through a Conservative, capital-preservation lens.',
-    '- Focus heavily on downside risk, capital preservation, dividend yield, Treasury yields (^IRX, ^TNX), low volatility, and principal protection.',
-    '- Caution against speculative plays, high-beta stocks, or unhedged cryptocurrency drawdowns.',
+    '- [CONSERVATIVE MODE ACTIVE]: When the user asks about an investment, asset, or market strategy, analyze it through a Conservative, capital-preservation lens (focusing on downside risk, dividend yield, Treasury yields ^IRX, ^TNX, low volatility, and principal protection).',
+    '- For ordinary conversational greetings or general questions, respond naturally and conversationally without forcing an investment report.',
   ],
   moderate: [
-    '- [MODERATE MODE ACTIVE]: You MUST analyze ANY user request or asset through a Balanced 60/40 Moderate risk lens.',
-    '- Weigh growth potential and upside catalysts equally against downside macroeconomic and volatility risks.',
-    '- Suggest diversification strategies and systematic rebalancing.',
+    '- [MODERATE MODE ACTIVE]: When the user asks about an investment, asset, or market strategy, analyze it through a Balanced 60/40 Moderate risk lens (weighing growth potential equally against downside volatility).',
+    '- For ordinary conversational greetings or general questions, respond naturally and conversationally without forcing an investment report.',
   ],
   aggressive: [
-    '- [AGGRESSIVE MODE ACTIVE]: You MUST analyze ANY user request or asset through an Aggressive, growth-maximizing investment lens.',
-    '- Highlight breakout momentum, high-upside catalysts, AI infrastructure leadership, and digital asset growth.',
-    '- Treat short-term drawdowns as high-reward entry points; emphasize upside target capture.',
+    '- [AGGRESSIVE MODE ACTIVE]: When the user asks about an investment, asset, or market strategy, analyze it through an Aggressive, growth-maximizing investment lens (focusing on breakout momentum, AI leadership, digital asset growth, and upside target capture).',
+    '- For ordinary conversational greetings or general questions, respond naturally and conversationally without forcing an investment report.',
   ],
 };
 
@@ -117,17 +114,36 @@ function generateFallbackAiResponse(query: string, risk: string): string {
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const q = query.trim().toLowerCase();
 
-  // ── 0. Conversational Greeting / Help Query ──
-  if (/^(hi|hello|hey|yo|howdy|who are you|what can you do|help|thanks|thank you|good morning|good afternoon)[.!?]*$/i.test(q)) {
+  // ── 0. Conversational Chat & General Inquiries ──
+  if (
+    /^(hi|hello|hey|yo|howdy|who are you|what can you do|help|thanks|thank you|good morning|good afternoon|how are you|what'?s up|who made you|can we chat|let'?s chat|what is floboard|awesome|cool|ok|okay|hi there|hey there)[.!?]*$/i.test(q) ||
+    (!/gold|gc=f|silver|si=f|xau|xag|metal|platinum|palladium|btc|bitcoin|eth|ethereum|sol|solana|crypto|doge|xrp|bnb|aapl|nvda|msft|tsla|pltr|amzn|googl|meta|stock|share|equity|s&p|sp500|qqq|earnings|eurusd|usdjpy|gbpusd|forex|fx|currency|dollar|dxy|\/usd|=x|^tnx|^irx|yield|treasury|bond|fed|rate|inflation|portfolio|watchlist|audit|invest|buy|sell|trade|hold/i.test(q))
+  ) {
+    if (/how are you|what'?s up/i.test(q)) {
+      return (
+        `I'm doing great and monitoring live global markets! I'm currently operating in **${r.toUpperCase()}** risk profile mode.\n\n` +
+        `We can chat about financial concepts, or whenever you're ready, ask me to analyze any stock, crypto, forex pair, or your portfolio.`
+      );
+    }
+    if (/who are you|who made you|what is floboard/i.test(q)) {
+      return (
+        `I am **FloAI**, the AI financial advisor and market analyst built directly into FloBoard.\n\n` +
+        `I'm powered by Google Gemini and have real-time access to market prices, news sentiment, and your simulated portfolio. I adjust all my financial analyses to match your selected risk mode (**${r.toUpperCase()}**).`
+      );
+    }
+    if (/thanks|thank you|awesome|cool|ok|okay/i.test(q)) {
+      return (
+        `You're very welcome! Let me know whenever you have another question or want to inspect a symbol or portfolio strategy in **${r.toUpperCase()}** mode.`
+      );
+    }
     return (
-      `Hello! I'm **FloAI**, your AI financial advisor and market analyst.\n\n` +
-      `I'm currently operating in **${r.toUpperCase()}** risk profile mode.\n\n` +
-      `You can ask me to analyze any asset or market topic, for example:\n` +
+      `Hello! I'm **FloAI**, your conversational AI financial advisor and market analyst.\n\n` +
+      `We can have a normal conversation about any topic, or whenever you want market advice, I will analyze it through your **${r.toUpperCase()}** risk profile mode.\n\n` +
+      `Feel free to chat, or try asking:\n` +
       `- **"What is the outlook for Gold (GC=F)?"**\n` +
-      `- **"Analyze Bitcoin (BTC-USD) breakout levels"**\n` +
+      `- **"Should I buy Bitcoin (BTC-USD) right now?"**\n` +
       `- **"How is Apple (AAPL) performing?"**\n` +
-      `- **"Review my portfolio risk & diversification"**\n\n` +
-      `What would you like to explore today?`
+      `- **"Review my portfolio risk & diversification"**`
     );
   }
 
