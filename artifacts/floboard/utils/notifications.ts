@@ -14,17 +14,15 @@ export function areNotificationsSupported(): boolean {
 }
 
 export async function requestNotificationPermissions(): Promise<boolean> {
-  if (!areNotificationsSupported()) return false;
+  if (!areNotificationsSupported()) return true;
   try {
-    const Device = await import('expo-device');
     const Notifications = await import('expo-notifications');
-    if (!Device.default.isDevice) return false;
-    const { status: existing } = await Notifications.getPermissionsAsync();
-    if (existing === 'granted') return true;
-    const { status } = await Notifications.requestPermissionsAsync();
-    return status === 'granted';
+    const existing = await Notifications.getPermissionsAsync();
+    if (existing.granted || existing.status === 'granted') return true;
+    const requested = await Notifications.requestPermissionsAsync();
+    return requested.granted || requested.status === 'granted';
   } catch {
-    return false;
+    return true;
   }
 }
 

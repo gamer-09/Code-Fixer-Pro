@@ -894,16 +894,21 @@ export default function WatchlistScreen() {
     tabId === 'Favorites' ? STORAGE_KEY : `${STORAGE_KEY}:${tabId}`;
 
   useEffect(() => {
+    if (settings.clearWatchlistKey > 0) {
+      setSymbols([]);
+      setQuotes({});
+      return;
+    }
     const tabObj = WATCHLIST_TABS.find((t) => t.id === activeTab) || WATCHLIST_TABS[0];
     const key = storageKeyForTab(activeTab);
     AsyncStorage.getItem(key).then((raw) => {
       if (raw) {
         setSymbols(JSON.parse(raw) as string[]);
       } else {
-        setSymbols(tabObj.defaultSyms);
+        setSymbols(settings.clearWatchlistKey > 0 ? [] : tabObj.defaultSyms);
       }
     });
-  }, [activeTab]);
+  }, [activeTab, settings.clearWatchlistKey]);
 
   const saveSymbols = (syms: string[]) => {
     setSymbols(syms);

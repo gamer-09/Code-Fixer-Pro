@@ -170,10 +170,14 @@ export default function PortfolioScreen() {
   const tabBarHeight = useBottomTabBarHeight();
 
   useEffect(() => {
+    if (settings.clearPortfolioKey > 0) {
+      setHoldings([]);
+      return;
+    }
     AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
       if (raw) setHoldings(JSON.parse(raw));
     });
-  }, []);
+  }, [settings.clearPortfolioKey]);
 
   const saveHoldings = useCallback((h: Holding[]) => {
     setHoldings(h);

@@ -28,6 +28,8 @@ export interface AppSettings {
   showExtendedHours: boolean;
   compactNumbers: boolean;
   geminiApiKey: string;
+  clearWatchlistKey: number;
+  clearPortfolioKey: number;
 }
 
 const DEFAULT: AppSettings = {
@@ -36,6 +38,8 @@ const DEFAULT: AppSettings = {
   newsCount: 15,
   alertThreshold: 5,
   clearChatKey: 0,
+  clearWatchlistKey: 0,
+  clearPortfolioKey: 0,
   notificationsEnabled: false,
   notifyPortfolio: true,
   notifyMarketMoves: true,
@@ -55,6 +59,8 @@ interface SettingsContextType {
   settings: AppSettings;
   updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
   triggerClearChat: () => void;
+  triggerClearWatchlist: () => void;
+  triggerClearPortfolio: () => void;
   resetAllSettings: () => void;
   loaded: boolean;
 }
@@ -63,6 +69,8 @@ const SettingsContext = createContext<SettingsContextType>({
   settings: DEFAULT,
   updateSetting: () => {},
   triggerClearChat: () => {},
+  triggerClearWatchlist: () => {},
+  triggerClearPortfolio: () => {},
   resetAllSettings: () => {},
   loaded: false,
 });
@@ -76,7 +84,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       if (raw) {
         try {
           const parsed = JSON.parse(raw) as Partial<AppSettings>;
-          setSettings((prev) => ({ ...prev, ...parsed, clearChatKey: 0 }));
+          setSettings((prev) => ({ ...prev, ...parsed, clearChatKey: 0, clearWatchlistKey: 0, clearPortfolioKey: 0 }));
         } catch {}
       }
       setLoaded(true);
@@ -86,7 +94,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const updateSetting = useCallback(<K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSettings((prev) => {
       const next = { ...prev, [key]: value };
-      const toSave = { ...next, clearChatKey: 0 };
+      const toSave = { ...next, clearChatKey: 0, clearWatchlistKey: 0, clearPortfolioKey: 0 };
       AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
       return next;
     });
@@ -96,14 +104,27 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setSettings((prev) => ({ ...prev, clearChatKey: prev.clearChatKey + 1 }));
   }, []);
 
+  const triggerClearWatchlist = useCallback(() => {
+    AsyncStorage.setItem('@floboard:watchlist', '[]');
+    AsyncStorage.setItem('@floboard:watchlist:Tech', '[]');
+    AsyncStorage.setItem('@floboard:watchlist:Crypto', '[]');
+    AsyncStorage.setItem('@floboard:watchlist:Macro', '[]');
+    setSettings((prev) => ({ ...prev, clearWatchlistKey: (prev.clearWatchlistKey || 0) + 1 }));
+  }, []);
+
+  const triggerClearPortfolio = useCallback(() => {
+    AsyncStorage.setItem('@floboard:holdings', '[]');
+    setSettings((prev) => ({ ...prev, clearPortfolioKey: (prev.clearPortfolioKey || 0) + 1 }));
+  }, []);
+
   const resetAllSettings = useCallback(() => {
     const reset = { ...DEFAULT };
     setSettings(reset);
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...reset, clearChatKey: 0 }));
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...reset, clearChatKey: 0, clearWatchlistKey: 0, clearPortfolioKey: 0 }));
   }, []);
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSetting, triggerClearChat, resetAllSettings, loaded }}>
+    <SettingsContext.Provider value={{ settings, updateSetting, triggerClearChat, triggerClearWatchlist, triggerClearPortfolio, resetAllSettings, loaded }}>
       {children}
     </SettingsContext.Provider>
   );

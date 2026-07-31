@@ -512,16 +512,12 @@ export default function SettingsScreen() {
   const router = useRouter();
   const topPad = Platform.OS === 'web' ? 67 : Math.max(insets.top, StatusBar.currentHeight ?? 0);
   const tabBarHeight = useBottomTabBarHeight();
-  const { settings, updateSetting, triggerClearChat, resetAllSettings } = useSettings();
+  const { settings, updateSetting, triggerClearChat, triggerClearWatchlist, triggerClearPortfolio, resetAllSettings } = useSettings();
   const notifSupported = areNotificationsSupported();
 
   const handleToggleNotifications = async (enabled: boolean) => {
     if (enabled) {
-      const granted = await requestNotificationPermissions();
-      if (!granted) {
-        Alert.alert('Permission Required', 'Enable notifications for FloBoard in your device Settings.', [{ text: 'OK' }]);
-        return;
-      }
+      await requestNotificationPermissions();
     }
     updateSetting('notificationsEnabled', enabled);
   };
@@ -535,13 +531,27 @@ export default function SettingsScreen() {
   const handleClearPortfolio = () =>
     Alert.alert('Delete Holdings', 'This permanently deletes all portfolio holdings. Cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete All', style: 'destructive', onPress: () => AsyncStorage.removeItem('@floboard:holdings') },
+      {
+        text: 'Delete All',
+        style: 'destructive',
+        onPress: () => {
+          triggerClearPortfolio();
+          Alert.alert('Portfolio Cleared', 'All holdings have been deleted from your portfolio.');
+        },
+      },
     ]);
 
   const handleClearWatchlist = () =>
-    Alert.alert('Clear Watchlist', 'This removes all symbols from your watchlist. Cannot be undone.', [
+    Alert.alert('Clear Watchlist', 'This removes all symbols from your watchlists. Cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear', style: 'destructive', onPress: () => AsyncStorage.removeItem('@floboard:watchlist') },
+      {
+        text: 'Clear All',
+        style: 'destructive',
+        onPress: () => {
+          triggerClearWatchlist();
+          Alert.alert('Watchlists Cleared', 'All symbols have been removed from your watchlists.');
+        },
+      },
     ]);
 
   const handleResetSettings = () =>
