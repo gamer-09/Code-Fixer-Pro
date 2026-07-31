@@ -115,7 +115,21 @@ function buildSystemPrompt(
 function generateFallbackAiResponse(query: string, risk: string): string {
   const r = (risk || 'moderate').toLowerCase();
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const q = query.toLowerCase();
+  const q = query.trim().toLowerCase();
+
+  // ── 0. Conversational Greeting / Help Query ──
+  if (/^(hi|hello|hey|yo|howdy|who are you|what can you do|help|thanks|thank you|good morning|good afternoon)[.!?]*$/i.test(q)) {
+    return (
+      `Hello! I'm **FloAI**, your AI financial advisor and market analyst.\n\n` +
+      `I'm currently operating in **${r.toUpperCase()}** risk profile mode.\n\n` +
+      `You can ask me to analyze any asset or market topic, for example:\n` +
+      `- **"What is the outlook for Gold (GC=F)?"**\n` +
+      `- **"Analyze Bitcoin (BTC-USD) breakout levels"**\n` +
+      `- **"How is Apple (AAPL) performing?"**\n` +
+      `- **"Review my portfolio risk & diversification"**\n\n` +
+      `What would you like to explore today?`
+    );
+  }
 
   // ── 1. Gold / Precious Metals ──
   if (/gold|gc=f|silver|si=f|xau|xag|metal|platinum|palladium/i.test(q)) {
