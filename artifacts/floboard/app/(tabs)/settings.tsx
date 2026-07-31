@@ -542,14 +542,14 @@ export default function SettingsScreen() {
     ]);
 
   const handleClearWatchlist = () =>
-    Alert.alert('Clear Watchlist', 'This removes all symbols from your watchlists. Cannot be undone.', [
+    Alert.alert('Clear Favorites Watchlist', 'This removes all symbols from your ⭐ Favorites watchlist. Preset lists (Tech, Crypto, FX & Metals) are not affected.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Clear All',
+        text: 'Clear Favorites',
         style: 'destructive',
         onPress: () => {
           triggerClearWatchlist();
-          Alert.alert('Watchlists Cleared', 'All symbols have been removed from your watchlists.');
+          Alert.alert('Favorites Cleared', 'All custom symbols have been removed from your ⭐ Favorites watchlist.');
         },
       },
     ]);

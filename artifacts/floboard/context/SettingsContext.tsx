@@ -106,9 +106,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const triggerClearWatchlist = useCallback(() => {
     AsyncStorage.setItem('@floboard:watchlist', '[]');
-    AsyncStorage.setItem('@floboard:watchlist:Tech', '[]');
-    AsyncStorage.setItem('@floboard:watchlist:Crypto', '[]');
-    AsyncStorage.setItem('@floboard:watchlist:Macro', '[]');
     setSettings((prev) => ({ ...prev, clearWatchlistKey: (prev.clearWatchlistKey || 0) + 1 }));
   }, []);
 

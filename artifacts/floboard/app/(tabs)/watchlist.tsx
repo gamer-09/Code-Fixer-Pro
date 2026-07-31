@@ -894,18 +894,17 @@ export default function WatchlistScreen() {
     tabId === 'Favorites' ? STORAGE_KEY : `${STORAGE_KEY}:${tabId}`;
 
   useEffect(() => {
-    if (settings.clearWatchlistKey > 0) {
-      setSymbols([]);
-      setQuotes({});
-      return;
-    }
     const tabObj = WATCHLIST_TABS.find((t) => t.id === activeTab) || WATCHLIST_TABS[0];
     const key = storageKeyForTab(activeTab);
+    if (activeTab === 'Favorites' && settings.clearWatchlistKey > 0) {
+      setSymbols([]);
+      setQuotes({});
+    }
     AsyncStorage.getItem(key).then((raw) => {
       if (raw) {
         setSymbols(JSON.parse(raw) as string[]);
       } else {
-        setSymbols(settings.clearWatchlistKey > 0 ? [] : tabObj.defaultSyms);
+        setSymbols(activeTab === 'Favorites' && settings.clearWatchlistKey > 0 ? [] : tabObj.defaultSyms);
       }
     });
   }, [activeTab, settings.clearWatchlistKey]);
