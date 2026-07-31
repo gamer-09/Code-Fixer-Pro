@@ -566,20 +566,66 @@ export default function AdvisorScreen() {
 
       try {
         if (isNative) {
-          const response = await fetch(`${BASE_URL}/api/chat?stream=false`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages: historyForApi,
-              systemPrompt,
-              geminiApiKey: settings.geminiApiKey,
-            }),
-          });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const json = await response.json() as { content?: string; error?: string };
-          if (json.error) throw new Error(json.error);
-          streamedContent = json.content ?? '';
-          setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: streamedContent } : m)));
+          try {
+            const response = await fetch(`${BASE_URL}/api/chat?stream=false`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                messages: historyForApi,
+                systemPrompt,
+                geminiApiKey: settings.geminiApiKey,
+              }),
+            });
+            if (response.ok) {
+              const json = (await response.json()) as { content?: string; error?: string };
+              if (!json.error && json.content) {
+                streamedContent = json.content;
+                setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: streamedContent } : m)));
+              }
+            }
+          } catch {
+            /* fall through to direct Gemini API call */
+          }
+
+          // If backend proxy failed or was unreachable, call Google Gemini directly from the mobile app if user provided a key
+          if (!streamedContent && settings.geminiApiKey.trim().length > 0) {
+            try {
+              const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(settings.geminiApiKey.trim())}`;
+              const geminiContents = historyForApi.map((m) => ({
+                role: m.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: m.content }],
+              }));
+              const geminiRes = await fetch(geminiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  system_instruction: { parts: [{ text: systemPrompt }] },
+                  contents: geminiContents,
+                  generationConfig: { maxOutputTokens: 1024 },
+                }),
+              });
+              if (geminiRes.ok) {
+                const geminiJson = (await geminiRes.json()) as {
+                  candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+                };
+                const text = geminiJson.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text && text.trim().length > 0) {
+                  streamedContent = text;
+                  setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: streamedContent } : m)));
+                }
+              } else {
+                const errJson = (await geminiRes.json()) as { error?: { message?: string } };
+                if (errJson?.error?.message) {
+                  setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: `Error from Google Gemini API: ${errJson.error!.message}` } : m)));
+                  streamedContent = `Error: ${errJson.error.message}`;
+                }
+              }
+            } catch (err: unknown) {
+              const errMsg = err instanceof Error ? err.message : String(err);
+              setMessages((cur) => cur.map((m) => (m.id === aiId ? { ...m, content: `Failed to reach Google Gemini API directly: ${errMsg}` } : m)));
+              streamedContent = `Error: ${errMsg}`;
+            }
+          }
         } else {
           const response = await fetch(`${BASE_URL}/api/chat`, {
             method: 'POST',
