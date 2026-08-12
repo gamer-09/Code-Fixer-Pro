@@ -11,7 +11,10 @@ RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 WORKDIR /app
 
 # ── Install dependencies first (keeps this layer cached) ──────────────────────
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml preinstall.mjs ./
+# .npmrc is REQUIRED for the frozen install: it sets auto-install-peers=false,
+# which must match the value recorded in pnpm-lock.yaml (otherwise pnpm aborts
+# with ERR_PNPM_LOCKFILE_CONFIG_MISMATCH before downloading anything).
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml preinstall.mjs .npmrc ./
 COPY lib/api-zod/package.json   lib/api-zod/
 COPY lib/db/package.json        lib/db/
 COPY artifacts/api-server/package.json artifacts/api-server/
