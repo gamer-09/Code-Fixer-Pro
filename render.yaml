@@ -1,0 +1,20 @@
+# Render Blueprint — one-click deploy of the FloBoard API server.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# After connecting this GitHub repo to Render, it reads this file and
+# provisions the service automatically. Set GEMINI_API_KEY in the Render
+# dashboard (Service > Environment) after the first deploy.
+services:
+  - type: web
+    name: floboard-api
+    runtime: docker
+    repo: https://github.com/gamer-09/Code-Fixer-Pro
+    plan: free
+    dockerfilePath: ./artifacts/api-server/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: GEMINI_API_KEY
+        sync: false # set manually in the dashboard, never commit it

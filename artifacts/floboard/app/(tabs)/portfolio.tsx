@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSettings } from '@/context/SettingsContext';
+import { shouldClearHoldings } from '@/utils/clearState';
 import {
   ActivityIndicator,
   Alert,
@@ -170,7 +171,7 @@ export default function PortfolioScreen() {
   const tabBarHeight = useBottomTabBarHeight();
 
   useEffect(() => {
-    if (settings.clearPortfolioKey > 0) {
+    if (shouldClearHoldings(settings.clearPortfolioKey)) {
       setHoldings([]);
       return;
     }

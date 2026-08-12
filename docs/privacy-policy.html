@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FloBoard — Privacy Policy</title>
+  <meta name="description" content="Privacy Policy for the FloBoard app: no accounts, no tracking, all data stays on your device." />
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --card: #121826;
+      --rim: #1f2a3d;
+      --text: #e6ebf5;
+      --muted: #9aa7bd;
+      --accent: #4da6ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    header {
+      border-bottom: 1px solid var(--rim);
+      background: #0d1320;
+      padding: 28px 20px 20px;
+      text-align: center;
+    }
+    header h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.3px; }
+    header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    main { max-width: 720px; margin: 0 auto; padding: 24px 20px 64px; }
+    .intro {
+      background: var(--card);
+      border: 1px solid var(--rim);
+      border-radius: 12px;
+      padding: 16px 18px;
+      font-size: 15px;
+      color: #c9d4e6;
+    }
+    section { margin-top: 26px; }
+    h2 {
+      font-size: 15px;
+      color: var(--accent);
+      margin: 0 0 8px;
+      font-weight: 700;
+    }
+    p { margin: 8px 0; font-size: 14px; color: var(--text); }
+    ul { margin: 8px 0; padding-left: 20px; }
+    li { margin: 4px 0; font-size: 14px; color: var(--text); }
+    li::marker { color: var(--muted); }
+    .divider { height: 1px; background: var(--rim); margin-top: 26px; }
+    .effective { font-size: 12px; color: var(--muted); text-align: center; margin: 0 0 8px; }
+    footer {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 20px 40px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>FloBoard Privacy Policy</h1>
+    <p class="effective">Effective date: July 26, 2026</p>
+  </header>
+
+  <main>
+    <div class="intro">
+      FloBoard ("we", "our", or "the app") is committed to protecting your privacy.
+      This policy explains what information is handled when you use FloBoard, and
+      how it is stored and transmitted.
+    </div>
+
+    <section>
+      <h2>1. No Account Required</h2>
+      <p>
+        FloBoard does not require you to create an account. You do not provide your name,
+        email address, phone number, or any personally identifiable information to use the app.
+      </p>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <h2>2. Data Stored on Your Device</h2>
+      <p>
+        All user-generated data is stored locally on your device using AsyncStorage and never
+        transmitted to FloBoard's servers. This includes:
+      </p>
+      <ul>
+        <li>Your watchlist (stock and crypto symbols you add)</li>
+        <li>Your portfolio holdings and purchase prices</li>
+        <li>App preferences and settings</li>
+        <li>Your Gemini API key (see Section 3)</li>
+        <li>Your FloAI conversation history</li>
+      </ul>
+      <p>
+        Clearing app data or uninstalling FloBoard permanently removes this data from your device.
+        We have no copy of it and cannot restore it.
+      </p>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <h2>3. Gemini API Key</h2>
+      <p>
+        If you choose to use the FloAI advisor feature, you provide a Google Gemini API key
+        that you obtain directly from Google AI Studio. This key is:
+      </p>
+      <ul>
+        <li>Stored only on your device (never sent to FloBoard's servers)</li>
+        <li>Transmitted directly from your device to Google's Gemini API servers when you send a chat message</li>
+        <li>Subject to Google's own privacy policy and terms of service</li>
+      </ul>
+      <p>
+        By entering a Gemini API key and using the FloAI chat, you acknowledge that your
+        conversation messages and any financial context you provide are sent to Google's servers
+        for processing. FloBoard does not log, store, or have access to these messages.
+      </p>
+      <p>You can remove your API key at any time from Settings → Gemini API Key → Remove.</p>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <h2>4. Market Data</h2>
+      <p>
+        FloBoard fetches publicly available market data (stock prices, cryptocurrency prices,
+        foreign exchange rates, and financial news) from Yahoo Finance and other public data
+        providers. This data is fetched on your behalf and displayed in the app. No personal
+        data is included in these requests.
+      </p>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <h2>5. No Analytics or Tracking</h2>
+      <p>FloBoard does not use any analytics SDKs, crash-reporting services, advertising networks, or third-party tracking tools. We do not collect:</p>
+      <ul>
+        <li>Usage statistics or screen-view events</li>
+        <li>Device identifiers or advertising IDs</li>
+        <li>IP addresses or location data</li>
+        <li>Behavioral or telemetry data of any kind</li>
+      </ul>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <h2>6. Third-Party Services</h2>
+      <p>
+        FloBoard interacts with the following third-party services on your behalf. Their
+        respective privacy policies govern how they handle data:
+      </p>
+      <ul>
+        <li>Google Gemini API — ai.google.dev/terms</li>
+        <li>Yahoo Finance — finance.yahoo.com</li>
+      </ul>
+      <p>FloBoard is not responsible for the privacy practices of these services.</p>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <h2>7. Children's Privacy</h2>
+      <p>
+        FloBoard is not directed at children under the age of 13. We do not knowingly collect
+        any personal information from children. If you believe a child has used the app in a way
+        that raises privacy concerns, please contact us.
+      </p>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <h2>8. Changes to This Policy</h2>
+      <p>
+        We may update this Privacy Policy from time to time. When we do, we will update the
+        effective date above. Continued use of FloBoard after any changes constitutes
+        acceptance of the updated policy.
+      </p>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <h2>9. Contact</h2>
+      <p>
+        If you have questions about this Privacy Policy or the app's data practices, you may
+        reach the developer directly through the contact details on our Google Play Store listing.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    FloBoard v1.2 · All data stays on your device · No accounts · No tracking
+  </footer>
+</body>
+</html>

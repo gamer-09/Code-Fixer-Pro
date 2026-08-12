@@ -20,6 +20,7 @@ import { IconRefreshCw } from '@/components/Icons';
 import { useColors } from '@/hooks/useColors';
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '@/context/MarketContext';
 import { resolveSymbolAlias, getFallbackQuote } from '@/utils/symbolFallbacks';
+import { resolveSymbolsAfterClear, shouldClearTab } from '@/utils/clearState';
 import { useSettings } from '@/context/SettingsContext';
 import { useResponsive } from '@/hooks/useResponsive';
 import { getApiBase } from '@/utils/apiBase';
@@ -896,16 +897,19 @@ export default function WatchlistScreen() {
   useEffect(() => {
     const tabObj = WATCHLIST_TABS.find((t) => t.id === activeTab) || WATCHLIST_TABS[0];
     const key = storageKeyForTab(activeTab);
-    if (activeTab === 'Favorites' && settings.clearWatchlistKey > 0) {
+    if (shouldClearTab(activeTab, settings.clearWatchlistKey)) {
       setSymbols([]);
       setQuotes({});
     }
     AsyncStorage.getItem(key).then((raw) => {
-      if (raw) {
-        setSymbols(JSON.parse(raw) as string[]);
-      } else {
-        setSymbols(activeTab === 'Favorites' && settings.clearWatchlistKey > 0 ? [] : tabObj.defaultSyms);
-      }
+      setSymbols(
+        resolveSymbolsAfterClear({
+          activeTab,
+          clearWatchlistKey: settings.clearWatchlistKey,
+          stored: raw ? (JSON.parse(raw) as string[]) : null,
+          defaultSyms: tabObj.defaultSyms,
+        })
+      );
     });
   }, [activeTab, settings.clearWatchlistKey]);
 

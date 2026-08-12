@@ -94,12 +94,63 @@ The AI chat tab needs a Gemini API key. Either set `GEMINI_API_KEY` in the api-s
 environment, or paste a free Gemini key directly into the app's **Settings** tab — no restart
 required either way.
 
+## Deploying the API server
+
+The API server is designed to run on [Render](https://render.com) (free tier). It is a
+stateless service — all market data is fetched live from Yahoo Finance, so no database is
+required (that's also why Supabase isn't used as a host; it's Postgres + Deno edge functions,
+not a place for a long-running Node server).
+
+1. Push this repo to GitHub, then in the Render dashboard choose **New > Blueprint** and connect
+   the repo. Render reads `render.yaml` at the repo root and provisions the `floboard-api`
+   service automatically (Docker build, health check at `/api/healthz`).
+2. After the first deploy, open the service and set **`GEMINI_API_KEY`** under **Environment**
+   (only required for the FloAI chat feature). It's deliberately `sync: false` in the blueprint
+   so the key never lives in git.
+3. When the deploy succeeds you get a URL like `https://floboard-api.onrender.com`. Verify it
+   returns real data, not just that the server boots:
+   ```bash
+   curl 'https://floboard-api.onrender.com/api/market?symbols=AAPL'
+   ```
+4. The production/preview EAS build profiles in `artifacts/floboard/eas.json` already point
+   `EXPO_PUBLIC_API_URL` at the deployed URL. If your Render URL differs, update it there and in
+   the `!__DEV__` fallback in `artifacts/floboard/utils/apiBase.ts`.
+
+## Privacy policy
+
+App Store Connect and Google Play Console both require a publicly hosted privacy policy URL.
+It's published to GitHub Pages from the `docs/` folder by `.github/workflows/pages.yml`:
+
+```
+https://gamer-09.github.io/Code-Fixer-Pro/privacy-policy.html
+```
+
+## Tests
+
+Vitest covers three areas:
+
+- `artifacts/api-server/src/routes/market.test.ts` — the `/api/market` route: response shape,
+  Yahoo Finance fallback quotes, and symbol validation
+- `artifacts/floboard/utils/clearState.test.ts` — regression guard for the clear-watchlist bug
+  (clearing the custom Favorites tab must never wipe the preset lists)
+- `artifacts/floboard/utils/floaiFallback.test.ts` — FloAI's fallback response shaping per risk
+  mode (no real Gemini calls — the API call is mocked)
+
+Run everything from the repo root:
+```bash
+pnpm run test
+```
+
+CI runs typecheck + tests on every push to `main` and on pull requests
+(`.github/workflows/ci.yml`).
+
 ## Workspace-wide commands
 
 Run from the repo root:
 ```bash
 pnpm run typecheck   # typechecks all shared libs + apps
-pnpm run build        # typecheck, then build everything that has a build script
+pnpm run test        # runs all Vitest suites (api-server + floboard)
+pnpm run build       # typecheck, then build everything that has a build script
 ```
 
 ## Notes for Windows users
