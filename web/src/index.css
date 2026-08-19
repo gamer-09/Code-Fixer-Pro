@@ -73,17 +73,12 @@ body {
 .tab-bar {
   display: flex;
   align-items: center;
-  justify-content: space-around;
+  justify-content: center;
+  gap: 4px;
   background: var(--base);
   border-top: 1px solid var(--rim);
-  padding: 6px 0 8px;
+  padding: 6px 16px 8px;
   flex-shrink: 0;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.tab-bar::-webkit-scrollbar {
-  display: none;
 }
 
 .tab-item {
@@ -91,7 +86,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 4px 10px;
+  padding: 6px 14px;
   cursor: pointer;
   text-decoration: none;
   color: var(--t3);
@@ -109,12 +104,12 @@ body {
 }
 
 .tab-item svg {
-  width: 21px;
-  height: 21px;
+  width: 18px;
+  height: 18px;
 }
 
 .tab-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.3px;
 }
@@ -140,7 +135,7 @@ body {
 }
 
 .page-header {
-  padding: 20px 16px 12px;
+  padding: 16px 24px 12px;
   background: var(--base);
   border-bottom: 1px solid var(--rim);
   position: sticky;
@@ -149,31 +144,31 @@ body {
 }
 
 .page-title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--t1);
 }
 
 .page-subtitle {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--t4);
   margin-top: 2px;
 }
 
 .section {
-  padding: 0 14px;
-  margin-top: 14px;
+  padding: 0 24px;
+  margin-top: 20px;
 }
 
 .section-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .section-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.4px;
   text-transform: uppercase;
@@ -184,8 +179,8 @@ body {
   border-radius: 3px;
   border: 1px solid var(--rim);
   background: var(--card);
-  padding: 1px 5px;
-  font-size: 9px;
+  padding: 1px 6px;
+  font-size: 10px;
   color: var(--t4);
 }
 
@@ -200,15 +195,15 @@ body {
   background: var(--card);
   border: 1px solid var(--rim);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 16px;
 }
 
 /* ── Badges ────────────────────────────────────────────────────────────── */
 .badge {
   display: inline-block;
   border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 10px;
+  padding: 2px 8px;
+  font-size: 11px;
   font-weight: 500;
 }
 
@@ -223,8 +218,8 @@ body {
 }
 
 .pulse-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   animation: pulse 1.8s ease-in-out infinite;
 }
@@ -233,13 +228,13 @@ body {
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .data-table th {
   text-align: left;
-  padding: 7px 12px;
-  font-size: 8px;
+  padding: 8px 14px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -249,7 +244,7 @@ body {
 }
 
 .data-table td {
-  padding: 9px 12px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--rim);
 }
 
@@ -259,16 +254,95 @@ body {
 
 /* ── Responsive ────────────────────────────────────────────────────────── */
 @media (min-width: 768px) {
-  .tab-bar {
-    max-width: 800px;
-    margin: 0 auto;
-    border-radius: 12px 12px 0 0;
+  .page-header {
+    padding: 20px 32px 14px;
+  }
+  .section {
+    padding: 0 32px;
   }
 }
 
 @media (min-width: 1024px) {
   .app-content {
-    max-width: 960px;
+    max-width: 1200px;
     margin: 0 auto;
   }
+  .page-header {
+    padding: 20px 40px 14px;
+  }
+  .section {
+    padding: 0 40px;
+  }
+  .tab-bar {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}
+
+/* ── Market Hours Grid ─────────────────────────────────────────────────── */
+.hours-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.hours-chip {
+  border-radius: 8px;
+  border: 1px solid var(--rim);
+  background: var(--card);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hours-chip.open {
+  background: var(--gain-dim);
+  border-color: rgba(0,229,160,0.3);
+}
+
+.hours-chip-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hours-flag {
+  font-size: 16px;
+}
+
+.hours-name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.hours-local-time {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.hours-status {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+.hours-countdown {
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.hours-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.hours-region {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
 }
