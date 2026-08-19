@@ -26,7 +26,7 @@ export default function App() {
       <main className="app-content">
         <Suspense fallback={<Loading />}>
           <Routes>
-            <Route path="/" element={<Navigate to="/markets" replace />} />
+            <Route path="/" element={<Markets />} />
             <Route path="/markets" element={<Markets />} />
             <Route path="/crypto" element={<Crypto />} />
             <Route path="/fx" element={<CurrencyPairs />} />
