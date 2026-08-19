@@ -9,6 +9,7 @@ export default function ThemeSync() {
   useEffect(() => {
     const root = document.documentElement
     root.setAttribute('data-theme', settings.theme)
+    root.style.colorScheme = settings.theme === 'light' ? 'light' : 'dark'
     const vars: Record<string, string | number> = {
       '--void': c.void,
       '--base': c.base,
