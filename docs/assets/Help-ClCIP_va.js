@@ -1,4 +1,4 @@
-import{r as l,j as e}from"./index-u-JZ5rU3.js";import{u as d}from"./useColors-Dv3L6Z7A.js";const p=[{id:"gemini",title:"Getting Your Gemini API Key",accentKey:"amber",items:[{q:"What is the Gemini API Key?",a:"FloAI is powered by Google Gemini 2.5 Flash. You need a personal API key to use it — like a password for the AI."},{q:"How do I get a free key?",a:`1. Visit aistudio.google.com/apikey
+import{r as l,j as e}from"./index-qtZ6cUy0.js";import{u as d}from"./useColors-BVL17NTy.js";const p=[{id:"gemini",title:"Getting Your Gemini API Key",accentKey:"amber",items:[{q:"What is the Gemini API Key?",a:"FloAI is powered by Google Gemini 2.5 Flash. You need a personal API key to use it — like a password for the AI."},{q:"How do I get a free key?",a:`1. Visit aistudio.google.com/apikey
 2. Sign in with your Google account
 3. Click "Create API Key"
 4. Copy the key (starts with "AIza…")

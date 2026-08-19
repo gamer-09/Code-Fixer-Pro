@@ -1,4 +1,4 @@
-import{c as S,u as w,r as p,j as o}from"./index-u-JZ5rU3.js";import{u as P}from"./useColors-Dv3L6Z7A.js";function F(e,i){const r=(i||"moderate").toLowerCase(),a=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),s=e.trim().toLowerCase();return/^(hi|hello|hey|yo|help|thanks|thank you|what is floboard|who are you)[.!?]*$/i.test(s)?`Hello! I'm **FloAI**, your AI financial advisor built into FloBoard.
+import{c as S,u as w,r as p,j as o}from"./index-qtZ6cUy0.js";import{u as P}from"./useColors-BVL17NTy.js";function F(e,i){const r=(i||"moderate").toLowerCase(),a=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),s=e.trim().toLowerCase();return/^(hi|hello|hey|yo|help|thanks|thank you|what is floboard|who are you)[.!?]*$/i.test(s)?`Hello! I'm **FloAI**, your AI financial advisor built into FloBoard.
 
 We can chat about financial topics, or ask me to analyze any stock, crypto, or forex pair. I'll adjust to your **${r.toUpperCase()}** risk profile.`:/gold|gc=f|silver|si=f|xau|xag|metal/i.test(s)?`### FloAI [${r.toUpperCase()} MODE] Analysis (${a})
 
