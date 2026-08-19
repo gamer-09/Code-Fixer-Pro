@@ -42,41 +42,21 @@ button { cursor: pointer; }
 a { color: inherit; }
 img { max-width: 100%; }
 
-/* ── Scrollbars (thin, dark, no Windows arrows) ────────────────────────── */
-html {
-  scrollbar-width: thin;
-  scrollbar-color: var(--rim2) transparent;
+/* Hide OS scrollbars (Windows classic bar cannot be restyled). Wheel still works. */
+html, body, #root, * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--rim2) transparent;
-}
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-*::-webkit-scrollbar-thumb {
-  background: var(--rim2);
-  border-radius: 99px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--t3);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
+*::-webkit-scrollbar,
+*::-webkit-scrollbar-button,
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track-piece,
+*::-webkit-scrollbar-thumb,
 *::-webkit-scrollbar-corner {
-  background: transparent;
-}
-*::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
-  background: transparent;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 
 /* ── App shell ─────────────────────────────────────────────────────────── */

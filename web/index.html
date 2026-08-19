@@ -4,13 +4,8 @@
     <meta charset="UTF-8" />
     <style>
       html { color-scheme: dark; }
-      @supports (-moz-appearance: none) {
-        * { scrollbar-width: thin; scrollbar-color: #2e3a52 transparent; }
-      }
-      ::-webkit-scrollbar { width: 6px; height: 6px; background: transparent; }
-      ::-webkit-scrollbar-track, ::-webkit-scrollbar-track-piece { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #2e3a52; border-radius: 99px; }
-      ::-webkit-scrollbar-button { display: none !important; width: 0 !important; height: 0 !important; }
+      html, body, * { scrollbar-width: none; -ms-overflow-style: none; }
+      *::-webkit-scrollbar, *::-webkit-scrollbar-button { display: none !important; width: 0 !important; height: 0 !important; }
     </style>
     <link rel="icon" type="image/svg+xml" href="/Code-Fixer-Pro/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
