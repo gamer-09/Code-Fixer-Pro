@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import SparklineChart from '../components/SparklineChart'
-import { useColors } from '../hooks/useColors'
+import { EmptyState, SearchBox } from '../components/ui'
+import { chgDir, fmt, fmtChg, useMarket } from '../context/MarketContext'
 import { useSettings } from '../context/SettingsContext'
-import { useMarket } from '../context/MarketContext'
-import { chgDir, fmt, fmtChg, fmtMcap } from '../context/MarketContext'
 
 const STORAGE_KEY = 'floboard:watchlist'
 
@@ -29,7 +28,6 @@ const CATALOG = [
 ]
 
 export default function WatchlistScreen() {
-  const c = useColors()
   const { settings } = useSettings()
   const { data } = useMarket()
   const [watchlist, setWatchlist] = useState<string[]>([])
@@ -37,6 +35,9 @@ export default function WatchlistScreen() {
   const [search, setSearch] = useState('')
 
   useEffect(() => { setWatchlist(loadWatchlist()) }, [])
+  useEffect(() => {
+    if (settings.clearWatchlistKey > 0) setWatchlist([])
+  }, [settings.clearWatchlistKey])
 
   const addSymbol = (sym: string) => {
     if (!watchlist.includes(sym)) {
@@ -46,6 +47,12 @@ export default function WatchlistScreen() {
     }
     setShowAdd(false)
     setSearch('')
+  }
+
+  const addCustom = () => {
+    const sym = search.trim().toUpperCase()
+    if (!sym) return
+    addSymbol(sym)
   }
 
   const removeSymbol = (sym: string) => {
@@ -74,72 +81,68 @@ export default function WatchlistScreen() {
   }, [search, watchlist])
 
   return (
-    <div className="page-container" style={{ background: c.void }}>
-      <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div className="page-title">Watchlist</div>
-          <div className="page-subtitle">{watchlist.length} symbols tracked</div>
-        </div>
-        <button onClick={() => setShowAdd(!showAdd)} style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${c.gain}`, background: c.gainDim, color: c.gain, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-          {showAdd ? 'Cancel' : '+ Add'}
-        </button>
+    <div className="page">
+      <div className="toolbar" style={{ justifyContent: 'space-between' }}>
+        <span className="muted">{watchlist.length} favorite{watchlist.length === 1 ? '' : 's'}</span>
+        <button className="btn btn-ghost" onClick={() => setShowAdd(!showAdd)}>{showAdd ? 'Cancel' : '+ Add favorite'}</button>
       </div>
-      <div style={{ padding: 14 }}>
-        {/* Add Search */}
-        {showAdd && (
-          <div style={{ marginBottom: 12 }}>
-            <input
-              value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search symbols (e.g. AAPL, BTC-USD, GC=F)..."
-              autoFocus
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${c.rim}`, background: c.surface, color: c.t1, fontSize: 12, outline: 'none', marginBottom: 6 }}
-            />
-            {searchResults.length > 0 && (
-              <div style={{ borderRadius: 8, border: `1px solid ${c.rim}`, background: c.card, overflow: 'hidden' }}>
-                {searchResults.map((cat) => (
-                  <button key={cat.sym} onClick={() => addSymbol(cat.sym)} style={{ display: 'block', width: '100%', padding: '8px 12px', border: 'none', background: 'transparent', color: c.t1, fontSize: 12, textAlign: 'left', cursor: 'pointer', borderBottom: `1px solid ${c.rim}` }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = c.surface)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <span style={{ fontWeight: 600 }}>{cat.sym}</span> <span style={{ color: c.t4, fontSize: 10 }}>· {cat.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* Watchlist */}
-        {watchlist.length === 0 && !showAdd && (
-          <div style={{ textAlign: 'center', padding: 40, color: c.t4 }}>
-            <div style={{ fontSize: 14, marginBottom: 8 }}>⭐</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: c.t2 }}>No watchlist symbols</div>
-            <div style={{ fontSize: 11, marginTop: 4 }}>Tap "+ Add" to start tracking symbols</div>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {sorted.map(({ sym, name }) => {
-            const d = data[sym]
-            const chg = d?.regularMarketChangePercent ?? 0
-            const dir = chgDir(chg)
-            const col = dir === 'up' ? c.gain : dir === 'dn' ? c.loss : c.t2
-            return (
-              <div key={sym} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: `1px solid ${c.rim}`, background: c.card }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: c.t1 }}>{sym}</div>
-                  <div style={{ fontSize: 9, color: c.t4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-                </div>
-                <SparklineChart symbol={sym} range="7d" width={64} height={28} color={col} />
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: c.t1 }}>{d ? `$${fmt(d.regularMarketPrice, 2)}` : '—'}</div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: col }}>{d ? fmtChg(chg) : '—'}</div>
-                </div>
-                <button onClick={() => removeSymbol(sym)} style={{ padding: '4px 8px', borderRadius: 4, border: `1px solid ${c.lossDim}`, background: 'transparent', color: c.loss, fontSize: 10, cursor: 'pointer' }}>✕</button>
-              </div>
-            )
-          })}
+      {showAdd && (
+        <div className="panel form-card">
+          <SearchBox value={search} onChange={setSearch} placeholder="Search AAPL, Bitcoin, gold…" />
+          {searchResults.length > 0 && (
+            <div className="panel">
+              {searchResults.map((cat) => (
+                <button
+                  key={cat.sym}
+                  type="button"
+                  onClick={() => addSymbol(cat.sym)}
+                  style={{ display: 'block', width: '100%', padding: '10px 14px', border: 'none', background: 'transparent', color: 'var(--t1)', textAlign: 'left', borderBottom: '1px solid var(--rim)' }}
+                >
+                  <strong>{cat.sym}</strong> <span className="muted">· {cat.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {search.trim() && (
+            <button className="btn btn-primary" onClick={addCustom}>Add “{search.trim().toUpperCase()}”</button>
+          )}
         </div>
+      )}
+
+      {watchlist.length === 0 && !showAdd && (
+        <EmptyState
+          icon="★"
+          title="No favorites yet"
+          hint="Pin the symbols you care about. Settings → Clear Favorites only empties this list."
+          action={<button className="btn btn-ghost" style={{ marginTop: 16 }} onClick={() => setShowAdd(true)}>+ Add favorite</button>}
+        />
+      )}
+
+      <div className="asset-list">
+        {sorted.map(({ sym, name }) => {
+          const d = data[sym]
+          const chg = d?.regularMarketChangePercent ?? 0
+          const dir = chgDir(chg)
+          const col = dir === 'up' ? 'var(--gain)' : dir === 'dn' ? 'var(--loss)' : 'var(--t2)'
+          return (
+            <div key={sym} className="asset" style={{ cursor: 'default' }}>
+              <div className="avatar" style={{ background: 'var(--blue-dim)', color: 'var(--blue)' }}>{sym.slice(0, 2)}</div>
+              <div style={{ minWidth: 0 }}>
+                <div className="sym">{sym}</div>
+                <div className="muted">{name}</div>
+              </div>
+              <div className="spark">
+                <SparklineChart symbol={sym} range="7d" width={80} height={32} color={col} />
+              </div>
+              <div className="right">
+                <div className="mono" style={{ fontWeight: 700 }}>{d ? `$${fmt(d.regularMarketPrice, 2)}` : '—'}</div>
+                <div className="mono" style={{ fontSize: 12, fontWeight: 600, color: col, marginTop: 2 }}>{d ? fmtChg(chg) : '—'}</div>
+              </div>
+              <button className="btn btn-danger btn-sm" onClick={() => removeSymbol(sym)}>✕</button>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

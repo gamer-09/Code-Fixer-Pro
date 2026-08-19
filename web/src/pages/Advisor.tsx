@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { useColors } from '../hooks/useColors'
-import { useSettings } from '../context/SettingsContext'
+import React, { useEffect, useRef, useState } from 'react'
 import { useMarket } from '../context/MarketContext'
+import { useSettings } from '../context/SettingsContext'
 
 interface Message { role: 'user' | 'assistant'; content: string }
 
@@ -11,131 +10,155 @@ function generateFallbackAiResponse(query: string, risk: string): string {
   const q = query.trim().toLowerCase()
 
   if (/^(hi|hello|hey|yo|help|thanks|thank you|what is floboard|who are you)[.!?]*$/i.test(q)) {
-    return `Hello! I'm **FloAI**, your AI financial advisor built into FloBoard.\n\nWe can chat about financial topics, or ask me to analyze any stock, crypto, or forex pair. I'll adjust to your **${r.toUpperCase()}** risk profile.`
+    return `Hello — I'm **FloAI**, the advisor built into FloBoard.\n\nWe can talk normally, or I can analyze a stock, coin, or FX pair. Market answers follow your **${r.toUpperCase()}** risk mode.`
   }
 
   if (/gold|gc=f|silver|si=f|xau|xag|metal/i.test(q)) {
-    return `### FloAI [${r.toUpperCase()} MODE] Analysis (${dateStr})\n\n**Gold / Precious Metals**\n\nAs a ${r} investor, Gold (${r === 'aggressive' ? 'focus on momentum breakouts' : r === 'conservative' ? 'focus on capital preservation with 5-10% allocation' : 'balanced 5-8% portfolio allocation as a hedge'}). Monitor DXY resistance and Treasury yield shifts for direction.`
+    return `### FloAI [${r.toUpperCase()} MODE] · ${dateStr}\n\n**Gold / Precious Metals**\n\nAs a ${r} investor, gold is ${r === 'aggressive' ? 'a momentum sleeve — watch breakouts against DXY' : r === 'conservative' ? 'a 5–10% capital-preservation hedge' : 'a 5–8% portfolio hedge'}. Watch Treasury yields and the dollar for direction.`
   }
 
   if (/btc|bitcoin|eth|ethereum|sol|solana|crypto/i.test(q)) {
-    return `### FloAI [${r.toUpperCase()} MODE] Analysis (${dateStr})\n\n**Bitcoin / Crypto**\n\n${r === 'aggressive' ? 'Allocate 15-20% to core Layer-1 assets (BTC, ETH, SOL). Target breakout entries.' : r === 'conservative' ? 'Keep crypto exposure under 3% — BTC only. Prioritize Treasury yields.' : 'Maintain 5-10% allocation via DCA on pullbacks. Quarterly rebalancing.'}`
+    return `### FloAI [${r.toUpperCase()} MODE] · ${dateStr}\n\n**Bitcoin / Crypto**\n\n${r === 'aggressive' ? 'A 15–20% core L1 sleeve (BTC, ETH, SOL) with breakout entries can fit an aggressive book.' : r === 'conservative' ? 'Keep crypto under 3% and prefer BTC only. Treasuries stay the core.' : 'A 5–10% DCA sleeve with quarterly rebalancing is the moderate path.'}`
   }
 
   if (/aapl|nvda|msft|tsla|stock|share|equity/i.test(q)) {
-    return `### FloAI [${r.toUpperCase()} MODE] Analysis (${dateStr})\n\n**Stock / Equity Analysis**\n\n${r === 'aggressive' ? 'Overweight AI/semiconductor leaders (NVDA, AVGO, AMD). Enter on volume breakouts.' : r === 'conservative' ? 'Prioritize dividend aristocrats (JNJ, PG, COST) with beta < 0.85. Fixed income cushion 50-60%.' : 'Core index allocation 50-60% via SPY/QQQ. Supplement with quality mega-caps.'}`
+    return `### FloAI [${r.toUpperCase()} MODE] · ${dateStr}\n\n**Equities**\n\n${r === 'aggressive' ? 'Overweight AI / semiconductor leaders and enter on volume breakouts.' : r === 'conservative' ? 'Favor dividend aristocrats and keep a large fixed-income cushion.' : 'Core index exposure via SPY/QQQ, topped up with quality mega-caps.'}`
   }
 
   if (/eurusd|usdjpy|forex|fx|currency|dollar|dxy/i.test(q)) {
-    return `### FloAI [${r.toUpperCase()} MODE] Analysis (${dateStr})\n\n**Forex / Currencies**\n\n${r === 'aggressive' ? 'Trade momentum breakouts around central bank announcements. Ride carry-trade trends.' : r === 'conservative' ? 'Avoid speculative FX. Anchor reserves in T-bills. Use FX only to hedge international equity.' : 'Track G10 majors alongside DXY. Pair domestic equities with international ETFs.'}`
+    return `### FloAI [${r.toUpperCase()} MODE] · ${dateStr}\n\n**Forex**\n\n${r === 'aggressive' ? 'Trade momentum around central-bank events and carry trends.' : r === 'conservative' ? 'Avoid speculative FX. Use currency only as a hedge for international holdings.' : 'Track G10 majors with DXY. Pair domestic equities with international ETFs.'}`
   }
 
-  return `### FloAI [${r.toUpperCase()} MODE] Analysis (${dateStr})\n\n**General Market Outlook**\n\nBased on your ${r} profile:\n${r === 'aggressive' ? '- Focus on high-beta growth and AI infrastructure leaders\n- Accept higher volatility for market-leading returns\n- Monitor breakout patterns and volume surges' : r === 'conservative' ? '- Prioritize capital preservation and dividend compounding\n- 50-60% in sovereign debt\n- Blue-chip defensive sectors (XLP, XLU)' : '- Balanced 60/40 equity-to-bond allocation\n- Core index funds with quality mega-caps\n- Quarterly rebalancing discipline'}`
+  return `### FloAI [${r.toUpperCase()} MODE] · ${dateStr}\n\n**Market outlook**\n\nBased on your ${r} profile:\n${r === 'aggressive' ? '- High-beta growth and AI infrastructure\n- Accept volatility for upside\n- Watch breakouts and volume' : r === 'conservative' ? '- Capital preservation and dividends\n- Large sovereign-debt sleeve\n- Defensive sectors (staples, utilities)' : '- Balanced 60/40-style mix\n- Core index funds + quality mega-caps\n- Quarterly rebalance'}`
 }
 
+function renderText(text: string) {
+  return text.split('\n').map((line, i) => {
+    const heading = line.startsWith('### ') ? line.slice(4) : null
+    const parts = (heading ?? line).split('**').map((part, j) => (j % 2 === 1 ? <strong key={j}>{part}</strong> : part))
+    if (heading) return <div key={i} style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{parts}</div>
+    return <span key={i}>{parts}{i < text.split('\n').length - 1 ? '\n' : ''}</span>
+  })
+}
+
+const SUGGESTS = [
+  'What is the outlook for gold?',
+  'Should I buy Bitcoin?',
+  'How is the S&P 500 looking?',
+  'Explain EUR/USD this week',
+]
+
 export default function AdvisorScreen() {
-  const c = useColors()
   const { settings, updateSetting } = useSettings()
   const { data } = useMarket()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const endRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, loading])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    if (settings.clearChatKey > 0) setMessages([])
+  }, [settings.clearChatKey])
 
-  const sendMessage = async () => {
-    const text = input.trim()
+  const sendMessage = async (preset?: string) => {
+    const text = (preset ?? input).trim()
     if (!text || loading) return
     setInput('')
-    const userMsg: Message = { role: 'user', content: text }
-    setMessages((prev) => [...prev, userMsg])
+    setMessages((prev) => [...prev, { role: 'user', content: text }])
     setLoading(true)
 
-    // Try Gemini API first
-    if (settings.geminiApiKey) {
+    const isMarket = /gold|silver|metal|btc|bitcoin|eth|crypto|stock|share|equity|forex|fx|dollar|dxy|yield|bond|oil|nasdaq|s&p|invest|buy|sell|portfolio|nvda|aapl|tsla/i.test(text)
+    const modePrefix = isMarket ? `[${settings.riskProfile.toUpperCase()} MODE] ` : ''
+
+    if (settings.geminiApiKey.trim()) {
       try {
         const marketContext = Object.entries(data).slice(0, 20).map(([sym, q]) => `${sym}: $${q.regularMarketPrice} (${q.regularMarketChangePercent >= 0 ? '+' : ''}${q.regularMarketChangePercent.toFixed(2)}%)`).join('\n')
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${settings.geminiApiKey}`, {
+        const system = `You are FloAI, FloBoard's market assistant. Speak naturally for ordinary conversation. When the user asks about markets, assets, or investing, rewrite and analyze through a ${settings.riskProfile.toUpperCase()} risk lens. Never ask for bank logins, deposits, or personal financial account details. Educational only — not financial advice.\n\nLive snapshot:\n${marketContext}`
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(settings.geminiApiKey.trim())}`
+        const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: `You are FloAI, a financial advisor. Risk mode: ${settings.riskProfile.toUpperCase()}.\n\nCurrent market data:\n${marketContext}\n\nUser: ${text}` }] }],
+            system_instruction: { parts: [{ text: system }] },
+            contents: [{ role: 'user', parts: [{ text: `${modePrefix}${text}` }] }],
+            generationConfig: { maxOutputTokens: 1024 },
           }),
         })
-        if (res.ok) {
-          const json = await res.json()
-          const reply = json.candidates?.[0]?.content?.parts?.[0]?.text
-          if (reply) {
-            setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
-            setLoading(false)
-            return
-          }
+        const json = await res.json()
+        const reply = json.candidates?.[0]?.content?.parts?.[0]?.text
+        if (reply) {
+          setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+          setLoading(false)
+          return
         }
-      } catch { /* fall through to fallback */ }
+        if (json.error?.message) {
+          setMessages((prev) => [...prev, { role: 'assistant', content: `Error from Google Gemini API: ${json.error.message}` }])
+          setLoading(false)
+          return
+        }
+      } catch { /* fallback */ }
     }
 
-    // Fallback
     setTimeout(() => {
-      const reply = generateFallbackAiResponse(text, settings.riskProfile)
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      setMessages((prev) => [...prev, { role: 'assistant', content: generateFallbackAiResponse(text, settings.riskProfile) }])
       setLoading(false)
-    }, 500)
+    }, 400)
   }
 
   return (
-    <div className="page-container" style={{ background: c.void, display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div className="page-title">FloAI Advisor</div>
-          <div className="page-subtitle">Powered by Gemini · {settings.riskProfile.toUpperCase()} mode</div>
-        </div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {(['conservative','moderate','aggressive'] as const).map((r) => (
-            <button key={r} onClick={() => updateSetting('riskProfile', r)} style={{ padding: '3px 8px', borderRadius: 6, border: `1px solid ${settings.riskProfile === r ? c.gain : c.rim}`, background: settings.riskProfile === r ? c.gainDim : c.card, color: settings.riskProfile === r ? c.gain : c.t3, fontSize: 9, fontWeight: 600, cursor: 'pointer' }}>
-              {r.slice(0, 3).toUpperCase()}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {messages.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 40, color: c.t4 }}>
-            <div style={{ fontSize: 14, marginBottom: 8 }}>💬</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: c.t2, marginBottom: 4 }}>Ask FloAI anything</div>
-            <div style={{ fontSize: 11 }}>Try: "What is the outlook for Gold?" or "Should I buy Bitcoin?"</div>
-          </div>
-        )}
-        {messages.map((msg, i) => (
-          <div key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
-            <div style={{ padding: '10px 14px', borderRadius: 12, background: msg.role === 'user' ? c.blue : c.card, border: `1px solid ${msg.role === 'user' ? 'transparent' : c.rim}`, color: c.t1, fontSize: 12, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-              {msg.content.split('**').map((part, j) => j % 2 === 1 ? <strong key={j}>{part}</strong> : part)}
+    <div className="chat">
+      <div className="chat-thread">
+        <div className="chat-inner">
+          {messages.length === 0 && (
+            <div className="chat-empty">
+              <div className="empty-icon">✦</div>
+              <h3>Ask FloAI anything</h3>
+              <p className="muted">Normal chat stays natural. Market questions follow your {settings.riskProfile} mode.</p>
+              <div className="suggest">
+                {SUGGESTS.map((s) => (
+                  <button key={s} type="button" onClick={() => sendMessage(s)}>{s}</button>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-        {loading && (
-          <div style={{ alignSelf: 'flex-start', padding: '10px 14px', borderRadius: 12, background: c.card, border: `1px solid ${c.rim}`, color: c.t4, fontSize: 12 }}>
-            <div className="spinner" style={{ width: 16, height: 16 }} />
-          </div>
-        )}
-        <div ref={messagesEndRef} />
+          )}
+          {messages.map((msg, i) => (
+            <div key={i} className={`bubble ${msg.role === 'user' ? 'user' : 'ai'}`}>
+              {renderText(msg.content)}
+            </div>
+          ))}
+          {loading && (
+            <div className="bubble ai"><div className="spinner" style={{ width: 16, height: 16 }} /></div>
+          )}
+          <div ref={endRef} />
+        </div>
       </div>
-
-      {/* Input */}
-      <div style={{ padding: '10px 14px', borderTop: `1px solid ${c.rim}`, background: c.base, display: 'flex', gap: 8 }}>
-        <input
-          value={input} onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder="Ask about markets, stocks, crypto..."
-          style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: `1px solid ${c.rim}`, background: c.surface, color: c.t1, fontSize: 12, outline: 'none' }}
-        />
-        <button onClick={sendMessage} disabled={loading || !input.trim()} style={{ padding: '10px 18px', borderRadius: 10, border: 'none', background: c.gain, color: '#080B10', fontWeight: 700, fontSize: 12, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading || !input.trim() ? 0.5 : 1 }}>
-          Send
-        </button>
+      <div className="chat-input">
+        <div className="chat-box">
+          <div className="seg" style={{ flexShrink: 0 }}>
+            {(['conservative', 'moderate', 'aggressive'] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                className={`seg-btn gain ${settings.riskProfile === r ? 'active' : ''}`}
+                onClick={() => updateSetting('riskProfile', r)}
+              >
+                {r.slice(0, 3).toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <input
+            className="field"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+            placeholder="Ask about markets, or just say hi…"
+          />
+          <button className="btn btn-primary" onClick={() => sendMessage()} disabled={loading || !input.trim()}>
+            Send
+          </button>
+        </div>
       </div>
     </div>
   )

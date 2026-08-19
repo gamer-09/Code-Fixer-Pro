@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
-import TabBar from './components/TabBar'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import AppShell from './components/AppShell'
+import ThemeSync from './components/ThemeSync'
 
 const Markets = lazy(() => import('./pages/Markets'))
 const Crypto = lazy(() => import('./pages/Crypto'))
@@ -14,7 +15,7 @@ const Settings = lazy(() => import('./pages/Settings'))
 
 function Loading() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#4A5568' }}>
+    <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: 'var(--t3)' }}>
       <div className="spinner" />
     </div>
   )
@@ -22,11 +23,12 @@ function Loading() {
 
 export default function App() {
   return (
-    <div className="app-shell">
-      <main className="app-content">
+    <>
+      <ThemeSync />
+      <AppShell>
         <Suspense fallback={<Loading />}>
           <Routes>
-            <Route path="/" element={<Markets />} />
+            <Route path="/" element={<Navigate to="/markets" replace />} />
             <Route path="/markets" element={<Markets />} />
             <Route path="/crypto" element={<Crypto />} />
             <Route path="/fx" element={<CurrencyPairs />} />
@@ -36,10 +38,10 @@ export default function App() {
             <Route path="/watchlist" element={<Watchlist />} />
             <Route path="/help" element={<Help />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<Navigate to="/markets" replace />} />
           </Routes>
         </Suspense>
-      </main>
-      <TabBar />
-    </div>
+      </AppShell>
+    </>
   )
 }

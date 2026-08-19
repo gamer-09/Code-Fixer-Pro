@@ -1,18 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import SparklineChart from '../components/SparklineChart'
-import { useColors } from '../hooks/useColors'
+import { SearchBox, Segmented } from '../components/ui'
 import { chgDir, fmt, fmtChg, useMarket } from '../context/MarketContext'
-import { getApiBase } from '../utils/apiBase'
-import { resolveSymbolAlias, getFallbackQuote } from '../utils/symbolFallbacks'
-
-const BASE = getApiBase()
 
 type Group = 'All' | 'Majors' | 'Crosses' | 'Exotics' | 'Metals'
 
-const MAJOR_SYMS = new Set(['EURUSD=X','GBPUSD=X','USDJPY=X','USDCHF=X','AUDUSD=X','NZDUSD=X','USDCAD=X'])
-const METAL_SYMS = new Set(['XAUUSD=X','XAGUSD=X','XPTUSD=X','XPDUSD=X'])
-
-interface PairInfo { sym: string; pair: string; base: string; quote: string; group: Group }
+interface PairInfo { sym: string; pair: string; base: string; quote: string; group: Exclude<Group, 'All'> }
 
 const PAIRS: PairInfo[] = [
   { sym: 'XAUUSD=X', pair: 'XAU/USD', base: 'XAU', quote: 'USD', group: 'Metals' },
@@ -57,63 +50,54 @@ function decimals(sym: string): number {
 }
 
 export default function CurrencyPairsScreen() {
-  const c = useColors()
-  const { data, loading, refresh } = useMarket()
+  const { data } = useMarket()
   const [group, setGroup] = useState<Group>('All')
   const [search, setSearch] = useState('')
 
-  const filtered = PAIRS.filter((p) => {
+  const filtered = useMemo(() => PAIRS.filter((p) => {
     if (group !== 'All' && p.group !== group) return false
     if (search) {
       const q = search.toLowerCase()
       if (!p.pair.toLowerCase().includes(q) && !p.base.toLowerCase().includes(q) && !p.quote.toLowerCase().includes(q)) return false
     }
     return true
-  })
+  }), [group, search])
 
   return (
-    <div className="page-container" style={{ background: c.void }}>
-      <div className="page-header">
-        <div className="page-title">FX Pairs</div>
-        <div className="page-subtitle">Foreign exchange rates & precious metals</div>
-      </div>
-      <div style={{ padding: 14 }}>
-        <input
-          value={search} onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search pairs..."
-          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${c.rim}`, background: c.surface, color: c.t1, fontSize: 12, outline: 'none', marginBottom: 10 }}
+    <div className="page">
+      <div className="toolbar">
+        <SearchBox value={search} onChange={setSearch} placeholder="Search pairs — EUR, JPY, gold…" />
+        <Segmented
+          value={group}
+          onChange={(v) => setGroup(v as Group)}
+          options={(['All','Majors','Crosses','Exotics','Metals'] as const).map((g) => ({ label: g, value: g }))}
         />
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
-          {(['All','Majors','Crosses','Exotics','Metals'] as const).map((g) => (
-            <button key={g} onClick={() => setGroup(g)} style={{ padding: '3px 8px', borderRadius: 6, border: `1px solid ${group === g ? c.blue : c.rim}`, background: group === g ? c.blue : c.card, color: group === g ? '#fff' : c.t3, fontSize: 9, fontWeight: 600, cursor: 'pointer' }}>
-              {g}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {filtered.map((p) => {
-            const d = data[p.sym]
-            const chg = d?.regularMarketChangePercent ?? 0
-            const dir = chgDir(chg)
-            const col = dir === 'up' ? c.gain : dir === 'dn' ? c.loss : c.t2
-            const dec = decimals(p.sym)
-            return (
-              <div key={p.sym} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: `1px solid ${c.rim}`, borderLeftColor: col, background: c.card }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: c.t1 }}>{p.pair}</span>
-                    <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.5, padding: '1px 5px', borderRadius: 3, background: c.blueDim, color: c.blue }}>{p.group.toUpperCase()}</span>
-                  </div>
-                </div>
-                <SparklineChart symbol={p.sym} range="7d" width={64} height={24} color={col} />
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: c.t1 }}>{d ? fmt(d.regularMarketPrice, dec) : '—'}</div>
-                  <div style={{ fontSize: 10, fontWeight: 600, color: col }}>{d ? fmtChg(chg) : '—'}</div>
+      </div>
+
+      <div className="asset-list">
+        {filtered.map((p) => {
+          const d = data[p.sym]
+          const chg = d?.regularMarketChangePercent ?? 0
+          const dir = chgDir(chg)
+          const col = dir === 'up' ? 'var(--gain)' : dir === 'dn' ? 'var(--loss)' : 'var(--t2)'
+          return (
+            <div key={p.sym} className="asset fx" style={{ borderLeft: `3px solid ${col}` }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="sym">{p.pair}</span>
+                  <span className="tag" style={{ background: 'var(--blue-dim)', color: 'var(--blue)' }}>{p.group}</span>
                 </div>
               </div>
-            )
-          })}
-        </div>
+              <div className="spark">
+                <SparklineChart symbol={p.sym} range="7d" width={80} height={28} color={col} />
+              </div>
+              <div className="right">
+                <div className="mono" style={{ fontWeight: 700, fontSize: 15 }}>{d ? fmt(d.regularMarketPrice, decimals(p.sym)) : '—'}</div>
+                <div className="mono" style={{ fontSize: 12, fontWeight: 600, color: col, marginTop: 2 }}>{d ? fmtChg(chg) : '—'}</div>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
