@@ -1,4 +1,4 @@
-import{r as n,j as e}from"./index-BnVy0y-D.js";const l=[{id:"gemini",title:"Getting your Gemini API key",icon:"🔑",accent:"var(--amber)",items:[{q:"What is the Gemini API key?",a:"FloAI is powered by Google Gemini. A personal API key is like a password that lets FloAI talk to Gemini from your browser."},{q:"How do I get a free key?",a:`1. Open Google AI Studio
+import{r as n,j as e}from"./index-C5RoCQTW.js";const l=[{id:"gemini",title:"Getting your Gemini API key",icon:"🔑",accent:"var(--amber)",items:[{q:"What is the Gemini API key?",a:"FloAI is powered by Google Gemini. A personal API key is like a password that lets FloAI talk to Gemini from your browser."},{q:"How do I get a free key?",a:`1. Open Google AI Studio
 2. Sign in with a Google account
 3. Create an API key
 4. Copy it (it starts with AIza…)

@@ -45,26 +45,90 @@ export const EXCHANGES: Exchange[] = [
   { name: 'NGX', full: 'Nigerian Exchange Group', flag: '🇳🇬', tz: 'Africa/Lagos', sessions: [{ oh: 9, om: 30, ch: 14, cm: 30 }], region: 'Mid East & Africa' },
 ]
 
-export function getLocalTimeStr(tz: string): string {
+const WEEKDAY: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 }
+
+function pad(n: number) { return String(n).padStart(2, '0') }
+
+function fmtHm(h: number, m: number, hour12 = true): string {
+  if (!hour12) return `${pad(h)}:${pad(m)}`
+  const am = h < 12
+  const hr = h % 12 || 12
+  return `${hr}:${pad(m)} ${am ? 'AM' : 'PM'}`
+}
+
+/** Read wall-clock time in an IANA zone. hourCycle h23 so midnight is 00, not 24. */
+export function zonedClock(tz: string, now = new Date()): { h: number; m: number; wd: number; mins: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now)
+  const get = (t: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === t)?.value ?? ''
+  let h = parseInt(get('hour'), 10)
+  if (!Number.isFinite(h) || h === 24) h = 0
+  const m = parseInt(get('minute'), 10) || 0
+  const wd = WEEKDAY[get('weekday')] ?? 0
+  return { h, m, wd, mins: h * 60 + m }
+}
+
+export function getLocalTimeStr(tz: string, now = new Date()): string {
   try {
-    return new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date())
+    const { h, m } = zonedClock(tz, now)
+    return fmtHm(h, m)
   } catch { return '' }
 }
 
-export function getExchangeStatus(ex: Exchange): { open: boolean; localTime: string } {
+export type SessionState = 'open' | 'closed' | 'lunch'
+
+export interface ExchangeStatus {
+  open: boolean
+  state: SessionState
+  localTime: string
+  detail: string
+  hoursLabel: string
+}
+
+function hoursLabel(ex: Exchange): string {
+  return ex.sessions.map((s) => `${fmtHm(s.oh, s.om, false)}–${fmtHm(s.ch, s.cm, false)}`).join(' · ')
+}
+
+export function getExchangeStatus(ex: Exchange, now = new Date()): ExchangeStatus {
+  const localTime = getLocalTimeStr(ex.tz, now)
+  const hours = hoursLabel(ex)
   try {
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone: ex.tz, hour: 'numeric', minute: 'numeric', weekday: 'short', hour12: false }).formatToParts(new Date())
-    const weekdayStr = parts.find((p) => p.type === 'weekday')?.value ?? ''
-    const weekdayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
-    const weekday = weekdayMap[weekdayStr] ?? 0
+    const { mins, wd } = zonedClock(ex.tz, now)
     const weekends = ex.weekends ?? [0, 6]
-    if (weekends.includes(weekday)) return { open: false, localTime: getLocalTimeStr(ex.tz) }
-    const h = parseInt(parts.find((p) => p.type === 'hour')?.value ?? '0')
-    const m = parseInt(parts.find((p) => p.type === 'minute')?.value ?? '0')
-    const mins = h * 60 + m
-    for (const s of ex.sessions) {
-      if (mins >= s.oh * 60 + s.om && mins < s.ch * 60 + s.cm) return { open: true, localTime: getLocalTimeStr(ex.tz) }
+    const isWeekend = weekends.includes(wd)
+
+    if (!isWeekend) {
+      for (const s of ex.sessions) {
+        const start = s.oh * 60 + s.om
+        const end = s.ch * 60 + s.cm
+        if (mins >= start && mins < end) {
+          return { open: true, state: 'open', localTime, detail: `closes ${fmtHm(s.ch, s.cm)}`, hoursLabel: hours }
+        }
+      }
+      if (ex.sessions.length > 1) {
+        for (let i = 0; i < ex.sessions.length - 1; i++) {
+          const end = ex.sessions[i].ch * 60 + ex.sessions[i].cm
+          const next = ex.sessions[i + 1]
+          const start = next.oh * 60 + next.om
+          if (mins >= end && mins < start) {
+            return { open: false, state: 'lunch', localTime, detail: `lunch · opens ${fmtHm(next.oh, next.om)}`, hoursLabel: hours }
+          }
+        }
+      }
+      const later = ex.sessions.find((s) => mins < s.oh * 60 + s.om)
+      if (later) {
+        return { open: false, state: 'closed', localTime, detail: `opens ${fmtHm(later.oh, later.om)}`, hoursLabel: hours }
+      }
     }
-    return { open: false, localTime: getLocalTimeStr(ex.tz) }
-  } catch { return { open: false, localTime: '' } }
+
+    const first = ex.sessions[0]
+    return { open: false, state: 'closed', localTime, detail: `opens ${fmtHm(first.oh, first.om)}`, hoursLabel: hours }
+  } catch {
+    return { open: false, state: 'closed', localTime, detail: '', hoursLabel: hours }
+  }
 }

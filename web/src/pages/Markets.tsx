@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import SparklineChart from '../components/SparklineChart'
 import { ChangeBadge, Section, Segmented } from '../components/ui'
-import { EXCHANGES, getExchangeStatus, getLocalTimeStr, type Exchange } from '../constants/exchanges'
+import { EXCHANGES, getExchangeStatus } from '../constants/exchanges'
 import { BONDS, COMMODITIES, CRYPTOS, FOREX, INDICES, SECTORS, STOCKS } from '../constants/marketData'
 import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '../context/MarketContext'
 import { useSettings } from '../context/SettingsContext'
@@ -47,27 +47,22 @@ function IndexCard({ sym, name, region }: { sym: string; name: string; region: s
 }
 
 function MarketHoursSection() {
-  const [statuses, setStatuses] = useState<Map<string, boolean>>(new Map())
-
+  const [, setTick] = useState(0)
   useEffect(() => {
-    const update = () => {
-      const map = new Map<string, boolean>()
-      EXCHANGES.forEach((ex) => map.set(ex.name, getExchangeStatus(ex).open))
-      setStatuses(map)
-    }
-    update()
-    const id = setInterval(update, 30000)
+    const id = setInterval(() => setTick((n) => n + 1), 1000)
     return () => clearInterval(id)
   }, [])
 
+  const now = new Date()
+  const statuses = EXCHANGES.map((ex) => ({ ex, st: getExchangeStatus(ex, now) }))
+  const openCount = statuses.filter((s) => s.st.open).length
   const regions = Array.from(new Set(EXCHANGES.map((e) => e.region)))
-  const openCount = EXCHANGES.filter((ex) => statuses.get(ex.name)).length
 
   return (
     <Section
       label="Market Hours"
       right={
-        <span className="status-pill live">
+        <span className={`status-pill ${openCount ? 'live' : 'off'}`}>
           <span className="pulse-dot" />
           {openCount} open / {EXCHANGES.length}
         </span>
@@ -77,25 +72,27 @@ function MarketHoursSection() {
         <div key={region} style={{ marginBottom: 14 }}>
           <div className="hours-region">{region}</div>
           <div className="grid grid-hours">
-            {EXCHANGES.filter((e) => e.region === region).map((ex: Exchange) => {
-              const open = statuses.get(ex.name) ?? false
-              const localTime = getLocalTimeStr(ex.tz)
+            {statuses.filter(({ ex }) => ex.region === region).map(({ ex, st }) => {
+              const open = st.open
+              const lunch = st.state === 'lunch'
+              const color = open ? 'var(--gain)' : lunch ? 'var(--amber)' : 'var(--t4)'
               return (
-                <div key={ex.name} className={`hours-chip ${open ? 'open' : ''}`} title={ex.full}>
+                <div key={ex.name} className={`hours-chip ${open ? 'open' : ''}`} title={`${ex.full} · ${st.hoursLabel}`}>
                   <div className="hours-top">
                     <span className="hours-flag">{ex.flag}</span>
-                    <span className="hours-dot" style={{ background: open ? 'var(--gain)' : 'var(--t4)' }} />
+                    <span className="hours-dot" style={{ background: open ? 'var(--gain)' : lunch ? 'var(--amber)' : 'var(--t4)' }} />
                   </div>
                   <div className="hours-name" style={{ color: open ? 'var(--gain)' : 'var(--t2)' }}>{ex.name}</div>
-                  <div className="hours-time" style={{ color: open ? 'var(--gain)' : 'var(--t4)' }}>{localTime}</div>
-                  <div className="hours-status" style={{ color: open ? 'var(--gain)' : 'var(--t4)' }}>{open ? 'OPEN' : 'CLOSED'}</div>
+                  <div className="hours-time" style={{ color }}>{st.localTime}</div>
+                  <div className="hours-status" style={{ color }}>{open ? 'OPEN' : lunch ? 'LUNCH' : 'CLOSED'}</div>
+                  <div className="hours-countdown" style={{ color: 'var(--t4)' }}>{st.detail}</div>
                 </div>
               )
             })}
           </div>
         </div>
       ))}
-      <div className="muted" style={{ marginTop: 4 }}>Crypto 24/7 · Forex Sun 5pm – Fri 5pm ET</div>
+      <div className="muted" style={{ marginTop: 4 }}>Regular cash sessions only · Crypto 24/7 · Forex Sun 5pm – Fri 5pm ET</div>
     </Section>
   )
 }
