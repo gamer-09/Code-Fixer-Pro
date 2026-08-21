@@ -21,7 +21,7 @@ const SECTIONS: HelpSection[] = [
   {
     id: 'markets', title: 'Markets', icon: '▣', accent: 'var(--gain)',
     items: [
-      { q: 'What does Overview show?', a: 'Live prices for global indices, commodities, Treasury yields, sector ETFs, large-cap stocks, and FX — plus open/closed hours for 33 exchanges.' },
+      { q: 'What does Overview show?', a: 'Live prices for global indices, commodities, Treasury yields, sector ETFs, large-cap stocks, and FX — plus open/closed hours for 33 exchanges. The “What investors watch” row is the 10Y–3M yield curve, WTI crude, high-yield credit (HYG), and copper.' },
       { q: 'How current is the data?', a: 'Quotes refresh automatically. Change the interval in Settings (30s, 60s, 90s, or 5 min).' },
       { q: 'What do the colors mean?', a: 'Green is up on the day. Red is down. Amber is flat or nearly unchanged.' },
     ],

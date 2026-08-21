@@ -325,6 +325,7 @@ export const EXTRA_SYMBOLS = [
   'DELL', 'HPQ', 'IBM', 'NOW', 'SNOW', 'NET', 'DDOG', 'MDB', 'ZS', 'OKTA',
   'TWLO', 'RBLX', 'LYFT', 'DASH', 'PINS', 'MTCH', 'ROKU', 'TTD', 'AFRM', 'SQ',
   'ZR=F', 'ZL=F', 'ZM=F',
+  'HYG', 'TLT', 'TIP', 'LQD',
 ]
 
 export const ALL_SYMBOLS = [

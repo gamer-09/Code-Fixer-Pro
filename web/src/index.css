@@ -471,6 +471,25 @@ textarea.field, .chat-field {
 }
 .kpi-chg { font-family: var(--mono); font-size: 12px; font-weight: 600; margin-top: 4px; }
 
+.watch-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.gauge {
+  background: var(--card);
+  border: 1px solid var(--rim);
+  border-radius: 12px;
+  padding: 12px 12px 12px;
+  min-width: 0;
+}
+.gauge-why {
+  font-size: 11px;
+  color: var(--t4);
+  line-height: 1.4;
+  margin-top: 8px;
+}
+
 /* ── Cards / grids ─────────────────────────────────────────────────────── */
 .grid { display: grid; gap: 10px; }
 .grid-indices { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
@@ -969,6 +988,7 @@ table.data .num { font-family: var(--mono); font-weight: 600; text-align: right;
 /* ── Responsive ────────────────────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .kpi-row { grid-template-columns: repeat(3, 1fr); }
+  .watch-grid { grid-template-columns: repeat(2, 1fr); }
   .grid-2 { grid-template-columns: 1fr; }
   .kpi-summary { grid-template-columns: 1fr; }
 }
