@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import Flag from '../components/Flag'
 import SparklineChart from '../components/SparklineChart'
 import { ChangeBadge, Section, Segmented } from '../components/ui'
 import { EXCHANGES, getExchangeStatus } from '../constants/exchanges'
@@ -79,7 +80,7 @@ function MarketHoursSection() {
               return (
                 <div key={ex.name} className={`hours-chip ${open ? 'open' : ''}`} title={`${ex.full} · ${st.hoursLabel}`}>
                   <div className="hours-top">
-                    <span className="hours-flag">{ex.flag}</span>
+                    <Flag emoji={ex.flag} title={ex.full} />
                     <span className="hours-dot" style={{ background: open ? 'var(--gain)' : lunch ? 'var(--amber)' : 'var(--t4)' }} />
                   </div>
                   <div className="hours-name" style={{ color: open ? 'var(--gain)' : 'var(--t2)' }}>{ex.name}</div>
