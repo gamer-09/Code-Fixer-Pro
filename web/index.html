@@ -16,16 +16,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <script>
-      (function(l) {
-        if (l.search[1] === '/') {
-          var decoded = l.search.slice(1).split('&').map(function(s) {
-            return s.replace(/~and~/g, '&')
-          }).join('?');
-          window.history.replaceState(null, null,
-            l.pathname.slice(0, -1) + decoded + l.hash
-          );
+      (function () {
+        var repo = '/Code-Fixer-Pro';
+        var path = location.pathname;
+        if (path.indexOf(repo) === 0) path = path.slice(repo.length);
+        if (path && path !== '/' && path !== '/index.html' && !location.hash) {
+          location.replace(repo + '/#' + path + location.search);
         }
-      }(window.location))
+      })();
     </script>
   </head>
   <body>

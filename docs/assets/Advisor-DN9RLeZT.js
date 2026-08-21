@@ -1,4 +1,4 @@
-import{b as N,a as M,r as c,j as t}from"./index-DfetrMei.js";function F(a,o){const e=(o||"moderate").toLowerCase(),n=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),r=a.trim().toLowerCase();return/^(hi|hello|hey|yo|help|thanks|thank you|what is floboard|who are you)[.!?]*$/i.test(r)?`Hello — I'm **FloAI**, the advisor built into FloBoard.
+import{b as N,a as M,r as c,j as t}from"./index-eUMhLoim.js";function F(a,o){const e=(o||"moderate").toLowerCase(),n=new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),r=a.trim().toLowerCase();return/^(hi|hello|hey|yo|help|thanks|thank you|what is floboard|who are you)[.!?]*$/i.test(r)?`Hello — I'm **FloAI**, the advisor built into FloBoard.
 
 We can talk normally, or I can analyze a stock, coin, or FX pair. Market answers follow your **${e.toUpperCase()}** risk mode.`:/gold|gc=f|silver|si=f|xau|xag|metal/i.test(r)?`### FloAI [${e.toUpperCase()} MODE] · ${n}
 
