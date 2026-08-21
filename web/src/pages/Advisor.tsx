@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useMarket } from '../context/MarketContext'
 import { useSettings } from '../context/SettingsContext'
 
@@ -51,10 +52,12 @@ const SUGGESTS = [
 export default function AdvisorScreen() {
   const { settings, updateSetting } = useSettings()
   const { data } = useMarket()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
+  const bootQ = useRef(searchParams.get('q') ?? '')
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, loading])
 
@@ -106,6 +109,15 @@ export default function AdvisorScreen() {
       setLoading(false)
     }, 400)
   }
+
+  useEffect(() => {
+    const q = bootQ.current.trim()
+    if (!q) return
+    bootQ.current = ''
+    setSearchParams({}, { replace: true })
+    void sendMessage(q)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="chat">

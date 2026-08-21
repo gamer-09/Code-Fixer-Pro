@@ -644,23 +644,58 @@ table.data .num { font-family: var(--mono); font-weight: 600; text-align: right;
 .stat-val { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--t2); margin-top: 3px; }
 
 /* ── News ──────────────────────────────────────────────────────────────── */
+.news-banner {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 14px; border-radius: 12px; margin-bottom: 8px;
+  background: var(--blue-dim); border: 1px solid color-mix(in srgb, var(--blue) 22%, transparent);
+  color: var(--t2); font-size: 13px;
+}
 .news-list { display: grid; gap: 10px; }
-.news-card {
-  display: block;
+.news-card, .news-card-btn {
+  display: flex;
   text-decoration: none;
-  padding: 16px 18px;
+  text-align: left;
+  width: 100%;
+  padding: 0;
   border-radius: 12px;
   border: 1px solid var(--rim);
   background: var(--card);
+  color: inherit;
+  overflow: hidden;
+  cursor: pointer;
   transition: border-color .15s, transform .12s;
 }
-.news-card:hover { border-color: var(--rim2); transform: translateY(-1px); }
-.news-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-.tag {
-  font-size: 10px; font-weight: 800; letter-spacing: .6px;
-  padding: 3px 8px; border-radius: 6px;
+.news-card:hover, .news-card-btn:hover { border-color: var(--rim2); transform: translateY(-1px); }
+.news-accent { width: 3px; flex-shrink: 0; }
+.news-body { flex: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.news-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.news-src {
+  font-size: 10px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase;
+  color: var(--t3); background: var(--surface); padding: 2px 6px; border-radius: 4px;
 }
 .news-title { font-size: 15px; font-weight: 600; color: var(--t1); line-height: 1.45; }
+.news-impact { font-size: 13px; color: var(--t3); line-height: 1.5; }
+.news-hint { font-size: 11px; color: var(--t4); }
+.sentiment {
+  border: 1px solid var(--rim); background: var(--card); border-radius: 12px;
+  padding: 14px; margin-bottom: 12px;
+}
+.sentiment-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.sentiment-legend { display: flex; gap: 12px; font-size: 12px; font-weight: 600; }
+.sentiment-track { display: flex; height: 7px; border-radius: 99px; overflow: hidden; background: var(--surface); }
+.sentiment-track > div { height: 100%; }
+.earn-list { display: flex; flex-direction: column; gap: 8px; }
+.earn-card {
+  display: flex; justify-content: space-between; gap: 12px; width: 100%;
+  text-align: left; color: inherit; cursor: pointer;
+  border: 1px solid var(--rim); background: var(--card); border-radius: 12px; padding: 12px 14px;
+}
+.earn-card:hover { border-color: var(--rim2); }
+.earn-card.today { border-color: color-mix(in srgb, var(--amber) 40%, transparent); }
+.earn-sym-row { display: flex; align-items: center; gap: 8px; }
+.earn-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.earn-est { display: flex; gap: 8px; font-size: 12px; color: var(--t2); font-family: var(--mono); }
+.earn-est small { display: block; font-size: 9px; color: var(--t4); font-weight: 700; letter-spacing: .5px; }
 
 /* ── Chat ──────────────────────────────────────────────────────────────── */
 .chat {
