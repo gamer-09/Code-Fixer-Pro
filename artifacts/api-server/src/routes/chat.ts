@@ -229,6 +229,7 @@ router.post("/chat", async (req, res) => {
     contents: geminiContents,
     generationConfig: {
       maxOutputTokens: 8192,
+      thinkingConfig: { thinkingBudget: 0 },
     },
   };
 

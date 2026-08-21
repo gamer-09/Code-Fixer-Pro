@@ -92,6 +92,59 @@ export default function AdvisorScreen() {
       content: m.role === 'user' && m.content === text ? `${modePrefix}${text}` : m.content,
     }))
 
+    const contents: GeminiContent[] = history.map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.role === 'user' && m.content === text ? `${modePrefix}${text}` : m.content }],
+    }))
+
+    const callGemini = async (bodyContents: GeminiContent[]) => {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(settings.geminiApiKey.trim())}`
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents: bodyContents,
+          generationConfig: {
+            maxOutputTokens: 8192,
+            thinkingConfig: { thinkingBudget: 0 },
+          },
+        }),
+      })
+      const json = await res.json() as {
+        error?: { message?: string }
+        candidates?: Array<{
+          finishReason?: string
+          content?: { parts?: Array<{ text?: string }> }
+        }>
+      }
+      const cand = json.candidates?.[0]
+      const reply = (cand?.content?.parts ?? []).map((p) => p.text ?? '').join('')
+      return { json, reply, finishReason: cand?.finishReason }
+    }
+
+    if (settings.geminiApiKey.trim()) {
+      try {
+        let { json, reply, finishReason } = await callGemini(contents)
+        if (json.error?.message && !reply) {
+          finish(`Error from Google Gemini API: ${json.error.message}`)
+          return
+        }
+        if (finishReason === 'MAX_TOKENS' && reply) {
+          const cont = await callGemini([
+            ...contents,
+            { role: 'model', parts: [{ text: reply }] },
+            { role: 'user', parts: [{ text: 'Continue exactly where you left off. Do not repeat.' }] },
+          ])
+          if (cont.reply) reply += cont.reply
+        }
+        if (reply.trim()) {
+          finish(reply)
+          return
+        }
+      } catch { /* Render proxy next */ }
+    }
+
     try {
       const base = await resolveApiBase().catch(() => getApiBase())
       const proxyRes = await fetch(`${base}/api/chat?stream=false`, {
@@ -114,56 +167,7 @@ export default function AdvisorScreen() {
           return
         }
       }
-    } catch { /* fall through to Gemini */ }
-
-    if (settings.geminiApiKey.trim()) {
-      try {
-        const contents: GeminiContent[] = history.map((m) => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.role === 'user' && m.content === text ? `${modePrefix}${text}` : m.content }],
-        }))
-        const callGemini = async (bodyContents: GeminiContent[]) => {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(settings.geminiApiKey.trim())}`
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: system }] },
-              contents: bodyContents,
-              generationConfig: { maxOutputTokens: 8192 },
-            }),
-          })
-          const json = await res.json() as {
-            error?: { message?: string }
-            candidates?: Array<{
-              finishReason?: string
-              content?: { parts?: Array<{ text?: string }> }
-            }>
-          }
-          const cand = json.candidates?.[0]
-          const reply = (cand?.content?.parts ?? []).map((p) => p.text ?? '').join('')
-          return { json, reply, finishReason: cand?.finishReason }
-        }
-
-        let { json, reply, finishReason } = await callGemini(contents)
-        if (json.error?.message && !reply) {
-          finish(`Error from Google Gemini API: ${json.error.message}`)
-          return
-        }
-        if (finishReason === 'MAX_TOKENS' && reply) {
-          const cont = await callGemini([
-            ...contents,
-            { role: 'model', parts: [{ text: reply }] },
-            { role: 'user', parts: [{ text: 'Continue exactly where you left off. Do not repeat.' }] },
-          ])
-          if (cont.reply) reply += cont.reply
-        }
-        if (reply.trim()) {
-          finish(reply)
-          return
-        }
-      } catch { /* fallback */ }
-    }
+    } catch { /* fallback */ }
 
     finish(generateFallbackAiResponse(text, settings.riskProfile))
   }
