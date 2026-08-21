@@ -516,13 +516,12 @@ html, body, #root, * {
 .hours-flag {
   width: 24px;
   height: 18px;
-  object-fit: cover;
   border-radius: 3px;
   display: block;
   flex-shrink: 0;
+  overflow: hidden;
   box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
 }
-.hours-flag-fallback { font-size: 18px; line-height: 18px; width: auto; height: auto; box-shadow: none; }
 .hours-dot { width: 7px; height: 7px; border-radius: 50%; }
 .hours-name { font-size: 13px; font-weight: 700; }
 .hours-time { font-size: 11px; font-family: var(--mono); }
