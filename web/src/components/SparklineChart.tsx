@@ -4,11 +4,9 @@ import { useMarket } from '../context/MarketContext'
 import { getApiBase } from '../utils/apiBase'
 import { getFallbackQuote, generateRealisticChart, type PricePoint } from '../utils/symbolFallbacks'
 
-const BASE = getApiBase()
-
 async function fetchHistory(symbol: string, range: string): Promise<PricePoint[]> {
   try {
-    const res = await fetch(`${BASE}/api/market/history?symbol=${encodeURIComponent(symbol)}&range=${range}`)
+    const res = await fetch(`${getApiBase()}/api/market/history?symbol=${encodeURIComponent(symbol)}&range=${range}`)
     if (res.ok) {
       const json = await res.json() as { prices?: PricePoint[] }
       const prices = json.prices ?? []

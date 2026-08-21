@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { useMarket } from '../context/MarketContext'
 import { useSettings } from '../context/SettingsContext'
 import { getApiBase, resolveApiBase } from '../utils/apiBase'
+import { canonicalPath } from '../utils/routes'
 
 interface Message { role: 'user' | 'assistant'; content: string }
 
@@ -76,12 +77,15 @@ function saveChat(msgs: Message[]) {
 export default function AdvisorScreen() {
   const { settings, updateSetting } = useSettings()
   const { data } = useMarket()
+  const loc = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [messages, setMessages] = useState<Message[]>(loadChat)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
+  const fieldRef = useRef<HTMLTextAreaElement>(null)
   const messagesRef = useRef<Message[]>(messages)
+  const sendRef = useRef<(preset?: string) => Promise<void>>(async () => {})
   const handledQ = useRef<string | null>(null)
 
   useEffect(() => { messagesRef.current = messages }, [messages])
@@ -99,6 +103,7 @@ export default function AdvisorScreen() {
     const text = (preset ?? input).trim()
     if (!text || loading) return
     setInput('')
+    if (fieldRef.current) fieldRef.current.style.height = ''
     const history: Message[] = [...messagesRef.current, { role: 'user', content: text }]
     setMessages(history)
     messagesRef.current = history
@@ -183,40 +188,44 @@ export default function AdvisorScreen() {
           geminiApiKey: settings.geminiApiKey,
         }),
       })
-      if (proxyRes.ok) {
-        const json = await proxyRes.json() as { content?: string; error?: string }
-        if (json.content?.trim()) {
-          finish(json.content)
-          return
-        }
-        if (json.error) {
-          finish(json.error)
-          return
-        }
+      const json = await proxyRes.json() as { content?: string; error?: string }
+      if (json.content?.trim()) {
+        finish(json.content)
+        return
+      }
+      if (json.error) {
+        finish(json.error)
+        return
       }
     } catch { /* fallback */ }
 
     finish(generateFallbackAiResponse(text, settings.riskProfile))
   }
 
+  sendRef.current = sendMessage
+
   useEffect(() => {
+    if (canonicalPath(loc.pathname) !== '/advisor') return
     const q = searchParams.get('q')?.trim()
     if (!q) return
-    if (handledQ.current === q) {
+    let seen = handledQ.current
+    try { seen = seen || sessionStorage.getItem('floboard:lastQ') } catch { /* ignore */ }
+    if (seen === q) {
       setSearchParams({}, { replace: true })
       return
     }
     const last = messagesRef.current[messagesRef.current.length - 1]
     if (last?.role === 'user' && last.content === q) {
       handledQ.current = q
+      try { sessionStorage.setItem('floboard:lastQ', q) } catch { /* ignore */ }
       setSearchParams({}, { replace: true })
       return
     }
     handledQ.current = q
+    try { sessionStorage.setItem('floboard:lastQ', q) } catch { /* ignore */ }
     setSearchParams({}, { replace: true })
-    void sendMessage(q)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
+    void sendRef.current(q)
+  }, [searchParams, loc.pathname, setSearchParams])
 
   return (
     <div className="chat">

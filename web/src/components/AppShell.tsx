@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useMarket } from '../context/MarketContext'
 import { useSettings, type AppTheme } from '../context/SettingsContext'
+import { canonicalPath } from '../utils/routes'
 
 const NAV = [
   {
@@ -155,12 +156,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id)
   }, [])
 
-  const meta = META[loc.pathname] ?? META['/markets']
+  const pagePath = canonicalPath(loc.pathname)
+  const meta = META[pagePath] ?? META['/markets']
   useEffect(() => {
     document.title = `${meta.title} · FloBoard`
   }, [meta.title])
 
-  const isChat = loc.pathname === '/advisor'
+  const isChat = pagePath === '/advisor'
 
   const cycleTheme = () => {
     const order: AppTheme[] = ['dark', 'light', 'oled']
@@ -193,6 +195,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <NavLink
                   key={item.to}
                   to={item.to}
+                  end
                   className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                 >
                   <Icon name={item.icon} />

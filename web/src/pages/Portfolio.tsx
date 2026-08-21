@@ -19,7 +19,7 @@ function saveHoldings(h: Holding[]) {
 }
 
 export default function PortfolioScreen() {
-  const { data } = useMarket()
+  const { data, ensureSymbols } = useMarket()
   const { settings } = useSettings()
   const [holdings, setHoldings] = useState<Holding[]>(loadHoldings)
   const [showAdd, setShowAdd] = useState(false)
@@ -27,17 +27,29 @@ export default function PortfolioScreen() {
   const [shares, setShares] = useState('')
   const [avgPrice, setAvgPrice] = useState('')
 
-  useEffect(() => { setHoldings(loadHoldings()) }, [])
   useEffect(() => {
-    if (settings.clearPortfolioKey > 0) setHoldings([])
+    if (settings.clearPortfolioKey > 0) {
+      setHoldings([])
+      saveHoldings([])
+    }
   }, [settings.clearPortfolioKey])
+
+  useEffect(() => {
+    const syms = holdings.map((h) => h.symbol)
+    if (syms.length) ensureSymbols(syms)
+  }, [holdings, ensureSymbols])
 
   const addHolding = () => {
     if (!sym.trim() || !shares || !avgPrice) return
-    const newH: Holding = { id: Date.now().toString(), symbol: sym.trim().toUpperCase(), shares: parseFloat(shares), avgPrice: parseFloat(avgPrice) }
+    const symbol = sym.trim().toUpperCase()
+    const qty = parseFloat(shares)
+    const px = parseFloat(avgPrice)
+    if (!Number.isFinite(qty) || !Number.isFinite(px) || qty <= 0 || px < 0) return
+    const newH: Holding = { id: Date.now().toString(), symbol, shares: qty, avgPrice: px }
     const next = [...holdings, newH]
     setHoldings(next)
     saveHoldings(next)
+    ensureSymbols([symbol])
     setSym(''); setShares(''); setAvgPrice('')
     setShowAdd(false)
   }

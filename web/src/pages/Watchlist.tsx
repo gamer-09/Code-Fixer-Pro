@@ -3,6 +3,7 @@ import SparklineChart from '../components/SparklineChart'
 import { EmptyState, SearchBox } from '../components/ui'
 import { chgDir, fmt, fmtChg, useMarket } from '../context/MarketContext'
 import { useSettings } from '../context/SettingsContext'
+import { getApiBase } from '../utils/apiBase'
 
 const STORAGE_KEY = 'floboard:watchlist'
 
@@ -29,30 +30,61 @@ const CATALOG = [
 
 export default function WatchlistScreen() {
   const { settings } = useSettings()
-  const { data } = useMarket()
+  const { data, ensureSymbols } = useMarket()
   const [watchlist, setWatchlist] = useState<string[]>(loadWatchlist)
   const [showAdd, setShowAdd] = useState(false)
   const [search, setSearch] = useState('')
+  const [remote, setRemote] = useState<{ sym: string; name: string }[]>([])
 
   useEffect(() => {
-    if (settings.clearWatchlistKey > 0) setWatchlist([])
+    if (settings.clearWatchlistKey > 0) {
+      setWatchlist([])
+      saveWatchlist([])
+    }
   }, [settings.clearWatchlistKey])
 
+  useEffect(() => {
+    if (watchlist.length) ensureSymbols(watchlist)
+  }, [watchlist, ensureSymbols])
+
+  useEffect(() => {
+    const q = search.trim()
+    if (q.length < 1) {
+      setRemote([])
+      return
+    }
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`${getApiBase()}/api/search?q=${encodeURIComponent(q)}`)
+        if (!res.ok) return
+        const json = await res.json() as { results?: { sym: string; name: string }[] }
+        const have = new Set(watchlist.map((s) => s.toUpperCase()))
+        setRemote(
+          (json.results ?? [])
+            .filter((r) => r.sym && !have.has(r.sym.toUpperCase()))
+            .slice(0, 8)
+            .map((r) => ({ sym: r.sym.toUpperCase(), name: r.name })),
+        )
+      } catch { /* ignore */ }
+    }, 280)
+    return () => clearTimeout(t)
+  }, [search, watchlist])
+
   const addSymbol = (sym: string) => {
-    if (!watchlist.includes(sym)) {
-      const next = [...watchlist, sym]
+    const clean = sym.trim().toUpperCase()
+    if (!clean) return
+    if (!watchlist.includes(clean)) {
+      const next = [...watchlist, clean]
       setWatchlist(next)
       saveWatchlist(next)
+      ensureSymbols([clean])
     }
     setShowAdd(false)
     setSearch('')
+    setRemote([])
   }
 
-  const addCustom = () => {
-    const sym = search.trim().toUpperCase()
-    if (!sym) return
-    addSymbol(sym)
-  }
+  const addCustom = () => addSymbol(search)
 
   const removeSymbol = (sym: string) => {
     const next = watchlist.filter((s) => s !== sym)
@@ -63,7 +95,8 @@ export default function WatchlistScreen() {
   const sorted = useMemo(() => {
     const items = watchlist.map((sym) => {
       const cat = CATALOG.find((c) => c.sym === sym)
-      return { sym, name: cat?.name ?? sym }
+      const remoteHit = remote.find((r) => r.sym === sym)
+      return { sym, name: cat?.name ?? remoteHit?.name ?? data[sym]?.shortName ?? sym }
     })
     if (settings.watchlistSort === 'change') {
       items.sort((a, b) => (data[b.sym]?.regularMarketChangePercent ?? 0) - (data[a.sym]?.regularMarketChangePercent ?? 0))
@@ -71,13 +104,16 @@ export default function WatchlistScreen() {
       items.sort((a, b) => a.sym.localeCompare(b.sym))
     }
     return items
-  }, [watchlist, settings.watchlistSort, data])
+  }, [watchlist, settings.watchlistSort, data, remote])
 
   const searchResults = useMemo(() => {
     if (!search) return []
     const q = search.toLowerCase()
-    return CATALOG.filter((cat) => (cat.sym.toLowerCase().includes(q) || cat.name.toLowerCase().includes(q)) && !watchlist.includes(cat.sym)).slice(0, 10)
-  }, [search, watchlist])
+    const local = CATALOG.filter((cat) => (cat.sym.toLowerCase().includes(q) || cat.name.toLowerCase().includes(q)) && !watchlist.includes(cat.sym))
+    const have = new Set([...local.map((c) => c.sym), ...watchlist])
+    const extra = remote.filter((r) => !have.has(r.sym))
+    return [...local, ...extra].slice(0, 10)
+  }, [search, watchlist, remote])
 
   return (
     <div className="page">
@@ -125,7 +161,7 @@ export default function WatchlistScreen() {
           const dir = chgDir(chg)
           const col = dir === 'up' ? 'var(--gain)' : dir === 'dn' ? 'var(--loss)' : 'var(--t2)'
           return (
-            <div key={sym} className="asset" style={{ cursor: 'default' }}>
+            <div key={sym} className="asset fav" style={{ cursor: 'default' }}>
               <div className="avatar" style={{ background: 'var(--blue-dim)', color: 'var(--blue)' }}>{sym.slice(0, 2)}</div>
               <div style={{ minWidth: 0 }}>
                 <div className="sym">{sym}</div>

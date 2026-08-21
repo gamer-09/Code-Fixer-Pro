@@ -261,7 +261,7 @@ router.post("/chat", async (req, res) => {
         }>;
       };
 
-      const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+      const text = (json.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("");
       res.json({ content: text });
     } catch (err) {
       req.log.error({ err }, "Gemini fetch error");

@@ -1,51 +1,32 @@
 import React, { useMemo, useState } from 'react'
 import SparklineChart from '../components/SparklineChart'
 import { SearchBox, Segmented } from '../components/ui'
+import { FOREX } from '../constants/marketData'
 import { chgDir, fmt, fmtChg, useMarket } from '../context/MarketContext'
 
 type Group = 'All' | 'Majors' | 'Crosses' | 'Exotics' | 'Metals'
 
 interface PairInfo { sym: string; pair: string; base: string; quote: string; group: Exclude<Group, 'All'> }
 
-const PAIRS: PairInfo[] = [
-  { sym: 'XAUUSD=X', pair: 'XAU/USD', base: 'XAU', quote: 'USD', group: 'Metals' },
-  { sym: 'XAGUSD=X', pair: 'XAG/USD', base: 'XAG', quote: 'USD', group: 'Metals' },
-  { sym: 'XPTUSD=X', pair: 'XPT/USD', base: 'XPT', quote: 'USD', group: 'Metals' },
-  { sym: 'XPDUSD=X', pair: 'XPD/USD', base: 'XPD', quote: 'USD', group: 'Metals' },
-  { sym: 'EURUSD=X', pair: 'EUR/USD', base: 'EUR', quote: 'USD', group: 'Majors' },
-  { sym: 'GBPUSD=X', pair: 'GBP/USD', base: 'GBP', quote: 'USD', group: 'Majors' },
-  { sym: 'USDJPY=X', pair: 'USD/JPY', base: 'USD', quote: 'JPY', group: 'Majors' },
-  { sym: 'USDCHF=X', pair: 'USD/CHF', base: 'USD', quote: 'CHF', group: 'Majors' },
-  { sym: 'AUDUSD=X', pair: 'AUD/USD', base: 'AUD', quote: 'USD', group: 'Majors' },
-  { sym: 'NZDUSD=X', pair: 'NZD/USD', base: 'NZD', quote: 'USD', group: 'Majors' },
-  { sym: 'USDCAD=X', pair: 'USD/CAD', base: 'USD', quote: 'CAD', group: 'Majors' },
-  { sym: 'EURGBP=X', pair: 'EUR/GBP', base: 'EUR', quote: 'GBP', group: 'Crosses' },
-  { sym: 'EURJPY=X', pair: 'EUR/JPY', base: 'EUR', quote: 'JPY', group: 'Crosses' },
-  { sym: 'EURCHF=X', pair: 'EUR/CHF', base: 'EUR', quote: 'CHF', group: 'Crosses' },
-  { sym: 'EURAUD=X', pair: 'EUR/AUD', base: 'EUR', quote: 'AUD', group: 'Crosses' },
-  { sym: 'EURCAD=X', pair: 'EUR/CAD', base: 'EUR', quote: 'CAD', group: 'Crosses' },
-  { sym: 'EURNZD=X', pair: 'EUR/NZD', base: 'EUR', quote: 'NZD', group: 'Crosses' },
-  { sym: 'GBPJPY=X', pair: 'GBP/JPY', base: 'GBP', quote: 'JPY', group: 'Crosses' },
-  { sym: 'GBPCHF=X', pair: 'GBP/CHF', base: 'GBP', quote: 'CHF', group: 'Crosses' },
-  { sym: 'GBPAUD=X', pair: 'GBP/AUD', base: 'GBP', quote: 'AUD', group: 'Crosses' },
-  { sym: 'GBPCAD=X', pair: 'GBP/CAD', base: 'GBP', quote: 'CAD', group: 'Crosses' },
-  { sym: 'AUDJPY=X', pair: 'AUD/JPY', base: 'AUD', quote: 'JPY', group: 'Crosses' },
-  { sym: 'CADJPY=X', pair: 'CAD/JPY', base: 'CAD', quote: 'JPY', group: 'Crosses' },
-  { sym: 'CHFJPY=X', pair: 'CHF/JPY', base: 'CHF', quote: 'JPY', group: 'Crosses' },
-  { sym: 'USDTRY=X', pair: 'USD/TRY', base: 'USD', quote: 'TRY', group: 'Exotics' },
-  { sym: 'USDMXN=X', pair: 'USD/MXN', base: 'USD', quote: 'MXN', group: 'Exotics' },
-  { sym: 'USDZAR=X', pair: 'USD/ZAR', base: 'USD', quote: 'ZAR', group: 'Exotics' },
-  { sym: 'USDBRL=X', pair: 'USD/BRL', base: 'USD', quote: 'BRL', group: 'Exotics' },
-  { sym: 'USDINR=X', pair: 'USD/INR', base: 'USD', quote: 'INR', group: 'Exotics' },
-  { sym: 'USDCNY=X', pair: 'USD/CNY', base: 'USD', quote: 'CNY', group: 'Exotics' },
-  { sym: 'USDKRW=X', pair: 'USD/KRW', base: 'USD', quote: 'KRW', group: 'Exotics' },
-  { sym: 'USDPLN=X', pair: 'USD/PLN', base: 'USD', quote: 'PLN', group: 'Exotics' },
-  { sym: 'USDSEK=X', pair: 'USD/SEK', base: 'USD', quote: 'SEK', group: 'Exotics' },
-]
+const MAJORS = new Set(['EURUSD=X', 'GBPUSD=X', 'USDJPY=X', 'USDCHF=X', 'AUDUSD=X', 'NZDUSD=X', 'USDCAD=X'])
+const EXOTIC = /TRY|MXN|ZAR|BRL|INR|CNY|CNH|KRW|PLN|HUF|CZK|SEK|NOK|DKK|RUB|ILS|CLP|COP|PEN|ARS|NGN|KES|EGP|GHS|TZS|MAD|AED|SAR|QAR|KWD|BHD|OMR|JOD|HKD|TWD|THB|MYR|IDR|PHP|VND|PKR|BDT|RON|BGN/
+
+function classify(sym: string): Exclude<Group, 'All'> {
+  if (/^XAU|^XAG|^XPT|^XPD/.test(sym)) return 'Metals'
+  if (MAJORS.has(sym)) return 'Majors'
+  if (EXOTIC.test(sym)) return 'Exotics'
+  return 'Crosses'
+}
+
+const PAIRS: PairInfo[] = FOREX.map((f) => {
+  const pair = f.label.includes('/') ? f.label : f.label.replace(/(.{3})(.{3})/, '$1/$2')
+  const [base, quote] = pair.split('/')
+  return { sym: f.sym, pair, base: base || f.sym.slice(0, 3), quote: quote || f.sym.slice(3, 6), group: classify(f.sym) }
+})
 
 function decimals(sym: string): number {
   if (sym.startsWith('XAU') || sym.startsWith('XAG') || sym.startsWith('XPT') || sym.startsWith('XPD')) return 2
-  if (sym.includes('JPY') || sym.includes('KRW') || sym.includes('NGN') || sym.includes('TRY') || sym.includes('INR') || sym.includes('MXN')) return 2
+  if (sym.includes('JPY') || sym.includes('KRW') || sym.includes('NGN') || sym.includes('TRY') || sym.includes('INR') || sym.includes('MXN') || sym.includes('HUF') || sym.includes('CLP') || sym.includes('IDR') || sym.includes('VND')) return 2
   return 4
 }
 
@@ -58,7 +39,7 @@ export default function CurrencyPairsScreen() {
     if (group !== 'All' && p.group !== group) return false
     if (search) {
       const q = search.toLowerCase()
-      if (!p.pair.toLowerCase().includes(q) && !p.base.toLowerCase().includes(q) && !p.quote.toLowerCase().includes(q)) return false
+      if (!p.pair.toLowerCase().includes(q) && !p.base.toLowerCase().includes(q) && !p.quote.toLowerCase().includes(q) && !p.sym.toLowerCase().includes(q)) return false
     }
     return true
   }), [group, search])
@@ -70,9 +51,11 @@ export default function CurrencyPairsScreen() {
         <Segmented
           value={group}
           onChange={(v) => setGroup(v as Group)}
-          options={(['All','Majors','Crosses','Exotics','Metals'] as const).map((g) => ({ label: g, value: g }))}
+          options={(['All', 'Majors', 'Crosses', 'Exotics', 'Metals'] as const).map((g) => ({ label: g, value: g }))}
         />
       </div>
+
+      {filtered.length === 0 && <div className="muted" style={{ padding: 20 }}>No pairs match that search.</div>}
 
       <div className="asset-list">
         {filtered.map((p) => {

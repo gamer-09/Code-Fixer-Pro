@@ -1,6 +1,6 @@
 import React from 'react'
 import { OptionGroup, Toggle } from '../components/ui'
-import { useSettings, type AppTheme, type NewsCount, type PriceDecimals, type RefreshInterval, type RiskProfile, type WatchlistSort } from '../context/SettingsContext'
+import { useSettings, type AppTheme, type EarningsWindow, type NewsCount, type PriceDecimals, type RefreshInterval, type RiskProfile, type WatchlistSort } from '../context/SettingsContext'
 
 function SettingRow({ label, desc, children }: { label: string; desc?: string; children: React.ReactNode }) {
   return (
@@ -55,6 +55,13 @@ export default function SettingsScreen() {
         <SettingRow label="News headlines" desc="How many stories to load">
           <OptionGroup options={[{ label: '10', value: 10 }, { label: '15', value: 15 }, { label: '20', value: 20 }]} value={settings.newsCount} onChange={(v) => updateSetting('newsCount', v as NewsCount)} />
         </SettingRow>
+        <SettingRow label="Earnings window" desc="How far ahead the News calendar looks">
+          <OptionGroup
+            options={[{ label: '2w', value: 2 }, { label: '4w', value: 4 }, { label: '8w', value: 8 }]}
+            value={settings.earningsWindow}
+            onChange={(v) => updateSetting('earningsWindow', v as EarningsWindow)}
+          />
+        </SettingRow>
       </Block>
 
       <Block title="FloAI Advisor">
@@ -69,10 +76,16 @@ export default function SettingsScreen() {
             onChange={(v) => updateSetting('riskProfile', v as RiskProfile)}
           />
         </SettingRow>
-        <SettingRow label="Gemini API key" desc={settings.geminiApiKey ? `Saved · ends ${settings.geminiApiKey.slice(-4)}` : 'Not set — offline advisor only'}>
+        <SettingRow
+          label="Gemini API key"
+          desc={settings.geminiApiKey ? `Saved · ends ${settings.geminiApiKey.slice(-4)}` : 'Optional. Get a free key at aistudio.google.com/apikey — or FloAI uses the server key / offline advisor.'}
+        >
           <input
             className="field"
             style={{ width: 240 }}
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
             value={settings.geminiApiKey}
             onChange={(e) => updateSetting('geminiApiKey', e.target.value)}
             placeholder="AIza…"

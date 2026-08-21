@@ -9,6 +9,7 @@
         var path = location.pathname;
         if (path.indexOf(repo) === 0) path = path.slice(repo.length);
         if (!path || path === '/') path = '/markets';
+        if (path.charAt(0) !== '/') path = '/' + path;
         location.replace(repo + '/#' + path + location.search);
       })();
     </script>

@@ -31,6 +31,10 @@ export const SYMBOL_ALIASES: Record<string, string> = {
   'USDE': 'USDE29470-USD',
   'COMP-USD': 'COMP5692-USD',
   'COMP': 'COMP5692-USD',
+  'POL-USD': 'MATIC-USD',
+  'POL': 'MATIC-USD',
+  'MATIC': 'MATIC-USD',
+  '^TU': '^FVX',
 }
 
 export function resolveSymbolAlias(sym: string): string {

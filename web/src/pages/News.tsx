@@ -6,8 +6,6 @@ import { chgDir, fmtChg } from '../context/MarketContext'
 import { useSettings } from '../context/SettingsContext'
 import { getApiBase } from '../utils/apiBase'
 
-const BASE = getApiBase()
-
 type NewsTag = 'bull' | 'bear' | 'neutral'
 
 interface NewsItem {
@@ -74,6 +72,19 @@ function guessTag(title: string): NewsTag {
   return 'neutral'
 }
 
+function sanitizeAge(age: string): string {
+  const raw = age.trim()
+  if (!raw || raw === '?') return ''
+  const m = raw.match(/^(-?\d+)\s*([mhd])$/i)
+  if (!m) {
+    if (/ago|min|hour|day/i.test(raw) && !raw.startsWith('-')) return raw
+    return ''
+  }
+  const n = Number(m[1])
+  if (!Number.isFinite(n) || n < 0 || n > 60 * 24 * 400) return ''
+  return `${n}${m[2].toLowerCase()}`
+}
+
 function normalizeNews(raw: unknown): NewsItem[] {
   const list = Array.isArray(raw) ? raw : []
   return list.map((n) => {
@@ -84,7 +95,7 @@ function normalizeNews(raw: unknown): NewsItem[] {
       src: String(row.src ?? row.publisher ?? 'News'),
       title,
       tag,
-      age: String(row.age ?? ''),
+      age: sanitizeAge(String(row.age ?? '')),
       impact: String(row.impact ?? 'Broader market sentiment'),
       url: typeof row.url === 'string' ? row.url : typeof row.link === 'string' ? row.link : undefined,
     }
@@ -93,7 +104,7 @@ function normalizeNews(raw: unknown): NewsItem[] {
 
 async function fetchNews(count: number): Promise<NewsItem[]> {
   try {
-    const res = await fetch(`${BASE}/api/news?count=${count}`)
+    const res = await fetch(`${getApiBase()}/api/news?count=${count}`)
     if (res.ok) {
       const json = await res.json() as { news?: unknown; items?: unknown }
       const items = normalizeNews(json.news ?? json.items)
@@ -112,7 +123,7 @@ async function fetchEarnings(weeks: number): Promise<EarningItem[]> {
     })
   }
   try {
-    const res = await fetch(`${BASE}/api/earnings?weeks=${weeks}`)
+    const res = await fetch(`${getApiBase()}/api/earnings?weeks=${weeks}`)
     if (res.ok) {
       const json = await res.json() as { earnings?: EarningItem[] }
       if (json.earnings?.length) return json.earnings

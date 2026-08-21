@@ -127,6 +127,14 @@ export function getExchangeStatus(ex: Exchange, now = new Date()): ExchangeStatu
     }
 
     const first = ex.sessions[0]
+    const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    for (let add = 1; add <= 7; add++) {
+      const d = (wd + add) % 7
+      if (!weekends.includes(d)) {
+        const when = add === 1 ? 'tomorrow' : DAYS[d]
+        return { open: false, state: 'closed', localTime, detail: `opens ${when} ${fmtHm(first.oh, first.om)}`, hoursLabel: hours }
+      }
+    }
     return { open: false, state: 'closed', localTime, detail: `opens ${fmtHm(first.oh, first.om)}`, hoursLabel: hours }
   } catch {
     return { open: false, state: 'closed', localTime, detail: '', hoursLabel: hours }

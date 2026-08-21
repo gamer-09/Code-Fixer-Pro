@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
-import { ALL_SYMBOLS } from '../constants/marketData'
+import { ALL_SYMBOLS, BONDS, COMMODITIES, CRYPTOS, FOREX, INDICES, MACRO, SECTORS, STOCKS } from '../constants/marketData'
 import { useSettings } from './SettingsContext'
 import { getApiBase, resolveApiBase } from '../utils/apiBase'
 import { resolveSymbolAlias, getFallbackQuote, getFallbackMcap } from '../utils/symbolFallbacks'
@@ -39,6 +39,7 @@ interface MarketContextType {
   serverError: string | null
   refresh: () => void
   refreshKey: number
+  ensureSymbols: (syms: string[]) => void
 }
 
 const MarketContext = createContext<MarketContextType>({
@@ -49,6 +50,7 @@ const MarketContext = createContext<MarketContextType>({
   serverError: null,
   refresh: () => {},
   refreshKey: 0,
+  ensureSymbols: () => {},
 })
 
 function apiBase() {
@@ -58,10 +60,49 @@ function apiBase() {
 const YF_CHART = 'https://query2.finance.yahoo.com/v8/finance/chart'
 const NATIVE_UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
 
+const PRIORITY_SYMBOLS = [
+  ...INDICES.map((i) => i.sym),
+  ...STOCKS.map((s) => s.sym),
+  ...SECTORS.map((s) => s.sym),
+  ...BONDS.map((b) => b.sym),
+  ...MACRO.map((m) => m.sym),
+  ...COMMODITIES.map((c) => c.sym),
+  ...CRYPTOS.slice(0, 40).map((c) => c.sym),
+  ...FOREX.slice(0, 24).map((f) => f.sym),
+]
+
 function fetchWithTimeout(url: string, options: RequestInit = {}, ms = 15000): Promise<Response> {
   const controller = new AbortController()
   const id = setTimeout(() => controller.abort(), ms)
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id))
+}
+
+/** Server fallback stamps volume=1e6 and dayHigh = price * 1.01. */
+export function isSyntheticQuote(q: QuoteData | undefined): boolean {
+  if (!q) return true
+  if (q.regularMarketVolume !== 1_000_000) return false
+  if (q.regularMarketDayHigh == null) return false
+  const expected = +(q.regularMarketPrice * 1.01).toFixed(4)
+  return Math.abs(q.regularMarketDayHigh - expected) < 0.001
+}
+
+function readUserSymbols(): string[] {
+  const out: string[] = []
+  try {
+    const w = JSON.parse(localStorage.getItem('floboard:watchlist') || '[]') as unknown
+    if (Array.isArray(w)) out.push(...w.map((s) => String(s)))
+  } catch { /* ignore */ }
+  try {
+    const h = JSON.parse(localStorage.getItem('floboard:holdings') || '[]') as unknown
+    if (Array.isArray(h)) {
+      for (const row of h) {
+        if (row && typeof row === 'object' && 'symbol' in row) {
+          out.push(String((row as { symbol: string }).symbol))
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  return [...new Set(out.map((s) => s.trim().toUpperCase()).filter(Boolean))]
 }
 
 async function fetchViaProxy(symbols: string[]): Promise<QuoteData[] | null> {
@@ -69,7 +110,7 @@ async function fetchViaProxy(symbols: string[]): Promise<QuoteData[] | null> {
     const res = await fetchWithTimeout(
       `${apiBase()}/api/market?symbols=${encodeURIComponent(symbols.join(','))}`,
       {},
-      15000
+      15000,
     )
     if (!res.ok) return []
     const json = await res.json() as { results: QuoteData[] }
@@ -91,7 +132,7 @@ async function fetchOneChart(sym: string): Promise<{ quote: QuoteData; live: boo
     const res = await fetchWithTimeout(
       `${YF_CHART}/${encodeURIComponent(targetSym)}?interval=1d&range=1d&includePrePost=true`,
       { headers: { 'User-Agent': NATIVE_UA, Accept: 'application/json' } },
-      10000
+      10000,
     )
     if (!res.ok) return { quote: getFallbackQuote(sym), live: false }
     const json = await res.json() as { chart?: { result?: Array<{ meta?: Record<string, unknown> }> } }
@@ -142,12 +183,76 @@ async function fetchChartBatch(symbols: string[], concurrency = 8): Promise<{ re
   return { results, hadNetworkSuccess }
 }
 
+async function quoteFromHistory(sym: string): Promise<QuoteData | null> {
+  try {
+    const res = await fetchWithTimeout(
+      `${apiBase()}/api/market/history?symbol=${encodeURIComponent(sym)}&range=7d`,
+      {},
+      12000,
+    )
+    if (!res.ok) return null
+    const json = await res.json() as { prices?: Array<{ t: number; c: number }> }
+    const prices = (json.prices ?? []).filter((p) => p && Number.isFinite(p.c) && p.c > 0)
+    if (prices.length < 2) return null
+    const last = prices[prices.length - 1]
+    const fallback = getFallbackQuote(sym)
+    const syntheticLen = prices.length === 24 || prices.length === 28 || prices.length === 30
+    if (syntheticLen && Math.abs(last.c - fallback.regularMarketPrice) < 1e-6) return null
+
+    const targetT = last.t - 24 * 3600
+    let prev = prices[0].c
+    for (let i = prices.length - 1; i >= 0; i--) {
+      if (prices[i].t <= targetT) {
+        prev = prices[i].c
+        break
+      }
+    }
+    if (!prev) prev = prices[Math.max(0, prices.length - 2)].c
+    const change = last.c - prev
+    const changePct = prev ? (change / prev) * 100 : 0
+    const window = prices.slice(-24).map((p) => p.c)
+    return {
+      symbol: sym,
+      shortName: fallback.shortName,
+      quoteType: fallback.quoteType,
+      currency: fallback.currency,
+      regularMarketPrice: last.c,
+      regularMarketChangePercent: changePct,
+      regularMarketChange: change,
+      regularMarketPreviousClose: prev,
+      regularMarketDayHigh: Math.max(...window),
+      regularMarketDayLow: Math.min(...window),
+      regularMarketVolume: 0,
+      marketCap: fallback.marketCap,
+    }
+  } catch {
+    return null
+  }
+}
+
+async function hydrateQuotes(quotes: QuoteData[], concurrency = 6): Promise<{ results: QuoteData[]; live: number }> {
+  const out = quotes.slice()
+  const needIdx: number[] = []
+  out.forEach((q, i) => { if (isSyntheticQuote(q)) needIdx.push(i) })
+  let live = out.length - needIdx.length
+  for (let i = 0; i < needIdx.length; i += concurrency) {
+    const slice = needIdx.slice(i, i + concurrency)
+    const settled = await Promise.all(slice.map((idx) => quoteFromHistory(out[idx].symbol)))
+    settled.forEach((q, j) => {
+      if (q && !isSyntheticQuote(q)) {
+        out[slice[j]] = q
+        live++
+      }
+    })
+  }
+  return { results: out, live }
+}
+
 async function fetchBatch(symbols: string[]): Promise<{ results: QuoteData[]; hadNetworkSuccess: boolean }> {
   let results: QuoteData[] | null = await fetchViaProxy(symbols)
-  let hadNetworkSuccess = results !== null && results.length > 0
+  let hadNetworkSuccess = false
 
   if (results === null) {
-    // Server unreachable — on web, try direct Yahoo Finance as fallback
     const direct = await fetchChartBatch(symbols)
     results = direct.results
     hadNetworkSuccess = direct.hadNetworkSuccess
@@ -166,12 +271,8 @@ async function fetchBatch(symbols: string[]): Promise<{ results: QuoteData[]; ha
     }
   }
 
+  hadNetworkSuccess = hadNetworkSuccess || completeResults.some((q) => !isSyntheticQuote(q))
   return { results: completeResults, hadNetworkSuccess }
-}
-
-function getNetworkOnline(): boolean {
-  if (typeof navigator !== 'undefined') return navigator.onLine
-  return true
 }
 
 export function MarketProvider({ children }: { children: React.ReactNode }) {
@@ -183,24 +284,34 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   const [refreshKey, setRefreshKey] = useState(0)
   const loadingRef = useRef(false)
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dataRef = useRef<Record<string, QuoteData>>({})
   const { settings } = useSettings()
   const refreshMs = settings.refreshInterval * 1000
 
+  useEffect(() => { dataRef.current = data }, [data])
+
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
-    window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
-    setIsOnline(navigator.onLine)
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
+    if (typeof navigator !== 'undefined' && !navigator.onLine) setIsOnline(false)
+    return () => window.removeEventListener('offline', handleOffline)
   }, [])
 
   const scheduleRetry = useCallback((fn: () => void) => {
     if (retryRef.current) return
     retryRef.current = setTimeout(() => { retryRef.current = null; fn() }, 15000)
+  }, [])
+
+  const applyQuotes = useCallback((quotes: QuoteData[]) => {
+    setData((prev) => {
+      const map = { ...prev }
+      quotes.forEach((q) => {
+        if (q?.symbol && q.regularMarketPrice != null && isFinite(q.regularMarketPrice)) {
+          map[q.symbol] = q
+        }
+      })
+      return map
+    })
   }, [])
 
   const loadData = useCallback(async () => {
@@ -209,33 +320,49 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
     setLoading(true)
 
     try {
+      const extra = readUserSymbols()
+      const symbols = [...new Set([...ALL_SYMBOLS, ...extra])]
       const BATCH = 20
       const allResults: QuoteData[] = []
       let onlineCount = 0
 
-      for (let i = 0; i < ALL_SYMBOLS.length; i += BATCH) {
-        const batch = ALL_SYMBOLS.slice(i, i + BATCH)
+      for (let i = 0; i < symbols.length; i += BATCH) {
+        const batch = symbols.slice(i, i + BATCH)
         const { results, hadNetworkSuccess } = await fetchBatch(batch)
         allResults.push(...results)
         if (hadNetworkSuccess) onlineCount++
       }
 
-      const map: Record<string, QuoteData> = {}
+      const prev = dataRef.current
+      const map: Record<string, QuoteData> = { ...prev }
       allResults.forEach((q) => {
-        if (q?.symbol && q.regularMarketPrice != null && isFinite(q.regularMarketPrice)) {
-          map[q.symbol] = q
-        }
+        if (!q?.symbol || q.regularMarketPrice == null || !isFinite(q.regularMarketPrice)) return
+        const old = prev[q.symbol]
+        if (isSyntheticQuote(q) && old && !isSyntheticQuote(old)) return
+        map[q.symbol] = q
       })
-      ALL_SYMBOLS.forEach((s) => {
+      symbols.forEach((s) => {
         if (!map[s]) map[s] = getFallbackQuote(s)
       })
 
       setData(map)
       setLastUpdated(new Date())
-      setIsOnline(onlineCount > 0)
+      const liveNow = Object.values(map).some((q) => !isSyntheticQuote(q))
+      setIsOnline(onlineCount > 0 || liveNow)
       setServerError(null)
       setRefreshKey((k) => k + 1)
       if (retryRef.current) { clearTimeout(retryRef.current); retryRef.current = null }
+
+      const priority = new Set([...PRIORITY_SYMBOLS, ...extra])
+      const synthetic = Object.values(map).filter((q) => isSyntheticQuote(q) && priority.has(q.symbol))
+      if (synthetic.length) {
+        void hydrateQuotes(synthetic, 6).then((hydrated) => {
+          if (!hydrated.live) return
+          applyQuotes(hydrated.results)
+          setIsOnline(true)
+          setLastUpdated(new Date())
+        })
+      }
     } catch {
       setData((prev) => {
         if (Object.keys(prev).length === 0) {
@@ -252,7 +379,27 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
       loadingRef.current = false
     }
-  }, [scheduleRetry])
+  }, [scheduleRetry, applyQuotes])
+
+  const ensureSymbols = useCallback((syms: string[]) => {
+    const want = [...new Set(syms.map((s) => s.trim().toUpperCase()).filter(Boolean))]
+    if (!want.length) return
+    const missing = want.filter((s) => {
+      const q = dataRef.current[s]
+      return !q || isSyntheticQuote(q)
+    })
+    if (!missing.length) return
+    void (async () => {
+      const { results } = await fetchBatch(missing)
+      applyQuotes(results)
+      const synthetic = results.filter(isSyntheticQuote)
+      if (synthetic.length) {
+        const hydrated = await hydrateQuotes(synthetic, 4)
+        applyQuotes(hydrated.results)
+        if (hydrated.live) setIsOnline(true)
+      }
+    })()
+  }, [applyQuotes])
 
   useEffect(() => {
     void resolveApiBase().then(() => loadData())
@@ -264,7 +411,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   }, [loadData, refreshMs])
 
   return (
-    <MarketContext.Provider value={{ data, loading, lastUpdated, isOnline, serverError, refresh: loadData, refreshKey }}>
+    <MarketContext.Provider value={{ data, loading, lastUpdated, isOnline, serverError, refresh: loadData, refreshKey, ensureSymbols }}>
       {children}
     </MarketContext.Provider>
   )

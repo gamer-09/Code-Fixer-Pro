@@ -13,9 +13,9 @@ const SECTIONS: HelpSection[] = [
     id: 'gemini', title: 'Getting your Gemini API key', icon: '🔑', accent: 'var(--amber)',
     items: [
       { q: 'What is the Gemini API key?', a: 'FloAI is powered by Google Gemini. A personal API key is like a password that lets FloAI talk to Gemini from your browser.' },
-      { q: 'How do I get a free key?', a: '1. Open Google AI Studio\n2. Sign in with a Google account\n3. Create an API key\n4. Copy it (it starts with AIza…)\n5. Paste it in Settings → Gemini API Key' },
+      { q: 'How do I get a free key?', a: '1. Open https://aistudio.google.com/apikey\n2. Sign in with a Google account\n3. Create an API key\n4. Copy it (it starts with AIza…)\n5. Paste it in Settings → Gemini API Key' },
       { q: 'Is my key safe?', a: 'The key is stored only in this browser’s local storage. FloBoard does not upload it to our servers.' },
-      { q: 'What happens without a key?', a: 'Every market tab still works. Only live FloAI chat needs a key — otherwise you get the offline advisor.' },
+      { q: 'What happens without a key?', a: 'Every market tab still works. FloAI can use the server key if one is configured, otherwise you get the offline advisor.' },
     ],
   },
   {
@@ -79,7 +79,9 @@ export default function HelpScreen() {
         <div style={{ color: 'var(--t2)', lineHeight: 1.65, fontSize: 14.5 }}>
           FloBoard is a live market desk for stocks, crypto, FX, and news. No account. No deposits.
           <br /><br />
-          Unlock live FloAI chat with a free Gemini key in <strong style={{ color: 'var(--t1)' }}>Settings → Gemini API Key</strong>.
+          Unlock live FloAI chat with a free Gemini key from{' '}
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style={{ color: 'var(--gain)', fontWeight: 700 }}>aistudio.google.com/apikey</a>
+          {' '}then paste it in <strong style={{ color: 'var(--t1)' }}>Settings → Gemini API Key</strong>. Server-side chat also works without a personal key.
         </div>
       </div>
 

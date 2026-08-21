@@ -635,6 +635,15 @@ table.data .num { font-family: var(--mono); font-weight: 600; text-align: right;
 }
 .asset:hover { border-color: var(--rim2); background: var(--surface); }
 .asset.fx { grid-template-columns: minmax(0,1fr) 90px 130px; cursor: default; }
+.asset.fav { grid-template-columns: 44px minmax(0,1fr) 90px 120px auto; cursor: default; }
+.asset.pos { grid-template-columns: minmax(0,1fr) minmax(90px, 140px) auto; cursor: default; }
+.tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
 .avatar {
   width: 40px; height: 40px; border-radius: 50%;
   display: grid; place-items: center;
@@ -874,6 +883,9 @@ table.data .num { font-family: var(--mono); font-weight: 600; text-align: right;
   .clock { display: none; }
   .asset { grid-template-columns: 40px minmax(0,1fr) 110px; }
   .asset .spark { display: none; }
+  .asset.fav { grid-template-columns: 40px minmax(0,1fr) auto auto; }
+  .asset.pos { grid-template-columns: minmax(0,1fr) auto auto; }
+  .asset.fx { grid-template-columns: minmax(0,1fr) auto; }
   .chat-thread { padding: 16px 14px 8px; }
   .bubble { max-width: 92%; }
   .setting-row { flex-direction: column; align-items: flex-start; }

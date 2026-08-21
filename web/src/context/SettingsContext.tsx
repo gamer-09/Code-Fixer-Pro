@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import React, { createContext, useCallback, useContext, useState } from 'react'
 
 export type RefreshInterval = 30 | 60 | 90 | 300
 export type NewsCount = 10 | 15 | 20
@@ -73,20 +73,20 @@ const SettingsContext = createContext<SettingsContextType>({
   loaded: false,
 })
 
-export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT)
-  const [loaded, setLoaded] = useState(false)
+function loadSettings(): AppSettings {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<AppSettings>
+      return { ...DEFAULT, ...parsed, clearChatKey: 0, clearWatchlistKey: 0, clearPortfolioKey: 0 }
+    }
+  } catch { /* ignore */ }
+  return DEFAULT
+}
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<AppSettings>
-        setSettings((prev) => ({ ...prev, ...parsed, clearChatKey: 0, clearWatchlistKey: 0, clearPortfolioKey: 0 }))
-      }
-    } catch { /* ignore */ }
-    setLoaded(true)
-  }, [])
+export function SettingsProvider({ children }: { children: React.ReactNode }) {
+  const [settings, setSettings] = useState<AppSettings>(loadSettings)
+  const [loaded, setLoaded] = useState(true)
 
   const updateSetting = useCallback(<K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSettings((prev) => {

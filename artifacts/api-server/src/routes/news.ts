@@ -14,12 +14,18 @@ interface NewsItem {
 }
 
 function relativeAge(publishedMs: number): string {
-  const diff = Date.now() - publishedMs;
+  let ts = publishedMs;
+  // Yahoo sometimes already sends milliseconds.
+  if (ts > 0 && ts < 1e12) ts *= 1000;
+  const diff = Date.now() - ts;
+  if (!Number.isFinite(diff) || diff < 0) return "";
   const mins = Math.floor(diff / 60000);
   if (mins < 60) return `${mins}m`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h`;
-  return `${Math.floor(hrs / 24)}d`;
+  const days = Math.floor(hrs / 24);
+  if (days > 400) return "";
+  return `${days}d`;
 }
 
 function guessTag(title: string): "bull" | "bear" | "neutral" {
@@ -148,14 +154,15 @@ router.get("/news", async (req, res) => {
       for (const n of data.news) {
         if (!n.title || seen.has(n.title)) continue;
         seen.add(n.title);
-        const ts = (n.providerPublishTime ?? 0) * 1000;
+        const rawTs = n.providerPublishTime ?? 0;
+        const ts = rawTs > 0 && rawTs < 1e12 ? rawTs * 1000 : rawTs;
         allNews.push({
           ts,
           item: {
             src: n.publisher ?? "News",
             title: n.title,
             tag: guessTag(n.title),
-            age: ts > 0 ? relativeAge(ts) : "?",
+            age: ts > 0 ? relativeAge(ts) : "",
             impact: extractImpact(n.title),
             url: n.link,
           },
