@@ -46,11 +46,44 @@ function renderText(text: string) {
 }
 
 const SUGGESTS = [
+  'Review my portfolio risk & diversification',
+  'Analyze my watchlist outlook & correlations',
   'What is the outlook for gold?',
   'Should I buy Bitcoin?',
   'How is the S&P 500 looking?',
   'Explain EUR/USD this week',
 ]
+
+const RIBBON = [
+  { sym: '^GSPC', label: 'S&P 500', kind: 'idx' as const },
+  { sym: 'BTC-USD', label: 'BTC', kind: 'btc' as const },
+  { sym: 'GC=F', label: 'Gold', kind: 'usd' as const },
+  { sym: '^TNX', label: '10Y', kind: 'yield' as const },
+  { sym: '^VIX', label: 'VIX', kind: 'num' as const },
+]
+
+function readLocalList(): { holdings: string; watchlist: string } {
+  let holdings = ''
+  let watchlist = ''
+  try {
+    const h = JSON.parse(localStorage.getItem('floboard:holdings') || '[]') as { symbol?: string; shares?: number; avgPrice?: number }[]
+    if (Array.isArray(h) && h.length) holdings = h.map((x) => `${x.symbol}: ${x.shares} @ $${x.avgPrice}`).join(', ')
+  } catch { /* ignore */ }
+  try {
+    const keys = ['floboard:watchlist', 'floboard:watchlist:Tech', 'floboard:watchlist:Crypto', 'floboard:watchlist:Macro']
+    const syms: string[] = []
+    for (const k of keys) {
+      const w = JSON.parse(localStorage.getItem(k) || '[]') as unknown
+      if (Array.isArray(w)) syms.push(...w.map((s) => String(s)))
+    }
+    watchlist = [...new Set(syms)].join(', ')
+  } catch { /* ignore */ }
+  return { holdings, watchlist }
+}
+
+function fmtNum(n: number, d: number) {
+  return n.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d })
+}
 
 type GeminiContent = { role: string; parts: { text: string }[] }
 
@@ -109,10 +142,12 @@ export default function AdvisorScreen() {
     messagesRef.current = history
     setLoading(true)
 
-    const isMarket = /gold|silver|metal|btc|bitcoin|eth|crypto|stock|share|equity|forex|fx|dollar|dxy|yield|bond|oil|nasdaq|s&p|invest|buy|sell|portfolio|nvda|aapl|tsla/i.test(text)
+    const isMarket = /gold|silver|metal|btc|bitcoin|eth|crypto|stock|share|equity|forex|fx|dollar|dxy|yield|bond|oil|nasdaq|s&p|invest|buy|sell|portfolio|watchlist|nvda|aapl|tsla/i.test(text)
     const modePrefix = isMarket ? `[${settings.riskProfile.toUpperCase()} MODE] ` : ''
     const marketContext = Object.entries(data).slice(0, 20).map(([sym, q]) => `${sym}: $${q.regularMarketPrice} (${q.regularMarketChangePercent >= 0 ? '+' : ''}${q.regularMarketChangePercent.toFixed(2)}%)`).join('\n')
-    const system = `You are FloAI, FloBoard's market assistant. Speak naturally for ordinary conversation. When the user asks about markets, assets, or investing, rewrite and analyze through a ${settings.riskProfile.toUpperCase()} risk lens. Never ask for bank logins, deposits, or personal financial account details. Educational only — not financial advice. Always finish complete answers; never stop mid-sentence.\n\nLive snapshot:\n${marketContext}`
+    const extra = readLocalList()
+    const extraBlock = [extra.holdings && `User simulated portfolio (tracking only): ${extra.holdings}`, extra.watchlist && `User watchlist symbols: ${extra.watchlist}`].filter(Boolean).join('\n')
+    const system = `You are FloAI, FloBoard's market assistant. Speak naturally for ordinary conversation. When the user asks about markets, assets, or investing, rewrite and analyze through a ${settings.riskProfile.toUpperCase()} risk lens. Reference the user's simulated portfolio and watchlist when they ask. Never ask for bank logins, deposits, or personal financial account details. Educational only — not financial advice. Always finish complete answers; never stop mid-sentence.\n\nLive snapshot:\n${marketContext}${extraBlock ? `\n\n${extraBlock}` : ''}`
 
     const finish = (reply: string) => {
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
@@ -229,6 +264,26 @@ export default function AdvisorScreen() {
 
   return (
     <div className="chat">
+      <div className="chat-ribbon">
+        {RIBBON.map(({ sym, label, kind }) => {
+          const d = data[sym]
+          const chg = d?.regularMarketChangePercent ?? 0
+          const col = chg > 0 ? 'var(--gain)' : chg < 0 ? 'var(--loss)' : 'var(--amber)'
+          const price = d == null ? '—'
+            : kind === 'idx' ? fmtNum(d.regularMarketPrice, 0)
+            : kind === 'btc' ? `$${fmtNum(d.regularMarketPrice, 0)}`
+            : kind === 'yield' ? `${fmtNum(d.regularMarketPrice, 2)}%`
+            : kind === 'num' ? fmtNum(d.regularMarketPrice, 1)
+            : `$${fmtNum(d.regularMarketPrice, 0)}`
+          return (
+            <div key={sym} className="chat-ribbon-chip">
+              <span className="chat-ribbon-lab">{label}</span>
+              <span className="chat-ribbon-val">{price}</span>
+              {d && <span style={{ color: col }}>{chg >= 0 ? '▲' : '▼'} {Math.abs(chg).toFixed(1)}%</span>}
+            </div>
+          )
+        })}
+      </div>
       <div className="chat-risk">
         {(['conservative', 'moderate', 'aggressive'] as const).map((r) => (
           <button

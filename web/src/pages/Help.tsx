@@ -31,6 +31,8 @@ const SECTIONS: HelpSection[] = [
     items: [
       { q: 'Which coins are tracked?', a: 'Bitcoin, Ethereum, Solana, and 80+ others with live USD prices, filters, and expandable detail cards.' },
       { q: 'Are crypto prices 24/7?', a: 'Yes. Crypto never closes. FX is typically Sun 5pm to Fri 5pm ET.' },
+      { q: 'What are the Crypto filters?', a: 'All, Top, L1, L2, DeFi, Meme, Web3, AI, and Stable. Tap a coin for the 24h range, 7-day chart, and Ask FloAI.' },
+      { q: 'What is the FX tab?', a: 'Majors, Minors (crosses), Exotics, Commodity pairs, Metals (spot gold/silver), and the DXY dollar index. Tap a pair for the 7-day chart.' },
     ],
   },
   {
@@ -46,6 +48,9 @@ const SECTIONS: HelpSection[] = [
       { q: 'Does Portfolio connect to a bank?', a: 'No. It is 100% simulated tracking. You type symbols, units, and cost basis yourself. There is no deposit flow and no brokerage login.' },
       { q: 'Is my data private?', a: 'Yes. Watchlist and holdings live in this browser only.' },
       { q: 'What does Clear Favorites do?', a: 'Settings → Clear Favorites empties only your custom watchlist. Preset market lists are never deleted.' },
+      { q: 'What are the Watchlist tabs?', a: '★ Favorites is yours. Tech & AI, Crypto, and FX & Metals are built-in lists. You can add or remove symbols on any tab.' },
+      { q: 'How do I add a holding?', a: 'Portfolio → + Add holding. Enter a ticker, quantity, and average price. It is simulated tracking only.' },
+      { q: 'What is asset allocation?', a: 'When you have holdings, Portfolio shows a stocks / crypto / other split. Percentages are of simulated value, not a real account.' },
     ],
   },
   {

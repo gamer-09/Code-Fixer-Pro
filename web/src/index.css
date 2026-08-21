@@ -848,6 +848,98 @@ table.data .num { font-family: var(--mono); font-weight: 600; text-align: right;
 .kpi-summary .kpi { padding: 16px 18px; }
 .form-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; margin-bottom: 16px; }
 
+.stats-strip {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 14px;
+  border: 1px solid var(--rim);
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.stats-item { flex: 1; text-align: center; padding: 10px 6px; min-width: 0; }
+.stats-val { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stats-lab { font-size: 9px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--t4); margin-top: 2px; }
+.stats-div { width: 1px; align-self: stretch; background: var(--rim); }
+
+.range-bar { margin-top: 6px; max-width: 160px; }
+.range-track { height: 4px; border-radius: 99px; background: var(--surface); position: relative; overflow: visible; }
+.range-fill { height: 100%; border-radius: 99px; opacity: .45; }
+.range-thumb { position: absolute; top: -3px; width: 10px; height: 10px; border-radius: 50%; margin-left: -5px; }
+
+.cat-banner {
+  border: 1px solid var(--rim);
+  background: var(--blue-dim);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.cat-banner-title { font-size: 13px; font-weight: 700; color: var(--blue); }
+.cat-banner-desc { font-size: 12px; color: var(--t3); margin-top: 4px; line-height: 1.45; }
+
+.alloc-box {
+  border: 1px solid var(--rim);
+  background: var(--card);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.alloc-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+.alloc-track { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--surface); }
+.alloc-track > div { height: 100%; }
+.alloc-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--t3); }
+.alloc-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+
+.hold-card {
+  display: flex;
+  border: 1px solid var(--rim);
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.hold-accent { width: 3px; flex-shrink: 0; }
+.hold-body { flex: 1; padding: 12px 14px; min-width: 0; }
+.hold-hd { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+.hold-sym-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hold-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; border-top: 1px solid var(--rim); border-bottom: 1px solid var(--rim); padding: 10px 0; margin-bottom: 10px; text-align: center; }
+.hold-pnl { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.pnl-track { height: 4px; border-radius: 99px; background: var(--surface); overflow: hidden; }
+.pnl-fill { height: 100%; border-radius: 99px; }
+
+.chat-ribbon {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--rim);
+  background: color-mix(in srgb, var(--base) 88%, transparent);
+  flex-shrink: 0;
+}
+.chat-ribbon-chip {
+  flex-shrink: 0;
+  border: 1px solid var(--rim);
+  background: var(--card);
+  border-radius: 10px;
+  padding: 6px 10px;
+  min-width: 72px;
+  text-align: center;
+}
+.chat-ribbon-lab { display: block; font-size: 9px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--t4); }
+.chat-ribbon-val { display: block; font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--t1); margin: 2px 0; }
+
+.disclaimer {
+  margin-top: 22px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
+  background: var(--amber-dim);
+  color: var(--t3);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.disclaimer strong { color: var(--amber); }
+
 .backdrop {
   position: fixed; inset: 0;
   background: rgba(0,0,0,.45);
@@ -868,6 +960,8 @@ table.data .num { font-family: var(--mono); font-weight: 600; text-align: right;
   .kpi-summary { grid-template-columns: 1fr; }
 }
 @media (max-width: 860px) {
+  .hold-stats { grid-template-columns: repeat(2, 1fr); }
+  .stats-val { font-size: 12px; }
   .sidebar {
     position: fixed;
     inset: 0 auto 0 0;

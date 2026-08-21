@@ -3,9 +3,9 @@ import { ALL_SYMBOLS, BONDS, COMMODITIES, CRYPTOS, FOREX, INDICES, MACRO, SECTOR
 import { useSettings } from './SettingsContext'
 import { getApiBase, resolveApiBase } from '../utils/apiBase'
 import { resolveSymbolAlias, getFallbackQuote, getFallbackMcap } from '../utils/symbolFallbacks'
-import { fmt, fmtChg, fmtMcap, chgDir } from '../utils/format'
+import { fmt, fmtChg, fmtMcap, chgDir, fmtPrice } from '../utils/format'
 
-export { fmt, fmtChg, fmtMcap, chgDir }
+export { fmt, fmtChg, fmtMcap, chgDir, fmtPrice }
 
 export interface QuoteData {
   symbol: string

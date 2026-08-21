@@ -1,6 +1,6 @@
 import React from 'react'
 import { OptionGroup, Toggle } from '../components/ui'
-import { useSettings, type AppTheme, type EarningsWindow, type NewsCount, type PriceDecimals, type RefreshInterval, type RiskProfile, type WatchlistSort } from '../context/SettingsContext'
+import { useSettings, type AlertThreshold, type AppTheme, type EarningsWindow, type NewsCount, type PriceDecimals, type RefreshInterval, type RiskProfile, type WatchlistSort } from '../context/SettingsContext'
 
 function SettingRow({ label, desc, children }: { label: string; desc?: string; children: React.ReactNode }) {
   return (
@@ -41,6 +41,9 @@ export default function SettingsScreen() {
         </SettingRow>
         <SettingRow label="Compact numbers" desc="Shorten large figures (e.g. $1.2T)">
           <Toggle checked={settings.compactNumbers} onChange={(v) => updateSetting('compactNumbers', v)} />
+        </SettingRow>
+        <SettingRow label="Show extended hours" desc="Use pre-market and after-hours prices where available">
+          <Toggle checked={settings.showExtendedHours} onChange={(v) => updateSetting('showExtendedHours', v)} />
         </SettingRow>
       </Block>
 
@@ -103,6 +106,16 @@ export default function SettingsScreen() {
         </SettingRow>
       </Block>
 
+      <Block title="Portfolio alerts">
+        <SettingRow label="Day-move threshold" desc="Highlight a holding when its daily move exceeds this. Off = no highlight.">
+          <OptionGroup
+            options={[{ label: 'Off', value: 0 }, { label: '3%', value: 3 }, { label: '5%', value: 5 }, { label: '10%', value: 10 }]}
+            value={settings.alertThreshold}
+            onChange={(v) => updateSetting('alertThreshold', v as AlertThreshold)}
+          />
+        </SettingRow>
+      </Block>
+
       <Block title="Data & privacy">
         <SettingRow label="Clear FloAI chat" desc="Remove messages in this browser">
           <button className="btn btn-danger btn-sm" onClick={() => { if (confirm('Clear FloAI chat history?')) triggerClearChat() }}>Clear</button>
@@ -121,7 +134,10 @@ export default function SettingsScreen() {
         </SettingRow>
       </Block>
 
-      <div className="updated">FloBoard v1.2 · Preferences stay in this browser only</div>
+      <div className="disclaimer">
+        <strong>Not financial advice.</strong> FloBoard is for information only. Nothing here — including FloAI — is personal investment advice. Do your own research.
+      </div>
+      <div className="updated">FloBoard v1.2 · Yahoo Finance data · Google Gemini · Preferences stay in this browser only</div>
     </div>
   )
 }

@@ -117,6 +117,45 @@ export function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: 
   )
 }
 
+export function DayRangeBar({
+  low,
+  high,
+  current,
+  color,
+}: {
+  low?: number | null
+  high?: number | null
+  current?: number | null
+  color: string
+}) {
+  if (low == null || high == null || current == null || high <= low) return null
+  const pct = Math.min(1, Math.max(0, (current - low) / (high - low)))
+  return (
+    <div className="range-bar">
+      <div className="range-track">
+        <div className="range-fill" style={{ width: `${pct * 100}%`, background: color }} />
+        <div className="range-thumb" style={{ left: `${pct * 100}%`, background: color }} />
+      </div>
+    </div>
+  )
+}
+
+export function StatsStrip({ items }: { items: { val: string; label: string; color?: string }[] }) {
+  return (
+    <div className="stats-strip">
+      {items.map((it, i) => (
+        <React.Fragment key={it.label}>
+          {i > 0 && <div className="stats-div" />}
+          <div className="stats-item">
+            <div className="stats-val" style={{ color: it.color }}>{it.val}</div>
+            <div className="stats-lab">{it.label}</div>
+          </div>
+        </React.Fragment>
+      ))}
+    </div>
+  )
+}
+
 export function OptionGroup({
   options,
   value,

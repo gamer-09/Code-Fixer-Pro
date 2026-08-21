@@ -25,6 +25,13 @@ export function fmtMcap(v: number | null | undefined, compact = true): string {
   return sign + '$' + fmt(a, 2)
 }
 
+export function fmtPrice(n: number | null | undefined, decimals = 2): string {
+  if (n == null || !Number.isFinite(n)) return '—'
+  if (Math.abs(n) >= 1000) return fmt(n, 0)
+  if (Math.abs(n) < 0.01) return n.toFixed(6)
+  return fmt(n, decimals)
+}
+
 export function chgDir(n: number | null | undefined): 'up' | 'dn' | 'flat' {
   if (n == null || !Number.isFinite(n) || n === 0) return 'flat'
   return n > 0 ? 'up' : 'dn'
