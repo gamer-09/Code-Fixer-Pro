@@ -21,7 +21,7 @@ function saveHoldings(h: Holding[]) {
 export default function PortfolioScreen() {
   const { data } = useMarket()
   const { settings } = useSettings()
-  const [holdings, setHoldings] = useState<Holding[]>([])
+  const [holdings, setHoldings] = useState<Holding[]>(loadHoldings)
   const [showAdd, setShowAdd] = useState(false)
   const [sym, setSym] = useState('')
   const [shares, setShares] = useState('')

@@ -30,11 +30,10 @@ const CATALOG = [
 export default function WatchlistScreen() {
   const { settings } = useSettings()
   const { data } = useMarket()
-  const [watchlist, setWatchlist] = useState<string[]>([])
+  const [watchlist, setWatchlist] = useState<string[]>(loadWatchlist)
   const [showAdd, setShowAdd] = useState(false)
   const [search, setSearch] = useState('')
 
-  useEffect(() => { setWatchlist(loadWatchlist()) }, [])
   useEffect(() => {
     if (settings.clearWatchlistKey > 0) setWatchlist([])
   }, [settings.clearWatchlistKey])

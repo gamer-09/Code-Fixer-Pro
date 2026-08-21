@@ -82,7 +82,7 @@ export default function AdvisorScreen() {
   const [loading, setLoading] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
   const messagesRef = useRef<Message[]>(messages)
-  const bootQ = useRef(searchParams.get('q') ?? '')
+  const handledQ = useRef<string | null>(null)
 
   useEffect(() => { messagesRef.current = messages }, [messages])
   useEffect(() => { saveChat(messages) }, [messages])
@@ -99,8 +99,9 @@ export default function AdvisorScreen() {
     const text = (preset ?? input).trim()
     if (!text || loading) return
     setInput('')
-    const history: Message[] = [...messages, { role: 'user', content: text }]
+    const history: Message[] = [...messagesRef.current, { role: 'user', content: text }]
     setMessages(history)
+    messagesRef.current = history
     setLoading(true)
 
     const isMarket = /gold|silver|metal|btc|bitcoin|eth|crypto|stock|share|equity|forex|fx|dollar|dxy|yield|bond|oil|nasdaq|s&p|invest|buy|sell|portfolio|nvda|aapl|tsla/i.test(text)
@@ -199,13 +200,23 @@ export default function AdvisorScreen() {
   }
 
   useEffect(() => {
-    const q = bootQ.current.trim()
+    const q = searchParams.get('q')?.trim()
     if (!q) return
-    bootQ.current = ''
+    if (handledQ.current === q) {
+      setSearchParams({}, { replace: true })
+      return
+    }
+    const last = messagesRef.current[messagesRef.current.length - 1]
+    if (last?.role === 'user' && last.content === q) {
+      handledQ.current = q
+      setSearchParams({}, { replace: true })
+      return
+    }
+    handledQ.current = q
     setSearchParams({}, { replace: true })
     void sendMessage(q)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [searchParams])
 
   return (
     <div className="chat">
