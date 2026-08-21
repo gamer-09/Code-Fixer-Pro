@@ -183,6 +183,18 @@ export default function AdvisorScreen() {
 
   return (
     <div className="chat">
+      <div className="chat-risk">
+        {(['conservative', 'moderate', 'aggressive'] as const).map((r) => (
+          <button
+            key={r}
+            type="button"
+            className={`seg-btn gain ${settings.riskProfile === r ? 'active' : ''}`}
+            onClick={() => updateSetting('riskProfile', r)}
+          >
+            {r[0].toUpperCase() + r.slice(1)}
+          </button>
+        ))}
+      </div>
       <div className="chat-thread">
         <div className="chat-inner">
           {messages.length === 0 && (
@@ -210,18 +222,6 @@ export default function AdvisorScreen() {
       </div>
       <div className="chat-input">
         <div className="chat-box">
-          <div className="seg" style={{ flexShrink: 0 }}>
-            {(['conservative', 'moderate', 'aggressive'] as const).map((r) => (
-              <button
-                key={r}
-                type="button"
-                className={`seg-btn gain ${settings.riskProfile === r ? 'active' : ''}`}
-                onClick={() => updateSetting('riskProfile', r)}
-              >
-                {r.slice(0, 3).toUpperCase()}
-              </button>
-            ))}
-          </div>
           <textarea
             className="field chat-field"
             value={input}

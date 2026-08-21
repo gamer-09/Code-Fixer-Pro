@@ -714,6 +714,15 @@ table.data .num { font-family: var(--mono); font-weight: 600; text-align: right;
   flex-direction: column;
   min-height: 0;
 }
+.chat-risk {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--rim);
+  background: color-mix(in srgb, var(--base) 88%, transparent);
+  flex-shrink: 0;
+}
+.chat-risk .seg-btn { flex: 1; text-align: center; }
 .chat-thread {
   flex: 1;
   overflow-y: auto;
@@ -868,6 +877,21 @@ table.data .num { font-family: var(--mono); font-weight: 600; text-align: right;
   .chat-thread { padding: 16px 14px 8px; }
   .bubble { max-width: 92%; }
   .setting-row { flex-direction: column; align-items: flex-start; }
+  .field, .search input { font-size: 16px; }
+  .search { height: 48px; }
+  .chat-risk { padding: 8px 12px; }
+  .chat-risk .seg-btn { padding: 10px 8px; font-size: 12px; }
+  .chat-input { padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .chat-field {
+    min-height: 56px;
+    font-size: 16px;
+    padding: 14px 14px;
+  }
+  .chat-box .btn-primary {
+    height: 56px;
+    min-width: 76px;
+    font-size: 15px;
+  }
 }
 @media (max-width: 520px) {
   .kpi-row { grid-template-columns: 1fr 1fr; }
