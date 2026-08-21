@@ -53,20 +53,46 @@ const SUGGESTS = [
 
 type GeminiContent = { role: string; parts: { text: string }[] }
 
+const CHAT_KEY = 'floboard:chat'
+
+function loadChat(): Message[] {
+  try {
+    const raw = localStorage.getItem(CHAT_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as Message[]
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .slice(-80)
+  } catch {
+    return []
+  }
+}
+
+function saveChat(msgs: Message[]) {
+  try { localStorage.setItem(CHAT_KEY, JSON.stringify(msgs.slice(-80))) } catch { /* ignore */ }
+}
+
 export default function AdvisorScreen() {
   const { settings, updateSetting } = useSettings()
   const { data } = useMarket()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Message[]>(loadChat)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
+  const messagesRef = useRef<Message[]>(messages)
   const bootQ = useRef(searchParams.get('q') ?? '')
 
+  useEffect(() => { messagesRef.current = messages }, [messages])
+  useEffect(() => { saveChat(messages) }, [messages])
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, loading])
 
   useEffect(() => {
-    if (settings.clearChatKey > 0) setMessages([])
+    if (settings.clearChatKey > 0) {
+      setMessages([])
+      saveChat([])
+    }
   }, [settings.clearChatKey])
 
   const sendMessage = async (preset?: string) => {

@@ -98,6 +98,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const triggerClearChat = useCallback(() => {
+    try { localStorage.setItem('floboard:chat', '[]') } catch { /* ignore */ }
     setSettings((prev) => ({ ...prev, clearChatKey: prev.clearChatKey + 1 }))
   }, [])
 
