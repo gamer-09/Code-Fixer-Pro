@@ -222,12 +222,18 @@ export default function AdvisorScreen() {
               </button>
             ))}
           </div>
-          <input
-            className="field"
+          <textarea
+            className="field chat-field"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                sendMessage()
+              }
+            }}
             placeholder="Ask about markets, or just say hi…"
+            rows={1}
           />
           <button className="btn btn-primary" onClick={() => sendMessage()} disabled={loading || !input.trim()}>
             Send
