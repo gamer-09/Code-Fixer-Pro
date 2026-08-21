@@ -4,7 +4,7 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/Code-Fixer-Pro/',
+  base: '/floboard/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

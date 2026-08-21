@@ -54,8 +54,8 @@ scripts/          # misc workspace-level scripts
 ## Setup
 
 ```bash
-git clone https://github.com/gamer-09/Code-Fixer-Pro.git
-cd Code-Fixer-Pro
+git clone https://github.com/gamer-09/floboard.git
+cd floboard
 pnpm install
 ```
 
@@ -122,7 +122,7 @@ App Store Connect and Google Play Console both require a publicly hosted privacy
 It's published to GitHub Pages from the `docs/` folder by `.github/workflows/pages.yml`:
 
 ```
-https://gamer-09.github.io/Code-Fixer-Pro/privacy-policy.html
+https://gamer-09.github.io/floboard/privacy-policy.html
 ```
 
 ## Tests
