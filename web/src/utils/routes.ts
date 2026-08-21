@@ -31,12 +31,23 @@ export const ALIASES: Record<string, string> = {
   '/preferences': '/settings',
   '/config': '/settings',
   '/options': '/settings',
+  '/yields': '/rates',
+  '/yield': '/rates',
+  '/bonds': '/rates',
+  '/oil': '/energy',
+  '/crude': '/energy',
+  '/hyg': '/credit',
+  '/base-metals': '/copper',
 }
 
 export const PAGE_PATHS = [
   '/markets',
   '/crypto',
   '/fx',
+  '/rates',
+  '/energy',
+  '/credit',
+  '/copper',
   '/news',
   '/advisor',
   '/portfolio',

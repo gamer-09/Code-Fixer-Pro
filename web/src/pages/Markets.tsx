@@ -17,85 +17,6 @@ const RIBBON = [
   { sym: '^TNX', label: '10Y', kind: 'yield' as const },
 ]
 
-function GaugeCard({
-  label,
-  value,
-  sub,
-  why,
-  dir,
-}: {
-  label: string
-  value: string
-  sub?: string
-  why: string
-  dir: 'up' | 'dn' | 'flat'
-}) {
-  const color = dir === 'up' ? 'var(--gain)' : dir === 'dn' ? 'var(--loss)' : 'var(--amber)'
-  return (
-    <div className="gauge">
-      <div className="kpi-label">{label}</div>
-      <div className="kpi-val" style={{ color }}>{value}</div>
-      {sub && <div className={`kpi-chg num-${dir}`}>{sub}</div>}
-      <div className="gauge-why">{why}</div>
-    </div>
-  )
-}
-
-function InvestorGauges() {
-  const { data } = useMarket()
-  const tnx = data['^TNX']
-  const irx = data['^IRX']
-  const oil = data['CL=F']
-  const copper = data['HG=F']
-  const hyg = data['HYG']
-
-  const tnxPx = tnx?.regularMarketPrice
-  const irxPx = irx?.regularMarketPrice
-  const spread = tnxPx != null && irxPx != null ? tnxPx - irxPx : null
-  const spreadPrev =
-    tnx?.regularMarketPreviousClose != null && irx?.regularMarketPreviousClose != null
-      ? tnx.regularMarketPreviousClose - irx.regularMarketPreviousClose
-      : null
-  const spreadChg = spread != null && spreadPrev != null ? spread - spreadPrev : null
-  const inverted = spread != null && spread < 0
-  const spreadDir = inverted ? 'dn' : spreadChg == null ? 'flat' : chgDir(spreadChg)
-
-  return (
-    <Section label="What investors watch">
-      <div className="watch-grid">
-        <GaugeCard
-          label="10Y − 3M curve"
-          value={spread == null ? '—' : `${spread >= 0 ? '+' : ''}${fmt(spread, 2)} pp`}
-          sub={inverted ? 'INVERTED' : spreadChg == null ? undefined : `${spreadChg >= 0 ? '+' : ''}${fmt(spreadChg, 2)} pp`}
-          why="Recession signal. Negative means the curve is inverted."
-          dir={spreadDir}
-        />
-        <GaugeCard
-          label="WTI crude"
-          value={oil ? `$${fmt(oil.regularMarketPrice, 2)}` : '—'}
-          sub={oil ? fmtChg(oil.regularMarketChangePercent) : undefined}
-          why="Inflation, growth, and geopolitics in one number."
-          dir={chgDir(oil?.regularMarketChangePercent)}
-        />
-        <GaugeCard
-          label="High-yield credit"
-          value={hyg ? `$${fmt(hyg.regularMarketPrice, 2)}` : '—'}
-          sub={hyg ? fmtChg(hyg.regularMarketChangePercent) : undefined}
-          why="HYG. Stress in junk bonds shows up here first."
-          dir={chgDir(hyg?.regularMarketChangePercent)}
-        />
-        <GaugeCard
-          label="Copper"
-          value={copper ? `$${fmt(copper.regularMarketPrice, 3)}` : '—'}
-          sub={copper ? fmtChg(copper.regularMarketChangePercent) : undefined}
-          why="Dr. Copper — global industry and China demand."
-          dir={chgDir(copper?.regularMarketChangePercent)}
-        />
-      </div>
-    </Section>
-  )
-}
-
 function formatRibbon(kind: 'idx' | 'btc' | 'dxy' | 'yield', price?: number) {
   if (price == null) return '—'
   if (kind === 'yield') return `${fmt(price, 2)}%`
@@ -179,8 +100,7 @@ function MarketHoursSection() {
 
 export default function MarketsScreen() {
   const c = useColors()
-  const { data, lastUpdated, ensureSymbols } = useMarket()
-  useEffect(() => { ensureSymbols(['HYG', 'CL=F', 'HG=F', '^TNX', '^IRX']) }, [ensureSymbols])
+  const { data, lastUpdated } = useMarket()
   const { settings } = useSettings()
   const [moverTab, setMoverTab] = useState('All')
 
@@ -226,8 +146,6 @@ export default function MarketsScreen() {
           )
         })}
       </div>
-
-      <InvestorGauges />
 
       <MarketHoursSection />
 

@@ -15,6 +15,15 @@ const NAV = [
     ],
   },
   {
+    group: 'Macro',
+    items: [
+      { to: '/rates', label: 'Rates', icon: 'rates' },
+      { to: '/energy', label: 'Energy', icon: 'energy' },
+      { to: '/credit', label: 'Credit', icon: 'credit' },
+      { to: '/copper', label: 'Copper', icon: 'copper' },
+    ],
+  },
+  {
     group: 'Workspace',
     items: [
       { to: '/watchlist', label: 'Watchlist', icon: 'watchlist' },
@@ -36,6 +45,10 @@ const META: Record<string, { title: string; sub: string }> = {
   '/markets': { title: 'Markets', sub: 'Live global snapshot' },
   '/crypto': { title: 'Crypto', sub: 'Digital assets in USD' },
   '/fx': { title: 'FX & Metals', sub: 'Majors, crosses, exotics & bullion' },
+  '/rates': { title: 'Rates', sub: 'Treasury curve and 10Y–3M spread' },
+  '/energy': { title: 'Energy', sub: 'WTI, Brent, gas, and energy stocks' },
+  '/credit': { title: 'Credit', sub: 'High-yield and investment-grade ETFs' },
+  '/copper': { title: 'Copper', sub: 'Industrial metals vs gold' },
   '/news': { title: 'News', sub: 'Market headlines with sentiment' },
   '/advisor': { title: 'FloAI Advisor', sub: 'Conversational market analysis' },
   '/portfolio': { title: 'Portfolio', sub: 'Simulated tracking — no deposits, no bank login' },
@@ -76,6 +89,32 @@ function Icon({ name }: { name: string }) {
         <svg {...s}>
           <circle cx="8" cy="12" r="5" />
           <circle cx="16" cy="12" r="5" />
+        </svg>
+      )
+    case 'rates':
+      return (
+        <svg {...s}>
+          <path d="M4 18V6M10 18V10M16 18V8M22 18H3" />
+        </svg>
+      )
+    case 'energy':
+      return (
+        <svg {...s}>
+          <path d="M12 3l-2 7h4L10 21l6-9h-4l2-9z" />
+        </svg>
+      )
+    case 'credit':
+      return (
+        <svg {...s}>
+          <rect x="3" y="6" width="18" height="12" rx="2" />
+          <path d="M3 10h18" />
+        </svg>
+      )
+    case 'copper':
+      return (
+        <svg {...s}>
+          <circle cx="12" cy="12" r="8" />
+          <circle cx="12" cy="12" r="3" />
         </svg>
       )
     case 'news':
