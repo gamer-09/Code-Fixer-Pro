@@ -88,10 +88,13 @@ export function isSyntheticQuote(q: QuoteData | undefined): boolean {
 
 function readUserSymbols(): string[] {
   const out: string[] = []
-  try {
-    const w = JSON.parse(localStorage.getItem('floboard:watchlist') || '[]') as unknown
-    if (Array.isArray(w)) out.push(...w.map((s) => String(s)))
-  } catch { /* ignore */ }
+  const keys = ['floboard:watchlist', 'floboard:watchlist:Tech', 'floboard:watchlist:Crypto', 'floboard:watchlist:Macro']
+  for (const key of keys) {
+    try {
+      const w = JSON.parse(localStorage.getItem(key) || '[]') as unknown
+      if (Array.isArray(w)) out.push(...w.map((s) => String(s)))
+    } catch { /* ignore */ }
+  }
   try {
     const h = JSON.parse(localStorage.getItem('floboard:holdings') || '[]') as unknown
     if (Array.isArray(h)) {

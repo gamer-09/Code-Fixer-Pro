@@ -39,7 +39,7 @@ const META: Record<string, { title: string; sub: string }> = {
   '/news': { title: 'News', sub: 'Market headlines with sentiment' },
   '/advisor': { title: 'FloAI Advisor', sub: 'Conversational market analysis' },
   '/portfolio': { title: 'Portfolio', sub: 'Simulated tracking — no deposits, no bank login' },
-  '/watchlist': { title: 'Watchlist', sub: 'Your custom favorites' },
+  '/watchlist': { title: 'Watchlist', sub: 'Favorites plus Tech, Crypto, and FX lists' },
   '/help': { title: 'Help', sub: 'How FloBoard works' },
   '/settings': { title: 'Settings', sub: 'Theme, data, FloAI, and privacy' },
 }

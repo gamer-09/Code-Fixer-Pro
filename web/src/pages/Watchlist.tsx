@@ -1,51 +1,118 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import SparklineChart from '../components/SparklineChart'
-import { EmptyState, SearchBox } from '../components/ui'
-import { chgDir, fmt, fmtChg, useMarket } from '../context/MarketContext'
+import { EmptyState, SearchBox, Segmented } from '../components/ui'
+import { COMMODITIES, CRYPTOS, FOREX, INDICES, STOCKS } from '../constants/marketData'
+import { chgDir, fmt, fmtChg, fmtMcap, useMarket } from '../context/MarketContext'
 import { useSettings } from '../context/SettingsContext'
 import { getApiBase } from '../utils/apiBase'
 
-const STORAGE_KEY = 'floboard:watchlist'
+const FAV_KEY = 'floboard:watchlist'
 
-function loadWatchlist(): string[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch { return [] }
+type TabId = 'Favorites' | 'Tech' | 'Crypto' | 'Macro'
+
+interface TabDef {
+  id: TabId
+  label: string
+  defaults: string[]
 }
 
-function saveWatchlist(syms: string[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(syms)) } catch { /* ignore */ }
+const TABS: TabDef[] = [
+  { id: 'Favorites', label: '★ Favorites', defaults: [] },
+  { id: 'Tech', label: 'Tech & AI', defaults: ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA', 'PLTR'] },
+  { id: 'Crypto', label: 'Crypto', defaults: ['BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'DOGE-USD'] },
+  { id: 'Macro', label: 'FX & Metals', defaults: ['EURUSD=X', 'USDJPY=X', 'XAUUSD=X', 'XAGUSD=X', 'GC=F', 'SI=F', '^TNX'] },
+]
+
+const NAMES: Record<string, string> = {
+  ...Object.fromEntries(STOCKS.map((s) => [s.sym, s.name])),
+  ...Object.fromEntries(CRYPTOS.map((c) => [c.sym, c.name])),
+  ...Object.fromEntries(FOREX.map((f) => [f.sym, f.label])),
+  ...Object.fromEntries(INDICES.map((i) => [i.sym, i.name])),
+  ...Object.fromEntries(COMMODITIES.map((c) => [c.sym, c.label])),
+  PLTR: 'Palantir',
+  'XAUUSD=X': 'Gold Spot',
+  'XAGUSD=X': 'Silver Spot',
+  '^TNX': '10-Year Yield',
 }
 
 const CATALOG = [
-  { sym: 'AAPL', name: 'Apple' }, { sym: 'MSFT', name: 'Microsoft' }, { sym: 'NVDA', name: 'Nvidia' },
-  { sym: 'GOOGL', name: 'Alphabet' }, { sym: 'AMZN', name: 'Amazon' }, { sym: 'META', name: 'Meta' },
-  { sym: 'TSLA', name: 'Tesla' }, { sym: 'BTC-USD', name: 'Bitcoin' }, { sym: 'ETH-USD', name: 'Ethereum' },
-  { sym: 'GC=F', name: 'Gold Futures' }, { sym: 'SI=F', name: 'Silver Futures' }, { sym: 'CL=F', name: 'Crude Oil' },
-  { sym: 'EURUSD=X', name: 'EUR/USD' }, { sym: 'GBPUSD=X', name: 'GBP/USD' }, { sym: 'USDJPY=X', name: 'USD/JPY' },
-  { sym: 'SOL-USD', name: 'Solana' }, { sym: 'XRP-USD', name: 'Ripple' }, { sym: 'DOGE-USD', name: 'Dogecoin' },
-  { sym: '^GSPC', name: 'S&P 500' }, { sym: '^IXIC', name: 'Nasdaq' }, { sym: '^DJI', name: 'Dow Jones' },
+  ...STOCKS.map((s) => ({ sym: s.sym, name: s.name })),
+  ...CRYPTOS.map((c) => ({ sym: c.sym, name: c.name })),
+  ...FOREX.slice(0, 40).map((f) => ({ sym: f.sym, name: f.label })),
+  ...INDICES.map((i) => ({ sym: i.sym, name: i.name })),
+  ...COMMODITIES.map((c) => ({ sym: c.sym, name: c.label })),
+  { sym: 'PLTR', name: 'Palantir' },
+  { sym: 'SPY', name: 'S&P 500 ETF' },
+  { sym: 'QQQ', name: 'Nasdaq 100 ETF' },
+  { sym: '^TNX', name: '10-Year Yield' },
 ]
 
+function storageKey(tab: TabId) {
+  return tab === 'Favorites' ? FAV_KEY : `${FAV_KEY}:${tab}`
+}
+
+function loadTab(tab: TabDef): string[] {
+  try {
+    const raw = localStorage.getItem(storageKey(tab.id))
+    if (raw) {
+      const parsed = JSON.parse(raw) as unknown
+      if (Array.isArray(parsed)) return parsed.map((s) => String(s)).filter(Boolean)
+    }
+  } catch { /* ignore */ }
+  return [...tab.defaults]
+}
+
+function saveTab(tab: TabId, syms: string[]) {
+  try { localStorage.setItem(storageKey(tab), JSON.stringify(syms)) } catch { /* ignore */ }
+}
+
+function nameOf(sym: string, dataName?: string) {
+  return NAMES[sym] ?? dataName ?? sym
+}
+
+function isFx(sym: string) {
+  return sym.includes('=X') || sym.includes('/')
+}
+
+function decimals(sym: string) {
+  if (sym.startsWith('^T') || sym.startsWith('^IR') || sym.startsWith('^FV') || sym.startsWith('^TY')) return 2
+  if (isFx(sym)) return 4
+  return 2
+}
+
 export default function WatchlistScreen() {
+  const navigate = useNavigate()
   const { settings } = useSettings()
   const { data, ensureSymbols } = useMarket()
-  const [watchlist, setWatchlist] = useState<string[]>(loadWatchlist)
-  const [showAdd, setShowAdd] = useState(false)
+  const [tab, setTab] = useState<TabId>(() => {
+    try {
+      const fav = JSON.parse(localStorage.getItem(FAV_KEY) || '[]') as unknown
+      if (Array.isArray(fav) && fav.length) return 'Favorites'
+    } catch { /* ignore */ }
+    return 'Tech'
+  })
+  const tabDef = TABS.find((t) => t.id === tab) ?? TABS[1]
+  const [symbols, setSymbols] = useState<string[]>(() => loadTab(tabDef))
   const [search, setSearch] = useState('')
   const [remote, setRemote] = useState<{ sym: string; name: string }[]>([])
+  const [expanded, setExpanded] = useState<string | null>(null)
 
   useEffect(() => {
-    if (settings.clearWatchlistKey > 0) {
-      setWatchlist([])
-      saveWatchlist([])
+    const def = TABS.find((t) => t.id === tab) ?? TABS[0]
+    if (tab === 'Favorites' && settings.clearWatchlistKey > 0) {
+      setSymbols([])
+      saveTab('Favorites', [])
+      return
     }
-  }, [settings.clearWatchlistKey])
+    setSymbols(loadTab(def))
+    setSearch('')
+    setExpanded(null)
+  }, [tab, settings.clearWatchlistKey])
 
   useEffect(() => {
-    if (watchlist.length) ensureSymbols(watchlist)
-  }, [watchlist, ensureSymbols])
+    if (symbols.length) ensureSymbols(symbols)
+  }, [symbols, ensureSymbols])
 
   useEffect(() => {
     const q = search.trim()
@@ -58,127 +125,163 @@ export default function WatchlistScreen() {
         const res = await fetch(`${getApiBase()}/api/search?q=${encodeURIComponent(q)}`)
         if (!res.ok) return
         const json = await res.json() as { results?: { sym: string; name: string }[] }
-        const have = new Set(watchlist.map((s) => s.toUpperCase()))
+        const have = new Set(symbols.map((s) => s.toUpperCase()))
         setRemote(
           (json.results ?? [])
             .filter((r) => r.sym && !have.has(r.sym.toUpperCase()))
             .slice(0, 8)
-            .map((r) => ({ sym: r.sym.toUpperCase(), name: r.name })),
+            .map((r) => ({ sym: r.sym, name: r.name })),
         )
       } catch { /* ignore */ }
     }, 280)
     return () => clearTimeout(t)
-  }, [search, watchlist])
+  }, [search, symbols])
+
+  const persist = (next: string[]) => {
+    setSymbols(next)
+    saveTab(tab, next)
+  }
 
   const addSymbol = (sym: string) => {
     const clean = sym.trim().toUpperCase()
-    if (!clean) return
-    if (!watchlist.includes(clean)) {
-      const next = [...watchlist, clean]
-      setWatchlist(next)
-      saveWatchlist(next)
-      ensureSymbols([clean])
+    if (!clean || symbols.includes(clean)) {
+      setSearch('')
+      return
     }
-    setShowAdd(false)
+    persist([clean, ...symbols])
+    ensureSymbols([clean])
     setSearch('')
     setRemote([])
   }
 
-  const addCustom = () => addSymbol(search)
-
   const removeSymbol = (sym: string) => {
-    const next = watchlist.filter((s) => s !== sym)
-    setWatchlist(next)
-    saveWatchlist(next)
+    persist(symbols.filter((s) => s !== sym))
+    if (expanded === sym) setExpanded(null)
   }
 
+  const searching = search.trim().length > 0
+
+  const searchResults = useMemo(() => {
+    if (!searching) return []
+    const q = search.toLowerCase()
+    const have = new Set(symbols.map((s) => s.toUpperCase()))
+    const local = CATALOG.filter((c) =>
+      !have.has(c.sym.toUpperCase()) && (c.sym.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)),
+    )
+    const seen = new Set(local.map((c) => c.sym.toUpperCase()))
+    const extra = remote.filter((r) => !have.has(r.sym.toUpperCase()) && !seen.has(r.sym.toUpperCase()))
+    return [...local, ...extra].slice(0, 12)
+  }, [search, searching, symbols, remote])
+
   const sorted = useMemo(() => {
-    const items = watchlist.map((sym) => {
-      const cat = CATALOG.find((c) => c.sym === sym)
-      const remoteHit = remote.find((r) => r.sym === sym)
-      return { sym, name: cat?.name ?? remoteHit?.name ?? data[sym]?.shortName ?? sym }
-    })
+    const items = symbols.map((sym) => ({
+      sym,
+      name: nameOf(sym, data[sym]?.shortName),
+    }))
     if (settings.watchlistSort === 'change') {
       items.sort((a, b) => (data[b.sym]?.regularMarketChangePercent ?? 0) - (data[a.sym]?.regularMarketChangePercent ?? 0))
     } else if (settings.watchlistSort === 'alpha') {
       items.sort((a, b) => a.sym.localeCompare(b.sym))
     }
     return items
-  }, [watchlist, settings.watchlistSort, data, remote])
+  }, [symbols, settings.watchlistSort, data])
 
-  const searchResults = useMemo(() => {
-    if (!search) return []
-    const q = search.toLowerCase()
-    const local = CATALOG.filter((cat) => (cat.sym.toLowerCase().includes(q) || cat.name.toLowerCase().includes(q)) && !watchlist.includes(cat.sym))
-    const have = new Set([...local.map((c) => c.sym), ...watchlist])
-    const extra = remote.filter((r) => !have.has(r.sym))
-    return [...local, ...extra].slice(0, 10)
-  }, [search, watchlist, remote])
+  const openAi = (sym: string, name: string) => {
+    navigate(`/advisor?q=${encodeURIComponent(`Give me a full analysis of ${sym} (${name}) — price, recent performance, outlook, and key risks.`)}`)
+  }
 
   return (
     <div className="page">
-      <div className="toolbar" style={{ justifyContent: 'space-between' }}>
-        <span className="muted">{watchlist.length} favorite{watchlist.length === 1 ? '' : 's'}</span>
-        <button className="btn btn-ghost" onClick={() => setShowAdd(!showAdd)}>{showAdd ? 'Cancel' : '+ Add favorite'}</button>
+      <div className="toolbar">
+        <Segmented
+          value={tab}
+          onChange={(v) => setTab(v as TabId)}
+          options={TABS.map((t) => ({ label: t.label, value: t.id }))}
+        />
+        <SearchBox value={search} onChange={setSearch} placeholder="Search stocks, crypto, gold, FX…" />
+        <span className="muted">{sorted.length} tracked</span>
       </div>
 
-      {showAdd && (
-        <div className="panel form-card">
-          <SearchBox value={search} onChange={setSearch} placeholder="Search AAPL, Bitcoin, gold…" />
-          {searchResults.length > 0 && (
-            <div className="panel">
-              {searchResults.map((cat) => (
-                <button
-                  key={cat.sym}
-                  type="button"
-                  onClick={() => addSymbol(cat.sym)}
-                  style={{ display: 'block', width: '100%', padding: '10px 14px', border: 'none', background: 'transparent', color: 'var(--t1)', textAlign: 'left', borderBottom: '1px solid var(--rim)' }}
-                >
-                  <strong>{cat.sym}</strong> <span className="muted">· {cat.name}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {search.trim() && (
-            <button className="btn btn-primary" onClick={addCustom}>Add “{search.trim().toUpperCase()}”</button>
+      {searching && (
+        <div className="panel form-card" style={{ marginBottom: 16 }}>
+          {searchResults.length === 0 && <div className="muted">No matches. You can still add the ticker as typed.</div>}
+          {searchResults.map((cat) => (
+            <button
+              key={cat.sym}
+              type="button"
+              onClick={() => addSymbol(cat.sym)}
+              style={{ display: 'block', width: '100%', padding: '10px 14px', border: 'none', background: 'transparent', color: 'var(--t1)', textAlign: 'left', borderBottom: '1px solid var(--rim)' }}
+            >
+              <strong>{cat.sym}</strong> <span className="muted">· {cat.name}</span>
+            </button>
+          ))}
+          {search.trim() && !symbols.includes(search.trim().toUpperCase()) && (
+            <button className="btn btn-primary" onClick={() => addSymbol(search)} type="button">
+              Add “{search.trim().toUpperCase()}”
+            </button>
           )}
         </div>
       )}
 
-      {watchlist.length === 0 && !showAdd && (
+      {!searching && sorted.length === 0 && (
         <EmptyState
           icon="★"
-          title="No favorites yet"
-          hint="Pin the symbols you care about. Settings → Clear Favorites only empties this list."
-          action={<button className="btn btn-ghost" style={{ marginTop: 16 }} onClick={() => setShowAdd(true)}>+ Add favorite</button>}
+          title={tab === 'Favorites' ? 'No favorites yet' : 'This list is empty'}
+          hint={tab === 'Favorites' ? 'Search above to pin symbols. Settings → Clear Favorites only empties this tab — Tech, Crypto, and FX stay.' : 'Search above to add symbols to this list.'}
         />
       )}
 
-      <div className="asset-list">
-        {sorted.map(({ sym, name }) => {
-          const d = data[sym]
-          const chg = d?.regularMarketChangePercent ?? 0
-          const dir = chgDir(chg)
-          const col = dir === 'up' ? 'var(--gain)' : dir === 'dn' ? 'var(--loss)' : 'var(--t2)'
-          return (
-            <div key={sym} className="asset fav" style={{ cursor: 'default' }}>
-              <div className="avatar" style={{ background: 'var(--blue-dim)', color: 'var(--blue)' }}>{sym.slice(0, 2)}</div>
-              <div style={{ minWidth: 0 }}>
-                <div className="sym">{sym}</div>
-                <div className="muted">{name}</div>
+      {!searching && (
+        <div className="asset-list">
+          {sorted.map(({ sym, name }) => {
+            const d = data[sym]
+            const chg = d?.regularMarketChangePercent ?? 0
+            const dir = chgDir(chg)
+            const col = dir === 'up' ? 'var(--gain)' : dir === 'dn' ? 'var(--loss)' : 'var(--t2)'
+            const dec = decimals(sym)
+            const prefix = isFx(sym) || sym.startsWith('^') ? '' : '$'
+            const open = expanded === sym
+            return (
+              <div key={sym}>
+                <div
+                  className="asset fav"
+                  onClick={() => setExpanded(open ? null : sym)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="avatar" style={{ background: 'var(--blue-dim)', color: 'var(--blue)' }}>{sym.replace(/[^A-Z0-9]/gi, '').slice(0, 2) || '•'}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="sym">{sym}</div>
+                    <div className="muted">{name}</div>
+                  </div>
+                  <div className="spark">
+                    <SparklineChart symbol={sym} range="7d" width={80} height={32} color={col} />
+                  </div>
+                  <div className="right">
+                    <div className="mono" style={{ fontWeight: 700 }}>{d ? `${prefix}${fmt(d.regularMarketPrice, dec)}` : '—'}</div>
+                    <div className="mono" style={{ fontSize: 12, fontWeight: 600, color: col, marginTop: 2 }}>{d ? fmtChg(chg) : '—'}</div>
+                  </div>
+                  <span style={{ color: 'var(--t4)', fontSize: 11 }}>{open ? '▲' : '▼'}</span>
+                </div>
+                {open && (
+                  <div className="expand" style={{ borderLeftColor: col }}>
+                    <SparklineChart symbol={sym} range="7d" width={420} height={72} showLabels color={col} />
+                    <div className="stat-grid">
+                      {d?.regularMarketDayHigh != null && <div><div className="stat-lab">Day high</div><div className="stat-val" style={{ color: 'var(--gain)' }}>{prefix}{fmt(d.regularMarketDayHigh, dec)}</div></div>}
+                      {d?.regularMarketDayLow != null && <div><div className="stat-lab">Day low</div><div className="stat-val" style={{ color: 'var(--loss)' }}>{prefix}{fmt(d.regularMarketDayLow, dec)}</div></div>}
+                      {d?.regularMarketPreviousClose != null && <div><div className="stat-lab">Prev close</div><div className="stat-val">{prefix}{fmt(d.regularMarketPreviousClose, dec)}</div></div>}
+                      {d?.marketCap ? <div><div className="stat-lab">Mkt cap</div><div className="stat-val">{fmtMcap(d.marketCap)}</div></div> : null}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); openAi(sym, name) }}>Ask FloAI</button>
+                      <button type="button" className="btn btn-danger btn-sm" onClick={(e) => { e.stopPropagation(); removeSymbol(sym) }}>Remove</button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="spark">
-                <SparklineChart symbol={sym} range="7d" width={80} height={32} color={col} />
-              </div>
-              <div className="right">
-                <div className="mono" style={{ fontWeight: 700 }}>{d ? `$${fmt(d.regularMarketPrice, 2)}` : '—'}</div>
-                <div className="mono" style={{ fontSize: 12, fontWeight: 600, color: col, marginTop: 2 }}>{d ? fmtChg(chg) : '—'}</div>
-              </div>
-              <button className="btn btn-danger btn-sm" onClick={() => removeSymbol(sym)}>✕</button>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
