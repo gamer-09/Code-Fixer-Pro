@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useMarket } from '../context/MarketContext'
 import { useSettings } from '../context/SettingsContext'
+import { getApiBase, resolveApiBase } from '../utils/apiBase'
 
 interface Message { role: 'user' | 'assistant'; content: string }
 
@@ -34,11 +35,12 @@ function generateFallbackAiResponse(query: string, risk: string): string {
 }
 
 function renderText(text: string) {
-  return text.split('\n').map((line, i) => {
+  const lines = text.split('\n')
+  return lines.map((line, i) => {
     const heading = line.startsWith('### ') ? line.slice(4) : null
     const parts = (heading ?? line).split('**').map((part, j) => (j % 2 === 1 ? <strong key={j}>{part}</strong> : part))
     if (heading) return <div key={i} style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{parts}</div>
-    return <span key={i}>{parts}{i < text.split('\n').length - 1 ? '\n' : ''}</span>
+    return <span key={i}>{parts}{i < lines.length - 1 ? '\n' : ''}</span>
   })
 }
 
@@ -48,6 +50,8 @@ const SUGGESTS = [
   'How is the S&P 500 looking?',
   'Explain EUR/USD this week',
 ]
+
+type GeminiContent = { role: string; parts: { text: string }[] }
 
 export default function AdvisorScreen() {
   const { settings, updateSetting } = useSettings()
@@ -69,45 +73,99 @@ export default function AdvisorScreen() {
     const text = (preset ?? input).trim()
     if (!text || loading) return
     setInput('')
-    setMessages((prev) => [...prev, { role: 'user', content: text }])
+    const history: Message[] = [...messages, { role: 'user', content: text }]
+    setMessages(history)
     setLoading(true)
 
     const isMarket = /gold|silver|metal|btc|bitcoin|eth|crypto|stock|share|equity|forex|fx|dollar|dxy|yield|bond|oil|nasdaq|s&p|invest|buy|sell|portfolio|nvda|aapl|tsla/i.test(text)
     const modePrefix = isMarket ? `[${settings.riskProfile.toUpperCase()} MODE] ` : ''
+    const marketContext = Object.entries(data).slice(0, 20).map(([sym, q]) => `${sym}: $${q.regularMarketPrice} (${q.regularMarketChangePercent >= 0 ? '+' : ''}${q.regularMarketChangePercent.toFixed(2)}%)`).join('\n')
+    const system = `You are FloAI, FloBoard's market assistant. Speak naturally for ordinary conversation. When the user asks about markets, assets, or investing, rewrite and analyze through a ${settings.riskProfile.toUpperCase()} risk lens. Never ask for bank logins, deposits, or personal financial account details. Educational only — not financial advice. Always finish complete answers; never stop mid-sentence.\n\nLive snapshot:\n${marketContext}`
+
+    const finish = (reply: string) => {
+      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      setLoading(false)
+    }
+
+    const apiMessages = history.map((m) => ({
+      role: m.role,
+      content: m.role === 'user' && m.content === text ? `${modePrefix}${text}` : m.content,
+    }))
+
+    try {
+      const base = await resolveApiBase().catch(() => getApiBase())
+      const proxyRes = await fetch(`${base}/api/chat?stream=false`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: apiMessages,
+          systemPrompt: system,
+          geminiApiKey: settings.geminiApiKey,
+        }),
+      })
+      if (proxyRes.ok) {
+        const json = await proxyRes.json() as { content?: string; error?: string }
+        if (json.content?.trim()) {
+          finish(json.content)
+          return
+        }
+        if (json.error) {
+          finish(json.error)
+          return
+        }
+      }
+    } catch { /* fall through to Gemini */ }
 
     if (settings.geminiApiKey.trim()) {
       try {
-        const marketContext = Object.entries(data).slice(0, 20).map(([sym, q]) => `${sym}: $${q.regularMarketPrice} (${q.regularMarketChangePercent >= 0 ? '+' : ''}${q.regularMarketChangePercent.toFixed(2)}%)`).join('\n')
-        const system = `You are FloAI, FloBoard's market assistant. Speak naturally for ordinary conversation. When the user asks about markets, assets, or investing, rewrite and analyze through a ${settings.riskProfile.toUpperCase()} risk lens. Never ask for bank logins, deposits, or personal financial account details. Educational only — not financial advice.\n\nLive snapshot:\n${marketContext}`
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(settings.geminiApiKey.trim())}`
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: system }] },
-            contents: [{ role: 'user', parts: [{ text: `${modePrefix}${text}` }] }],
-            generationConfig: { maxOutputTokens: 1024 },
-          }),
-        })
-        const json = await res.json()
-        const reply = json.candidates?.[0]?.content?.parts?.[0]?.text
-        if (reply) {
-          setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
-          setLoading(false)
+        const contents: GeminiContent[] = history.map((m) => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.role === 'user' && m.content === text ? `${modePrefix}${text}` : m.content }],
+        }))
+        const callGemini = async (bodyContents: GeminiContent[]) => {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(settings.geminiApiKey.trim())}`
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: system }] },
+              contents: bodyContents,
+              generationConfig: { maxOutputTokens: 8192 },
+            }),
+          })
+          const json = await res.json() as {
+            error?: { message?: string }
+            candidates?: Array<{
+              finishReason?: string
+              content?: { parts?: Array<{ text?: string }> }
+            }>
+          }
+          const cand = json.candidates?.[0]
+          const reply = (cand?.content?.parts ?? []).map((p) => p.text ?? '').join('')
+          return { json, reply, finishReason: cand?.finishReason }
+        }
+
+        let { json, reply, finishReason } = await callGemini(contents)
+        if (json.error?.message && !reply) {
+          finish(`Error from Google Gemini API: ${json.error.message}`)
           return
         }
-        if (json.error?.message) {
-          setMessages((prev) => [...prev, { role: 'assistant', content: `Error from Google Gemini API: ${json.error.message}` }])
-          setLoading(false)
+        if (finishReason === 'MAX_TOKENS' && reply) {
+          const cont = await callGemini([
+            ...contents,
+            { role: 'model', parts: [{ text: reply }] },
+            { role: 'user', parts: [{ text: 'Continue exactly where you left off. Do not repeat.' }] },
+          ])
+          if (cont.reply) reply += cont.reply
+        }
+        if (reply.trim()) {
+          finish(reply)
           return
         }
       } catch { /* fallback */ }
     }
 
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { role: 'assistant', content: generateFallbackAiResponse(text, settings.riskProfile) }])
-      setLoading(false)
-    }, 400)
+    finish(generateFallbackAiResponse(text, settings.riskProfile))
   }
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { ALL_SYMBOLS } from '../constants/marketData'
 import { useSettings } from './SettingsContext'
-import { getApiBase } from '../utils/apiBase'
+import { getApiBase, resolveApiBase } from '../utils/apiBase'
 import { resolveSymbolAlias, getFallbackQuote, getFallbackMcap } from '../utils/symbolFallbacks'
 import { fmt, fmtChg, fmtMcap, chgDir } from '../utils/format'
 
@@ -51,7 +51,9 @@ const MarketContext = createContext<MarketContextType>({
   refreshKey: 0,
 })
 
-const API_BASE = getApiBase()
+function apiBase() {
+  return getApiBase()
+}
 
 const YF_CHART = 'https://query2.finance.yahoo.com/v8/finance/chart'
 const NATIVE_UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
@@ -65,7 +67,7 @@ function fetchWithTimeout(url: string, options: RequestInit = {}, ms = 15000): P
 async function fetchViaProxy(symbols: string[]): Promise<QuoteData[] | null> {
   try {
     const res = await fetchWithTimeout(
-      `${API_BASE}/api/market?symbols=${encodeURIComponent(symbols.join(','))}`,
+      `${apiBase()}/api/market?symbols=${encodeURIComponent(symbols.join(','))}`,
       {},
       15000
     )
@@ -253,7 +255,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   }, [scheduleRetry])
 
   useEffect(() => {
-    loadData()
+    void resolveApiBase().then(() => loadData())
     const interval = setInterval(loadData, refreshMs)
     return () => {
       clearInterval(interval)

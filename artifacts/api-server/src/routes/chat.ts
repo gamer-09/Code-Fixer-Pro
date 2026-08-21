@@ -228,7 +228,7 @@ router.post("/chat", async (req, res) => {
     system_instruction: { parts: [{ text: systemPrompt }] },
     contents: geminiContents,
     generationConfig: {
-      maxOutputTokens: 1024,
+      maxOutputTokens: 8192,
     },
   };
 
