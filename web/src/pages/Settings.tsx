@@ -27,7 +27,7 @@ export default function SettingsScreen() {
   const { settings, updateSetting, triggerClearChat, triggerClearWatchlist, triggerClearPortfolio, resetAllSettings } = useSettings()
 
   return (
-    <div className="page" style={{ maxWidth: 820 }}>
+    <div className="page" style={{ maxWidth: 720 }}>
       <Block title="Display">
         <SettingRow label="Theme" desc="Dark desk, light desk, or true black OLED">
           <OptionGroup

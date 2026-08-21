@@ -78,7 +78,7 @@ function QAItem({ q, a }: { q: string; a: string }) {
 export default function HelpScreen() {
   const [expanded, setExpanded] = useState<string | null>('gemini')
   return (
-    <div className="page" style={{ maxWidth: 860 }}>
+    <div className="page" style={{ maxWidth: 760 }}>
       <div className="help-hero">
         <div style={{ fontWeight: 800, color: 'var(--gain)', marginBottom: 8 }}>Quick start</div>
         <div style={{ color: 'var(--t2)', lineHeight: 1.65, fontSize: 14.5 }}>
