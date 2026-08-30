@@ -43,5 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true  # auto-enable Pages if not yet configured (avoids "Get Pages site failed / Not Found")
       - id: deployment
         uses: actions/deploy-pages@v4
